@@ -6,13 +6,13 @@ import '../../domain/entities/daily_sales.dart';
 import '../../domain/entities/product_report.dart';
 import '../../domain/entities/sales_summary.dart';
 import '../../domain/repositories/report_repository.dart';
-import '../datasources/report_local_datasource.dart';
+import '../datasources/report_remote_datasource.dart';
 
 /// Implementation of ReportRepository
 class ReportRepositoryImpl implements ReportRepository {
-  final ReportLocalDataSource _localDataSource;
+  final ReportRemoteDataSource _remoteDataSource;
 
-  ReportRepositoryImpl(this._localDataSource);
+  ReportRepositoryImpl(this._remoteDataSource);
 
   @override
   Future<Either<Failure, SalesSummary>> getSalesSummary({
@@ -20,7 +20,7 @@ class ReportRepositoryImpl implements ReportRepository {
     required DateTime to,
   }) async {
     try {
-      final result = await _localDataSource.getSalesSummary(
+      final result = await _remoteDataSource.getSalesSummary(
         from: from,
         to: to,
       );
@@ -41,7 +41,7 @@ class ReportRepositoryImpl implements ReportRepository {
     required int limit,
   }) async {
     try {
-      final result = await _localDataSource.getTopProducts(
+      final result = await _remoteDataSource.getTopProducts(
         from: from,
         to: to,
         sortBy: sortBy,
@@ -62,7 +62,7 @@ class ReportRepositoryImpl implements ReportRepository {
     required DateTime to,
   }) async {
     try {
-      final result = await _localDataSource.getDailySales(
+      final result = await _remoteDataSource.getDailySales(
         from: from,
         to: to,
       );

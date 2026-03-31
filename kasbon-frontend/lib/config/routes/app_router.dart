@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import '../../features/debt/presentation/screens/debt_list_screen.dart';
 import '../../features/dev_tools/presentation/screens/design_system_showcase_screen.dart';
@@ -30,6 +35,8 @@ import '../../shared/modern/modern.dart';
 class AppRoutes {
   AppRoutes._();
 
+  static const String login = '/login';
+  static const String register = '/register';
   static const String splash = '/';
   static const String dashboard = '/dashboard';
   static const String pos = '/pos';
@@ -57,6 +64,21 @@ class AppRoutes {
   static const String receipt = '/receipt/:transactionId';
 }
 
+/// Converts Supabase auth state stream into a ChangeNotifier for GoRouter.
+class GoRouterRefreshStream extends ChangeNotifier {
+  late final StreamSubscription<AuthState> _subscription;
+
+  GoRouterRefreshStream(Stream<AuthState> stream) {
+    _subscription = stream.listen((_) => notifyListeners());
+  }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
 /// Application router configuration using GoRouter
 class AppRouter {
   AppRouter._();
@@ -71,7 +93,42 @@ class AppRouter {
     navigatorKey: _rootNavigatorKey,
     initialLocation: AppRoutes.dashboard,
     debugLogDiagnostics: true,
+    refreshListenable: GoRouterRefreshStream(
+      Supabase.instance.client.auth.onAuthStateChange,
+    ),
+    redirect: (context, state) {
+      final session = Supabase.instance.client.auth.currentSession;
+      final isLoggedIn = session != null;
+      final isAuthRoute = state.uri.path == AppRoutes.login ||
+          state.uri.path == AppRoutes.register;
+
+      if (!isLoggedIn && !isAuthRoute) {
+        return AppRoutes.login;
+      }
+      if (isLoggedIn && isAuthRoute) {
+        return AppRoutes.dashboard;
+      }
+      return null;
+    },
     routes: [
+      // Auth routes (outside shell, no bottom nav)
+      GoRoute(
+        path: AppRoutes.login,
+        name: 'login',
+        pageBuilder: (context, state) => _buildPage(
+          state: state,
+          child: const LoginScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.register,
+        name: 'register',
+        pageBuilder: (context, state) => _buildPage(
+          state: state,
+          child: const RegisterScreen(),
+        ),
+      ),
+
       // Main navigation shell (bottom nav on mobile, sidebar on tablet)
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -111,7 +168,6 @@ class AppRouter {
               child: const ProductListScreen(),
             ),
             routes: [
-              // Product Add - /products/add
               GoRoute(
                 path: 'add',
                 name: 'product-add',
@@ -120,7 +176,6 @@ class AppRouter {
                   child: const ProductFormScreen(),
                 ),
               ),
-              // Product Detail - /products/:id
               GoRoute(
                 path: ':id',
                 name: 'product-detail',
@@ -132,7 +187,6 @@ class AppRouter {
                   );
                 },
                 routes: [
-                  // Product Edit - /products/:id/edit
                   GoRoute(
                     path: 'edit',
                     name: 'product-edit',
@@ -158,7 +212,6 @@ class AppRouter {
               child: const TransactionListScreen(),
             ),
             routes: [
-              // Transaction Detail - /transactions/:id
               GoRoute(
                 path: ':id',
                 name: 'transaction-detail',
@@ -182,7 +235,6 @@ class AppRouter {
               child: const ReportsHubScreen(),
             ),
             routes: [
-              // Sales Report - /reports/sales
               GoRoute(
                 path: 'sales',
                 name: 'reports-sales',
@@ -191,7 +243,6 @@ class AppRouter {
                   child: const SalesReportScreen(),
                 ),
               ),
-              // Product Report - /reports/products
               GoRoute(
                 path: 'products',
                 name: 'reports-products',
@@ -200,7 +251,6 @@ class AppRouter {
                   child: const ProductReportScreen(),
                 ),
               ),
-              // Profit Report - /reports/profit
               GoRoute(
                 path: 'profit',
                 name: 'reports-profit',
@@ -231,7 +281,6 @@ class AppRouter {
               child: const SettingsScreen(),
             ),
             routes: [
-              // Shop Profile - /settings/shop-profile
               GoRoute(
                 path: 'shop-profile',
                 name: 'settings-shop-profile',
@@ -240,7 +289,6 @@ class AppRouter {
                   child: const ShopProfileScreen(),
                 ),
               ),
-              // Receipt Settings - /settings/receipt
               GoRoute(
                 path: 'receipt',
                 name: 'settings-receipt',
@@ -249,7 +297,6 @@ class AppRouter {
                   child: const ReceiptSettingsScreen(),
                 ),
               ),
-              // App Settings - /settings/app
               GoRoute(
                 path: 'app',
                 name: 'settings-app',
@@ -258,7 +305,6 @@ class AppRouter {
                   child: const AppSettingsScreen(),
                 ),
               ),
-              // About - /settings/about
               GoRoute(
                 path: 'about',
                 name: 'settings-about',
@@ -267,7 +313,6 @@ class AppRouter {
                   child: const AboutScreen(),
                 ),
               ),
-              // Backup & Restore - /settings/backup
               GoRoute(
                 path: 'backup',
                 name: 'settings-backup',
@@ -292,7 +337,6 @@ class AppRouter {
       ),
 
       // Full-screen routes (outside shell)
-      // POS Success Screen
       GoRoute(
         path: AppRoutes.posSuccess,
         name: 'pos-success',
@@ -305,7 +349,6 @@ class AppRouter {
         },
       ),
 
-      // Dev Tools - Design System Showcase
       GoRoute(
         path: AppRoutes.designSystem,
         name: 'design-system',
@@ -315,7 +358,6 @@ class AppRouter {
         ),
       ),
 
-      // Dev Tools - Seed Data
       GoRoute(
         path: AppRoutes.devSeed,
         name: 'dev-seed',
@@ -325,7 +367,6 @@ class AppRouter {
         ),
       ),
 
-      // Receipt Screen - Full screen receipt view with sharing options
       GoRoute(
         path: AppRoutes.receipt,
         name: 'receipt',
@@ -337,7 +378,6 @@ class AppRouter {
           );
         },
       ),
-
     ],
 
     // Error handling
@@ -361,52 +401,6 @@ class AppRouter {
           child: child,
         );
       },
-    );
-  }
-}
-
-/// Placeholder screen for routes that are not yet implemented
-class _PlaceholderScreen extends StatelessWidget {
-  final String title;
-
-  const _PlaceholderScreen({required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: ModernAppBar.withActions(
-        title: title,
-        onNotificationTap: () {
-          // TODO: Navigate to notifications
-        },
-        onProfileTap: () {
-          // TODO: Navigate to profile
-        },
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.construction,
-              size: 64,
-              color: Colors.grey,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Halaman ini sedang dalam pengembangan',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey,
-                  ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

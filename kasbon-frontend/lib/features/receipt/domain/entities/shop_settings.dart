@@ -1,12 +1,9 @@
 import 'package:equatable/equatable.dart';
 
 /// ShopSettings entity representing store information for receipts
-///
-/// This is a minimal implementation for receipt generation.
-/// Full settings management will be implemented in TASK_013.
 class ShopSettings extends Equatable {
-  /// Unique identifier (always 1 for single-row settings)
-  final int id;
+  /// Unique identifier (UUID from Supabase)
+  final String id;
 
   /// Shop/store name
   final String name;
@@ -17,7 +14,7 @@ class ShopSettings extends Equatable {
   /// Shop phone number (optional)
   final String? phone;
 
-  /// Shop logo URL (optional, for future use)
+  /// Shop logo URL (optional)
   final String? logoUrl;
 
   /// Custom receipt header text (optional)
@@ -56,7 +53,7 @@ class ShopSettings extends Equatable {
   factory ShopSettings.defaultSettings() {
     final now = DateTime.now();
     return ShopSettings(
-      id: 1,
+      id: '',
       name: 'Toko Saya',
       currency: 'IDR',
       lowStockThreshold: 5,
@@ -67,7 +64,7 @@ class ShopSettings extends Equatable {
 
   /// Create a copy with updated fields
   ShopSettings copyWith({
-    int? id,
+    String? id,
     String? name,
     String? address,
     String? phone,

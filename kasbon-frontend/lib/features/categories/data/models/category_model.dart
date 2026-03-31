@@ -1,8 +1,7 @@
-import '../../../../core/constants/database_constants.dart';
 import '../../domain/entities/category.dart';
 
 /// Data Transfer Object for Category
-/// Handles conversion between SQLite Map and Category entity
+/// Handles conversion between Supabase JSON and Category entity
 class CategoryModel {
   final String id;
   final String name;
@@ -22,33 +21,27 @@ class CategoryModel {
     required this.updatedAt,
   });
 
-  /// Create CategoryModel from SQLite Map
-  factory CategoryModel.fromMap(Map<String, dynamic> map) {
+  /// Create CategoryModel from Supabase JSON
+  factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
-      id: map[DatabaseConstants.colId] as String,
-      name: map[DatabaseConstants.colName] as String,
-      color: map[DatabaseConstants.colColor] as String? ?? '#FF6B35',
-      icon: map[DatabaseConstants.colIcon] as String? ?? 'category',
-      sortOrder: map[DatabaseConstants.colSortOrder] as int? ?? 0,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(
-        map[DatabaseConstants.colCreatedAt] as int,
-      ),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(
-        map[DatabaseConstants.colUpdatedAt] as int,
-      ),
+      id: json['id'] as String,
+      name: json['name'] as String,
+      color: json['color'] as String? ?? '#FF6B35',
+      icon: json['icon'] as String? ?? 'category',
+      sortOrder: json['sort_order'] as int? ?? 0,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
-  /// Convert CategoryModel to SQLite Map
-  Map<String, dynamic> toMap() {
+  /// Convert CategoryModel to Supabase JSON
+  Map<String, dynamic> toJson() {
     return {
-      DatabaseConstants.colId: id,
-      DatabaseConstants.colName: name,
-      DatabaseConstants.colColor: color,
-      DatabaseConstants.colIcon: icon,
-      DatabaseConstants.colSortOrder: sortOrder,
-      DatabaseConstants.colCreatedAt: createdAt.millisecondsSinceEpoch,
-      DatabaseConstants.colUpdatedAt: updatedAt.millisecondsSinceEpoch,
+      'id': id,
+      'name': name,
+      'color': color,
+      'icon': icon,
+      'sort_order': sortOrder,
     };
   }
 

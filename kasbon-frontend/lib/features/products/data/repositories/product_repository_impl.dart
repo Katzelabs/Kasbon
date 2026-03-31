@@ -6,19 +6,19 @@ import '../../../../core/errors/failures.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_filter.dart';
 import '../../domain/repositories/product_repository.dart';
-import '../datasources/product_local_datasource.dart';
+import '../datasources/product_remote_datasource.dart';
 import '../models/product_model.dart';
 
 /// Implementation of ProductRepository
 class ProductRepositoryImpl implements ProductRepository {
-  final ProductLocalDataSource _localDataSource;
+  final ProductRemoteDataSource _remoteDataSource;
 
-  ProductRepositoryImpl(this._localDataSource);
+  ProductRepositoryImpl(this._remoteDataSource);
 
   @override
   Future<Either<Failure, List<Product>>> getAllProducts() async {
     try {
-      final models = await _localDataSource.getAllProducts();
+      final models = await _remoteDataSource.getAllProducts();
       return Right(models.map((m) => m.toEntity()).toList());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
@@ -30,7 +30,7 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<Either<Failure, Product>> getProductById(String id) async {
     try {
-      final model = await _localDataSource.getProductById(id);
+      final model = await _remoteDataSource.getProductById(id);
       return Right(model.toEntity());
     } on NotFoundException catch (e) {
       return Left(NotFoundFailure(message: e.message));
@@ -44,7 +44,7 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<Either<Failure, List<Product>>> searchProducts(String query) async {
     try {
-      final models = await _localDataSource.searchProducts(query);
+      final models = await _remoteDataSource.searchProducts(query);
       return Right(models.map((m) => m.toEntity()).toList());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
@@ -57,7 +57,7 @@ class ProductRepositoryImpl implements ProductRepository {
   Future<Either<Failure, Product>> createProduct(Product product) async {
     try {
       final model = ProductModel.fromEntity(product);
-      final result = await _localDataSource.createProduct(model);
+      final result = await _remoteDataSource.createProduct(model);
       return Right(result.toEntity());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
@@ -70,7 +70,7 @@ class ProductRepositoryImpl implements ProductRepository {
   Future<Either<Failure, Product>> updateProduct(Product product) async {
     try {
       final model = ProductModel.fromEntity(product);
-      final result = await _localDataSource.updateProduct(model);
+      final result = await _remoteDataSource.updateProduct(model);
       return Right(result.toEntity());
     } on NotFoundException catch (e) {
       return Left(NotFoundFailure(message: e.message));
@@ -84,7 +84,7 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<Either<Failure, Unit>> deleteProduct(String id) async {
     try {
-      await _localDataSource.deleteProduct(id);
+      await _remoteDataSource.deleteProduct(id);
       return const Right(unit);
     } on NotFoundException catch (e) {
       return Left(NotFoundFailure(message: e.message));
@@ -98,7 +98,7 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<Either<Failure, List<Product>>> getLowStockProducts() async {
     try {
-      final models = await _localDataSource.getLowStockProducts();
+      final models = await _remoteDataSource.getLowStockProducts();
       return Right(models.map((m) => m.toEntity()).toList());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
@@ -111,7 +111,7 @@ class ProductRepositoryImpl implements ProductRepository {
   Future<Either<Failure, List<Product>>> getProductsByCategory(
       String categoryId) async {
     try {
-      final models = await _localDataSource.getProductsByCategory(categoryId);
+      final models = await _remoteDataSource.getProductsByCategory(categoryId);
       return Right(models.map((m) => m.toEntity()).toList());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
@@ -124,15 +124,13 @@ class ProductRepositoryImpl implements ProductRepository {
   Future<Either<Failure, PaginatedResult<Product>>> getProductsPaginated(
       ProductFilter filter) async {
     try {
-      // Get total count for pagination metadata
-      final totalCount = await _localDataSource.getProductsCount(
+      final totalCount = await _remoteDataSource.getProductsCount(
         searchQuery: filter.searchQuery,
         categoryId: filter.categoryId,
         stockFilter: filter.stockFilter,
       );
 
-      // Get paginated items
-      final models = await _localDataSource.getProductsPaginated(
+      final models = await _remoteDataSource.getProductsPaginated(
         searchQuery: filter.searchQuery,
         categoryId: filter.categoryId,
         stockFilter: filter.stockFilter,

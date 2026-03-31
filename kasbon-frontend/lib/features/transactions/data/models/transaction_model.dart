@@ -1,9 +1,8 @@
-import '../../../../core/constants/database_constants.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/transaction_item.dart';
 
 /// Data Transfer Object for Transaction
-/// Handles conversion between SQLite Map and Transaction entity
+/// Handles conversion between Supabase JSON and Transaction entity
 class TransactionModel {
   final String id;
   final String transactionNumber;
@@ -45,66 +44,56 @@ class TransactionModel {
     required this.updatedAt,
   });
 
-  /// Create TransactionModel from SQLite Map
-  factory TransactionModel.fromMap(Map<String, dynamic> map) {
+  /// Create TransactionModel from Supabase JSON
+  factory TransactionModel.fromJson(Map<String, dynamic> json) {
     return TransactionModel(
-      id: map[DatabaseConstants.colId] as String,
-      transactionNumber: map[DatabaseConstants.colTransactionNumber] as String,
-      customerName: map[DatabaseConstants.colCustomerName] as String?,
-      subtotal: (map[DatabaseConstants.colSubtotal] as num).toDouble(),
-      discountAmount: (map[DatabaseConstants.colDiscountAmount] as num?)?.toDouble() ?? 0,
-      discountPercentage: (map[DatabaseConstants.colDiscountPercentage] as num?)?.toDouble() ?? 0,
-      taxAmount: (map[DatabaseConstants.colTaxAmount] as num?)?.toDouble() ?? 0,
-      total: (map[DatabaseConstants.colTotal] as num).toDouble(),
-      paymentMethod: map[DatabaseConstants.colPaymentMethod] as String,
-      paymentStatus: map[DatabaseConstants.colPaymentStatus] as String,
-      cashReceived: (map[DatabaseConstants.colCashReceived] as num?)?.toDouble(),
-      cashChange: (map[DatabaseConstants.colCashChange] as num?)?.toDouble(),
-      notes: map[DatabaseConstants.colNotes] as String?,
-      cashierName: map[DatabaseConstants.colCashierName] as String?,
-      transactionDate: DateTime.fromMillisecondsSinceEpoch(
-        map[DatabaseConstants.colTransactionDate] as int,
-      ),
-      debtPaidAt: map[DatabaseConstants.colDebtPaidAt] != null
-          ? DateTime.fromMillisecondsSinceEpoch(
-              map[DatabaseConstants.colDebtPaidAt] as int,
-            )
+      id: json['id'] as String,
+      transactionNumber: json['transaction_number'] as String,
+      customerName: json['customer_name'] as String?,
+      subtotal: (json['subtotal'] as num).toDouble(),
+      discountAmount:
+          (json['discount_amount'] as num?)?.toDouble() ?? 0,
+      discountPercentage:
+          (json['discount_percentage'] as num?)?.toDouble() ?? 0,
+      taxAmount: (json['tax_amount'] as num?)?.toDouble() ?? 0,
+      total: (json['total'] as num).toDouble(),
+      paymentMethod: json['payment_method'] as String,
+      paymentStatus: json['payment_status'] as String,
+      cashReceived: (json['cash_received'] as num?)?.toDouble(),
+      cashChange: (json['cash_change'] as num?)?.toDouble(),
+      notes: json['notes'] as String?,
+      cashierName: json['cashier_name'] as String?,
+      transactionDate: DateTime.parse(json['transaction_date'] as String),
+      debtPaidAt: json['debt_paid_at'] != null
+          ? DateTime.parse(json['debt_paid_at'] as String)
           : null,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(
-        map[DatabaseConstants.colCreatedAt] as int,
-      ),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(
-        map[DatabaseConstants.colUpdatedAt] as int,
-      ),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
-  /// Convert TransactionModel to SQLite Map
-  Map<String, dynamic> toMap() {
+  /// Convert TransactionModel to Supabase JSON
+  Map<String, dynamic> toJson() {
     return {
-      DatabaseConstants.colId: id,
-      DatabaseConstants.colTransactionNumber: transactionNumber,
-      DatabaseConstants.colCustomerName: customerName,
-      DatabaseConstants.colSubtotal: subtotal,
-      DatabaseConstants.colDiscountAmount: discountAmount,
-      DatabaseConstants.colDiscountPercentage: discountPercentage,
-      DatabaseConstants.colTaxAmount: taxAmount,
-      DatabaseConstants.colTotal: total,
-      DatabaseConstants.colPaymentMethod: paymentMethod,
-      DatabaseConstants.colPaymentStatus: paymentStatus,
-      DatabaseConstants.colCashReceived: cashReceived,
-      DatabaseConstants.colCashChange: cashChange,
-      DatabaseConstants.colNotes: notes,
-      DatabaseConstants.colCashierName: cashierName,
-      DatabaseConstants.colTransactionDate: transactionDate.millisecondsSinceEpoch,
-      DatabaseConstants.colDebtPaidAt: debtPaidAt?.millisecondsSinceEpoch,
-      DatabaseConstants.colCreatedAt: createdAt.millisecondsSinceEpoch,
-      DatabaseConstants.colUpdatedAt: updatedAt.millisecondsSinceEpoch,
+      'transaction_number': transactionNumber,
+      'customer_name': customerName,
+      'subtotal': subtotal,
+      'discount_amount': discountAmount,
+      'discount_percentage': discountPercentage,
+      'tax_amount': taxAmount,
+      'total': total,
+      'payment_method': paymentMethod,
+      'payment_status': paymentStatus,
+      'cash_received': cashReceived,
+      'cash_change': cashChange,
+      'notes': notes,
+      'cashier_name': cashierName,
+      'transaction_date': transactionDate.toIso8601String(),
+      'debt_paid_at': debtPaidAt?.toIso8601String(),
     };
   }
 
   /// Convert TransactionModel to Transaction entity
-  /// Optionally include transaction items
   Transaction toEntity({List<TransactionItem> items = const []}) {
     return Transaction(
       id: id,

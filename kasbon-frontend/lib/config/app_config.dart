@@ -1,17 +1,10 @@
-/// Application configuration using compile-time flags.
+/// Application configuration for Supabase-backed KASBON POS.
 ///
 /// Build commands:
-/// - Local mode (default): flutter build apk
-/// - Supabase mode: flutter build apk --dart-define=APP_MODE=supabase
-///     --dart-define=SUPABASE_URL=https://xxx.supabase.co
-///     --dart-define=SUPABASE_ANON_KEY=your-key
+///   flutter run --dart-define=SUPABASE_URL=http://127.0.0.1:54321 --dart-define=SUPABASE_ANON_KEY=...
+///   flutter build apk --dart-define=SUPABASE_URL=https://xxx.supabase.co --dart-define=SUPABASE_ANON_KEY=...
 class AppConfig {
   AppConfig._();
-
-  static const String appMode = String.fromEnvironment(
-    'APP_MODE',
-    defaultValue: 'local',
-  );
 
   static const String supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',
@@ -23,11 +16,6 @@ class AppConfig {
     defaultValue: '',
   );
 
-  static bool get isLocalMode => appMode != 'supabase';
-  static bool get isSupabaseMode => appMode == 'supabase';
-
-  static bool get isSupabaseConfigValid =>
-      isLocalMode || (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty);
-
-  static String get modeLabel => isSupabaseMode ? 'Cloud (Supabase)' : 'Lokal';
+  static bool get isConfigValid =>
+      supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 }

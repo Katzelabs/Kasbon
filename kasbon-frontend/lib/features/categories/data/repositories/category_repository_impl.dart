@@ -4,18 +4,18 @@ import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/repositories/category_repository.dart';
-import '../datasources/category_local_datasource.dart';
+import '../datasources/category_remote_datasource.dart';
 
 /// Implementation of CategoryRepository
 class CategoryRepositoryImpl implements CategoryRepository {
-  final CategoryLocalDataSource _localDataSource;
+  final CategoryRemoteDataSource _remoteDataSource;
 
-  CategoryRepositoryImpl(this._localDataSource);
+  CategoryRepositoryImpl(this._remoteDataSource);
 
   @override
   Future<Either<Failure, List<Category>>> getAllCategories() async {
     try {
-      final models = await _localDataSource.getAllCategories();
+      final models = await _remoteDataSource.getAllCategories();
       return Right(models.map((m) => m.toEntity()).toList());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
@@ -27,7 +27,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
   @override
   Future<Either<Failure, Category>> getCategoryById(String id) async {
     try {
-      final model = await _localDataSource.getCategoryById(id);
+      final model = await _remoteDataSource.getCategoryById(id);
       return Right(model.toEntity());
     } on NotFoundException catch (e) {
       return Left(NotFoundFailure(message: e.message));

@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
 
-import '../../../../core/constants/database_constants.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../../transactions/domain/entities/transaction.dart';
@@ -17,7 +16,7 @@ class MarkDebtPaid implements UseCase<Transaction, MarkDebtPaidParams> {
   Future<Either<Failure, Transaction>> call(MarkDebtPaidParams params) async {
     return _repository.updateTransaction(
       params.transactionId,
-      paymentStatus: DatabaseConstants.paymentStatusPaid,
+      paymentStatus: 'paid',
       debtPaidAt: DateTime.now(),
     );
   }

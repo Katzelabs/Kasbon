@@ -67,36 +67,20 @@ class BackupRepositoryImpl implements BackupRepository {
     String filePath, {
     RestoreProgressCallback? onProgress,
   }) async {
-    try {
-      // Read file content
-      final jsonContent = await FileService.readFile(filePath);
-
-      // Import data
-      await _backupService.importFromJson(
-        jsonContent,
-        onProgress: onProgress,
-      );
-
-      return const Right(null);
-    } on BackupException catch (e) {
-      return Left(BackupFailure(message: e.message, code: e.code));
-    } on FileException catch (e) {
-      return Left(FileFailure(message: e.message, code: e.code));
-    } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
-    }
+    // Restore is not supported in Supabase-only mode.
+    // Data lives in the cloud and is managed server-side.
+    return const Left(BackupFailure(
+      message: 'Restore tidak didukung. Data tersimpan di cloud.',
+      code: 'RESTORE_NOT_SUPPORTED',
+    ));
   }
 
   @override
   Future<Either<Failure, BackupInfo>> getBackupInfo(String filePath) async {
     try {
-      // Read file content
       final jsonContent = await FileService.readFile(filePath);
-
-      // Parse metadata
       final metadataDto = _backupService.parseBackupInfo(jsonContent);
 
-      // Build BackupInfo entity
       final info = BackupInfo(
         backupDate: DateTime.parse(metadataDto.backupDate),
         appVersion: metadataDto.appVersion,
@@ -124,7 +108,6 @@ class BackupRepositoryImpl implements BackupRepository {
         return const Right(null);
       }
 
-      // Read and parse the file
       final jsonContent = await FileService.readFile(lastFile.path);
       final metadataDto = _backupService.parseBackupInfo(jsonContent);
       final fileSize = await FileService.getFileSize(lastFile.path);
@@ -176,13 +159,10 @@ class BackupRepositoryImpl implements BackupRepository {
   Future<Either<Failure, void>> clearAllData({
     RestoreProgressCallback? onProgress,
   }) async {
-    try {
-      await _backupService.clearAllData(onProgress: onProgress);
-      return const Right(null);
-    } on BackupException catch (e) {
-      return Left(BackupFailure(message: e.message, code: e.code));
-    } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
-    }
+    // Clear all data is not supported in Supabase-only mode.
+    return const Left(BackupFailure(
+      message: 'Hapus semua data tidak didukung di mode cloud.',
+      code: 'CLEAR_NOT_SUPPORTED',
+    ));
   }
 }

@@ -1,39 +1,38 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kasbon_pos/features/products/data/models/product_model.dart';
 import 'package:kasbon_pos/features/products/domain/entities/product.dart';
-import 'package:kasbon_pos/core/constants/database_constants.dart';
 
 import '../../../../../fixtures/mock_data.dart';
 
 void main() {
   group('ProductModel', () {
     late DateTime fixedDate;
-    late Map<String, dynamic> validMap;
+    late Map<String, dynamic> validJson;
 
     setUp(() {
       fixedDate = DateTime(2026, 1, 26, 14, 30);
-      validMap = {
-        DatabaseConstants.colId: 'prod-1',
-        DatabaseConstants.colCategoryId: 'cat-1',
-        DatabaseConstants.colSku: 'SKU-12345',
-        DatabaseConstants.colName: 'Test Product',
-        DatabaseConstants.colDescription: 'Test description',
-        DatabaseConstants.colBarcode: '1234567890123',
-        DatabaseConstants.colCostPrice: 10000.0,
-        DatabaseConstants.colSellingPrice: 15000.0,
-        DatabaseConstants.colStock: 100,
-        DatabaseConstants.colMinStock: 5,
-        DatabaseConstants.colUnit: 'pcs',
-        DatabaseConstants.colImageUrl: 'https://example.com/image.jpg',
-        DatabaseConstants.colIsActive: 1,
-        DatabaseConstants.colCreatedAt: fixedDate.millisecondsSinceEpoch,
-        DatabaseConstants.colUpdatedAt: fixedDate.millisecondsSinceEpoch,
+      validJson = {
+        'id': 'prod-1',
+        'category_id': 'cat-1',
+        'sku': 'SKU-12345',
+        'name': 'Test Product',
+        'description': 'Test description',
+        'barcode': '1234567890123',
+        'cost_price': 10000.0,
+        'selling_price': 15000.0,
+        'stock': 100,
+        'min_stock': 5,
+        'unit': 'pcs',
+        'image_url': 'https://example.com/image.jpg',
+        'is_active': true,
+        'created_at': fixedDate.toIso8601String(),
+        'updated_at': fixedDate.toIso8601String(),
       };
     });
 
-    group('fromMap', () {
-      test('creates model from valid map', () {
-        final model = ProductModel.fromMap(validMap);
+    group('fromJson', () {
+      test('creates model from valid JSON', () {
+        final model = ProductModel.fromJson(validJson);
 
         expect(model.id, 'prod-1');
         expect(model.categoryId, 'cat-1');
@@ -53,15 +52,15 @@ void main() {
       });
 
       test('handles null optional fields', () {
-        final mapWithNulls = {
-          ...validMap,
-          DatabaseConstants.colCategoryId: null,
-          DatabaseConstants.colDescription: null,
-          DatabaseConstants.colBarcode: null,
-          DatabaseConstants.colImageUrl: null,
+        final jsonWithNulls = {
+          ...validJson,
+          'category_id': null,
+          'description': null,
+          'barcode': null,
+          'image_url': null,
         };
 
-        final model = ProductModel.fromMap(mapWithNulls);
+        final model = ProductModel.fromJson(jsonWithNulls);
 
         expect(model.categoryId, null);
         expect(model.description, null);
@@ -69,31 +68,49 @@ void main() {
         expect(model.imageUrl, null);
       });
 
-      test('converts isActive from int (0) to bool (false)', () {
-        final mapInactive = {
-          ...validMap,
-          DatabaseConstants.colIsActive: 0,
+      test('handles isActive as false', () {
+        final jsonInactive = {
+          ...validJson,
+          'is_active': false,
         };
 
-        final model = ProductModel.fromMap(mapInactive);
+        final model = ProductModel.fromJson(jsonInactive);
         expect(model.isActive, false);
       });
 
       test('converts integer price to double', () {
-        final mapIntPrices = {
-          ...validMap,
-          DatabaseConstants.colCostPrice: 10000,
-          DatabaseConstants.colSellingPrice: 15000,
+        final jsonIntPrices = {
+          ...validJson,
+          'cost_price': 10000,
+          'selling_price': 15000,
         };
 
-        final model = ProductModel.fromMap(mapIntPrices);
+        final model = ProductModel.fromJson(jsonIntPrices);
         expect(model.costPrice, 10000.0);
         expect(model.sellingPrice, 15000.0);
       });
+
+      test('uses defaults for missing optional fields', () {
+        final minimalJson = {
+          'id': 'prod-1',
+          'sku': 'SKU-12345',
+          'name': 'Test Product',
+          'cost_price': 10000.0,
+          'selling_price': 15000.0,
+          'stock': 100,
+          'created_at': fixedDate.toIso8601String(),
+          'updated_at': fixedDate.toIso8601String(),
+        };
+
+        final model = ProductModel.fromJson(minimalJson);
+        expect(model.minStock, 5); // default
+        expect(model.unit, 'pcs'); // default
+        expect(model.isActive, true); // default
+      });
     });
 
-    group('toMap', () {
-      test('converts model to map with correct keys', () {
+    group('toJson', () {
+      test('converts model to JSON with correct keys', () {
         final model = ProductModel(
           id: 'prod-1',
           categoryId: 'cat-1',
@@ -112,42 +129,21 @@ void main() {
           updatedAt: fixedDate,
         );
 
-        final map = model.toMap();
+        final json = model.toJson();
 
-        expect(map[DatabaseConstants.colId], 'prod-1');
-        expect(map[DatabaseConstants.colCategoryId], 'cat-1');
-        expect(map[DatabaseConstants.colSku], 'SKU-12345');
-        expect(map[DatabaseConstants.colName], 'Test Product');
-        expect(map[DatabaseConstants.colDescription], 'Test description');
-        expect(map[DatabaseConstants.colBarcode], '1234567890123');
-        expect(map[DatabaseConstants.colCostPrice], 10000.0);
-        expect(map[DatabaseConstants.colSellingPrice], 15000.0);
-        expect(map[DatabaseConstants.colStock], 100);
-        expect(map[DatabaseConstants.colMinStock], 5);
-        expect(map[DatabaseConstants.colUnit], 'pcs');
-        expect(map[DatabaseConstants.colImageUrl], 'https://example.com/image.jpg');
-        expect(map[DatabaseConstants.colIsActive], 1);
-        expect(map[DatabaseConstants.colCreatedAt], fixedDate.millisecondsSinceEpoch);
-        expect(map[DatabaseConstants.colUpdatedAt], fixedDate.millisecondsSinceEpoch);
-      });
-
-      test('converts isActive false to 0', () {
-        final model = ProductModel(
-          id: 'prod-1',
-          sku: 'SKU-12345',
-          name: 'Test Product',
-          costPrice: 10000.0,
-          sellingPrice: 15000.0,
-          stock: 100,
-          minStock: 5,
-          unit: 'pcs',
-          isActive: false,
-          createdAt: fixedDate,
-          updatedAt: fixedDate,
-        );
-
-        final map = model.toMap();
-        expect(map[DatabaseConstants.colIsActive], 0);
+        expect(json['id'], 'prod-1');
+        expect(json['category_id'], 'cat-1');
+        expect(json['sku'], 'SKU-12345');
+        expect(json['name'], 'Test Product');
+        expect(json['description'], 'Test description');
+        expect(json['barcode'], '1234567890123');
+        expect(json['cost_price'], 10000.0);
+        expect(json['selling_price'], 15000.0);
+        expect(json['stock'], 100);
+        expect(json['min_stock'], 5);
+        expect(json['unit'], 'pcs');
+        expect(json['image_url'], 'https://example.com/image.jpg');
+        expect(json['is_active'], true);
       });
 
       test('includes null values for optional fields', () {
@@ -169,18 +165,18 @@ void main() {
           updatedAt: fixedDate,
         );
 
-        final map = model.toMap();
-        expect(map.containsKey(DatabaseConstants.colCategoryId), true);
-        expect(map[DatabaseConstants.colCategoryId], null);
-        expect(map[DatabaseConstants.colDescription], null);
-        expect(map[DatabaseConstants.colBarcode], null);
-        expect(map[DatabaseConstants.colImageUrl], null);
+        final json = model.toJson();
+        expect(json.containsKey('category_id'), true);
+        expect(json['category_id'], null);
+        expect(json['description'], null);
+        expect(json['barcode'], null);
+        expect(json['image_url'], null);
       });
     });
 
     group('toEntity', () {
       test('converts model to Product entity', () {
-        final model = ProductModel.fromMap(validMap);
+        final model = ProductModel.fromJson(validJson);
         final entity = model.toEntity();
 
         expect(entity, isA<Product>());
@@ -308,20 +304,20 @@ void main() {
         expect(roundtripEntity.updatedAt, originalEntity.updatedAt);
       });
 
-      test('map -> model -> map preserves all values', () {
-        final originalMap = Map<String, dynamic>.from(validMap);
+      test('json -> model -> json preserves all values', () {
+        final originalJson = Map<String, dynamic>.from(validJson);
 
-        final model = ProductModel.fromMap(originalMap);
-        final roundtripMap = model.toMap();
+        final model = ProductModel.fromJson(originalJson);
+        final roundtripJson = model.toJson();
 
-        expect(roundtripMap[DatabaseConstants.colId], originalMap[DatabaseConstants.colId]);
-        expect(roundtripMap[DatabaseConstants.colCategoryId], originalMap[DatabaseConstants.colCategoryId]);
-        expect(roundtripMap[DatabaseConstants.colSku], originalMap[DatabaseConstants.colSku]);
-        expect(roundtripMap[DatabaseConstants.colName], originalMap[DatabaseConstants.colName]);
-        expect(roundtripMap[DatabaseConstants.colCostPrice], originalMap[DatabaseConstants.colCostPrice]);
-        expect(roundtripMap[DatabaseConstants.colSellingPrice], originalMap[DatabaseConstants.colSellingPrice]);
-        expect(roundtripMap[DatabaseConstants.colStock], originalMap[DatabaseConstants.colStock]);
-        expect(roundtripMap[DatabaseConstants.colIsActive], originalMap[DatabaseConstants.colIsActive]);
+        expect(roundtripJson['id'], originalJson['id']);
+        expect(roundtripJson['category_id'], originalJson['category_id']);
+        expect(roundtripJson['sku'], originalJson['sku']);
+        expect(roundtripJson['name'], originalJson['name']);
+        expect(roundtripJson['cost_price'], originalJson['cost_price']);
+        expect(roundtripJson['selling_price'], originalJson['selling_price']);
+        expect(roundtripJson['stock'], originalJson['stock']);
+        expect(roundtripJson['is_active'], originalJson['is_active']);
       });
     });
   });

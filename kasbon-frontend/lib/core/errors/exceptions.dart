@@ -77,3 +77,21 @@ class ImageStorageException extends AppException {
     super.originalError,
   });
 }
+
+/// Exception for authentication operations
+class AuthException extends AppException {
+  const AuthException({
+    required super.message,
+    super.code,
+    super.originalError,
+  });
+}
+
+/// Exception for network operations
+class NetworkException extends AppException {
+  const NetworkException({
+    required super.message,
+    super.code,
+    super.originalError,
+  });
+}

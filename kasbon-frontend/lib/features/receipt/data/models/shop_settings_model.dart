@@ -1,8 +1,6 @@
 import '../../domain/entities/shop_settings.dart';
 
-/// Data model for ShopSettings with SQLite serialization
-///
-/// Handles conversion between SQLite map format and entity.
+/// Data model for ShopSettings with Supabase JSON serialization
 class ShopSettingsModel extends ShopSettings {
   const ShopSettingsModel({
     required super.id,
@@ -18,27 +16,26 @@ class ShopSettingsModel extends ShopSettings {
     required super.updatedAt,
   });
 
-  /// Create from SQLite map
-  factory ShopSettingsModel.fromMap(Map<String, dynamic> map) {
+  /// Create from Supabase JSON
+  factory ShopSettingsModel.fromJson(Map<String, dynamic> json) {
     return ShopSettingsModel(
-      id: map['id'] as int,
-      name: map['name'] as String,
-      address: map['address'] as String?,
-      phone: map['phone'] as String?,
-      logoUrl: map['logo_url'] as String?,
-      receiptHeader: map['receipt_header'] as String?,
-      receiptFooter: map['receipt_footer'] as String?,
-      currency: map['currency'] as String? ?? 'IDR',
-      lowStockThreshold: map['low_stock_threshold'] as int? ?? 5,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updated_at'] as int),
+      id: json['id'] as String,
+      name: json['name'] as String,
+      address: json['address'] as String?,
+      phone: json['phone'] as String?,
+      logoUrl: json['logo_url'] as String?,
+      receiptHeader: json['receipt_header'] as String?,
+      receiptFooter: json['receipt_footer'] as String?,
+      currency: json['currency'] as String? ?? 'IDR',
+      lowStockThreshold: json['low_stock_threshold'] as int? ?? 5,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
-  /// Convert to SQLite map
-  Map<String, dynamic> toMap() {
+  /// Convert to Supabase JSON
+  Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'name': name,
       'address': address,
       'phone': phone,
@@ -47,8 +44,6 @@ class ShopSettingsModel extends ShopSettings {
       'receipt_footer': receiptFooter,
       'currency': currency,
       'low_stock_threshold': lowStockThreshold,
-      'created_at': createdAt.millisecondsSinceEpoch,
-      'updated_at': updatedAt.millisecondsSinceEpoch,
     };
   }
 

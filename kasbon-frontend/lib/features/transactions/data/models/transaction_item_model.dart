@@ -1,8 +1,7 @@
-import '../../../../core/constants/database_constants.dart';
 import '../../domain/entities/transaction_item.dart';
 
 /// Data Transfer Object for TransactionItem
-/// Handles conversion between SQLite Map and TransactionItem entity
+/// Handles conversion between Supabase JSON and TransactionItem entity
 class TransactionItemModel {
   final String id;
   final String transactionId;
@@ -30,39 +29,35 @@ class TransactionItemModel {
     required this.createdAt,
   });
 
-  /// Create TransactionItemModel from SQLite Map
-  factory TransactionItemModel.fromMap(Map<String, dynamic> map) {
+  /// Create TransactionItemModel from Supabase JSON
+  factory TransactionItemModel.fromJson(Map<String, dynamic> json) {
     return TransactionItemModel(
-      id: map[DatabaseConstants.colId] as String,
-      transactionId: map[DatabaseConstants.colTransactionId] as String,
-      productId: map[DatabaseConstants.colProductId] as String,
-      productName: map[DatabaseConstants.colProductName] as String,
-      productSku: map[DatabaseConstants.colProductSku] as String,
-      quantity: map[DatabaseConstants.colQuantity] as int,
-      costPrice: (map[DatabaseConstants.colCostPrice] as num).toDouble(),
-      sellingPrice: (map[DatabaseConstants.colSellingPrice] as num).toDouble(),
-      discountAmount: (map[DatabaseConstants.colDiscountAmount] as num?)?.toDouble() ?? 0,
-      subtotal: (map[DatabaseConstants.colSubtotal] as num).toDouble(),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(
-        map[DatabaseConstants.colCreatedAt] as int,
-      ),
+      id: json['id'] as String,
+      transactionId: json['transaction_id'] as String,
+      productId: json['product_id'] as String,
+      productName: json['product_name'] as String,
+      productSku: json['product_sku'] as String,
+      quantity: json['quantity'] as int,
+      costPrice: (json['cost_price'] as num).toDouble(),
+      sellingPrice: (json['selling_price'] as num).toDouble(),
+      discountAmount: (json['discount_amount'] as num?)?.toDouble() ?? 0,
+      subtotal: (json['subtotal'] as num).toDouble(),
+      createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
 
-  /// Convert TransactionItemModel to SQLite Map
-  Map<String, dynamic> toMap() {
+  /// Convert TransactionItemModel to Supabase JSON (for insert)
+  Map<String, dynamic> toJson() {
     return {
-      DatabaseConstants.colId: id,
-      DatabaseConstants.colTransactionId: transactionId,
-      DatabaseConstants.colProductId: productId,
-      DatabaseConstants.colProductName: productName,
-      DatabaseConstants.colProductSku: productSku,
-      DatabaseConstants.colQuantity: quantity,
-      DatabaseConstants.colCostPrice: costPrice,
-      DatabaseConstants.colSellingPrice: sellingPrice,
-      DatabaseConstants.colDiscountAmount: discountAmount,
-      DatabaseConstants.colSubtotal: subtotal,
-      DatabaseConstants.colCreatedAt: createdAt.millisecondsSinceEpoch,
+      'transaction_id': transactionId,
+      'product_id': productId,
+      'product_name': productName,
+      'product_sku': productSku,
+      'quantity': quantity,
+      'cost_price': costPrice,
+      'selling_price': sellingPrice,
+      'discount_amount': discountAmount,
+      'subtotal': subtotal,
     };
   }
 

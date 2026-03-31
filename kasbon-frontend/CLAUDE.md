@@ -4,25 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-KASBON POS Flutter frontend - offline-first POS app for Indonesian UMKM with dual-mode architecture (local SQLite default, optional Supabase cloud sync). See `../CLAUDE.md` for full project context including database schema, feature priorities, and development phases.
+KASBON POS Flutter frontend - cloud-based POS app for Indonesian UMKM powered by Supabase. Requires authentication (email/password). All data stored in Supabase with Row Level Security. See `../CLAUDE.md` for full project context including database schema and RPC functions.
 
 ## Development Commands
 
 ```bash
-# Local mode (default)
 flutter pub get              # Install dependencies
-flutter run                  # Run app (local mode)
+flutter run \
+  --dart-define=SUPABASE_URL=http://127.0.0.1:54321 \
+  --dart-define=SUPABASE_ANON_KEY=your-local-anon-key
 flutter analyze              # Analyze code for issues
 flutter test                 # Run all tests
 flutter test test/path/      # Run specific test
 dart run build_runner build  # Generate code (freezed, riverpod, json)
 dart format lib/             # Format code
-flutter build apk            # Build Android APK (local mode)
-flutter build appbundle      # Build Android App Bundle (local mode)
 
-# Supabase mode (opt-in)
-flutter run --dart-define=APP_MODE=supabase --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
-flutter build apk --dart-define=APP_MODE=supabase --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...
+# Production build
+flutter build apk \
+  --dart-define=SUPABASE_URL=https://xxx.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ## Architecture
@@ -31,22 +31,22 @@ flutter build apk --dart-define=APP_MODE=supabase --dart-define=SUPABASE_URL=...
 
 ```
 lib/
-├── main.dart                     # App entry, DI init, ProviderScope
+├── main.dart                     # Supabase.initialize(), DI init, ProviderScope
 ├── core/                         # Shared infrastructure
-│   ├── constants/                # App & database constants
-│   ├── errors/                   # Failure classes (DatabaseFailure, etc.)
+│   ├── constants/                # App constants
+│   ├── errors/                   # Failure classes (AuthFailure, NetworkFailure, etc.)
+│   ├── services/                 # SupabaseClientProvider, BackupService, ImageStorage
 │   ├── usecase/                  # Base UseCase<T, Params> class
 │   └── utils/                    # Currency/date formatters, validators
 ├── config/
-│   ├── app_config.dart           # Dual-mode config (local/supabase)
-│   ├── database/                 # DatabaseHelper, migrations, schema
+│   ├── app_config.dart           # Supabase URL & anon key (from dart-define)
 │   ├── di/injection.dart         # GetIt service locator setup
-│   ├── routes/app_router.dart    # GoRouter with ShellRoute navigation
+│   ├── routes/app_router.dart    # GoRouter with auth redirect
 │   └── theme/                    # AppColors, AppTextStyles, AppTheme
 ├── features/<feature>/           # Feature modules
 │   ├── data/
-│   │   ├── datasources/          # LocalDataSource implementations
-│   │   ├── models/               # DTOs (toMap/fromMap for SQLite)
+│   │   ├── datasources/          # Remote Supabase datasources
+│   │   ├── models/               # DTOs (fromJson/toJson for Supabase)
 │   │   └── repositories/         # Repository implementations
 │   ├── domain/
 │   │   ├── entities/             # Business objects (extend Equatable)
@@ -64,48 +64,19 @@ lib/
     └── widgets/                  # DEPRECATED: Legacy widgets (do not use)
 ```
 
-## App Modes & Conditional Features (CRITICAL)
-
-The app uses `AppConfig` (`lib/config/app_config.dart`) for compile-time mode switching:
-- **Local mode** (default): SQLite only, no Supabase dependency
-- **Supabase mode**: `--dart-define=APP_MODE=supabase` enables cloud sync + auth
-
-**Rules:**
-1. All features MUST work in local mode without Supabase
-2. Guard Supabase-only code behind `AppConfig.isSupabaseMode`
-3. Never add `supabase_flutter` as unconditional dependency
-
-**Pattern — Conditional DI (in `injection.dart`):**
-```dart
-// Supabase services registered only in supabase mode
-if (AppConfig.isSupabaseMode) {
-  getIt.registerLazySingleton<AuthRemoteDataSource>(...);
-  getIt.registerLazySingleton<SyncService>(...);
-}
-```
-
-**Pattern — Conditional UI:**
-```dart
-// Show account section only in supabase mode
-if (AppConfig.isSupabaseMode) ...[
-  ModernSectionHeader(title: 'Akun'),
-  ModernListTile(title: 'Login', onTap: onLogin),
-],
-```
-
-**Pattern — Conditional Routes:**
-```dart
-if (AppConfig.isSupabaseMode) ...[
-  GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-  GoRoute(path: '/account', builder: (_, __) => const AccountScreen()),
-],
-```
-
 ## Key Patterns
 
 **Repository Pattern:**
 - Repositories return `Either<Failure, T>` from dartz
 - DataSources throw custom exceptions, repos catch and return Failures
+
+**SupabaseClientProvider:**
+```dart
+final provider = getIt<SupabaseClientProvider>();
+provider.client;          // SupabaseClient
+provider.currentUserId;   // String? (nullable)
+provider.requireUserId;   // String (throws if not authenticated)
+```
 
 **UseCase Pattern:**
 ```dart
@@ -125,10 +96,19 @@ class GetProduct extends UseCase<Product, GetProductParams> {
 - Use `StateNotifier` for complex state with mutations
 - Access use cases via GetIt: `getIt<GetAllProducts>()`
 
-**SQLite Data:**
-- Store timestamps as `int` (milliseconds since epoch)
-- Use parameterized queries via DatabaseHelper methods
-- Models have `toMap()` and `fromMap(Map<String, dynamic>)`
+**Supabase Data:**
+- Store timestamps as ISO 8601 strings (TIMESTAMPTZ)
+- Use native bool (not int)
+- IDs are UUID strings
+- Money fields: DECIMAL(12,2) → double in Dart
+- Models have `fromJson()` and `toJson()` for Supabase JSON format
+
+## Authentication
+
+Mandatory email/password auth via Supabase Auth:
+- Route guarding in `app_router.dart` via `redirect` callback
+- `GoRouterRefreshStream` listens to `onAuthStateChange`
+- Unauthenticated → `/login`, authenticated on auth route → `/dashboard`
 
 ## Modern Widget Library (REQUIRED)
 
@@ -141,262 +121,75 @@ import 'package:kasbon_frontend/shared/modern/modern.dart';
 
 ### Buttons
 ```dart
-// Primary actions
 ModernButton.primary(child: Text('Bayar'), onPressed: onPay)
-ModernButton.label(label: 'Simpan', onPressed: onSave) // Convenience factory
-
-// Other variants
+ModernButton.label(label: 'Simpan', onPressed: onSave)
 ModernButton.secondary(child: Text('Draft'))
 ModernButton.outline(child: Text('Batal'))
 ModernButton.text(child: Text('Lihat Semua'))
 ModernButton.destructive(child: Text('Hapus'))
-
-// With icons and states
-ModernButton.primary(
-  child: Text('Checkout'),
-  size: ModernSize.large,
-  leadingIcon: Icons.shopping_cart,
-  isLoading: isProcessing,
-  fullWidth: true,
-  onPressed: onCheckout,
-)
-
-// Icon buttons
 ModernIconButton(icon: Icons.add, onPressed: onAdd)
-ModernIconButton.filled(icon: Icons.delete, onPressed: onDelete)
 ```
 
 ### Cards
 ```dart
-ModernCard.elevated(
-  padding: EdgeInsets.all(AppDimensions.spacing16),
-  onTap: onCardTap,
-  child: Column(...),
-)
+ModernCard.elevated(child: content, onTap: onCardTap)
 ModernCard.outlined(child: content)
 ModernCard.filled(child: content)
-
-// Gradient cards for dashboard stats
 ModernGradientCard.primary(child: revenueStats)
 ModernGradientCard.success(child: profitStats)
-ModernGradientCard.warning(child: alertStats)
 ```
 
 ### Inputs
 ```dart
-ModernTextField(
-  label: 'Nama Produk',
-  hint: 'Masukkan nama',
-  controller: nameController,
-  errorText: errors['name'],
-  prefixIcon: Icons.inventory,
-)
-
-ModernCurrencyField(
-  label: 'Harga Jual',
-  controller: priceController,
-  onChanged: (value) {},
-)
-
-ModernSearchField(
-  hint: 'Cari produk...',
-  onChanged: onSearch,
-  onClear: onClearSearch,
-)
-
-ModernQuantityStepper(
-  value: quantity,
-  onIncrement: () => updateQty(quantity + 1),
-  onDecrement: () => updateQty(quantity - 1),
-  min: 1,
-  max: 99,
-)
-
-ModernDropdown<String>(
-  label: 'Kategori',
-  value: selectedCategory,
-  items: categories,
-  onChanged: (value) => selectCategory(value),
-)
+ModernTextField(label: 'Nama Produk', controller: ctrl, errorText: errors['name'])
+ModernCurrencyField(label: 'Harga Jual', controller: priceCtrl)
+ModernSearchField(hint: 'Cari produk...', onChanged: onSearch)
+ModernQuantityStepper(value: qty, onIncrement: inc, onDecrement: dec)
+ModernDropdown<String>(label: 'Kategori', value: sel, items: items, onChanged: onChange)
 ```
 
 ### Layout
 ```dart
-// App shell with responsive navigation
-ModernAppShell(
-  child: child,
-  currentPath: currentPath,
-  showFab: true,
-  onFabPressed: () => context.go('/pos'),
-)
-
-// App bar factories
 ModernAppBar.simple(title: 'Produk')
 ModernAppBar.withBack(title: 'Detail', context: context)
 ModernAppBar.withSearch(title: 'Produk', onSearch: onSearch)
-ModernAppBar.withActions(title: 'Dashboard', actions: [...])
-
-ModernDivider()
-ModernSectionHeader(
-  title: 'Produk Terlaris',
-  actionLabel: 'Lihat Semua',
-  onAction: onViewAll,
-)
+ModernSectionHeader(title: 'Terlaris', actionLabel: 'Lihat Semua', onAction: onViewAll)
 ```
 
 ### Feedback
 ```dart
-// Loading states
 ModernLoading()
-ModernLoading.small(color: Colors.white)
-
-// Empty state
-ModernEmptyState(
-  icon: Icons.inventory_2_outlined,
-  title: 'Belum Ada Produk',
-  message: 'Tambahkan produk pertama Anda',
-  actionLabel: 'Tambah Produk',
-  onAction: onAddProduct,
-)
-
-// Error state
-ModernErrorState(
-  message: 'Gagal memuat data',
-  onRetry: onRetry,
-)
-
-// Dialogs
-ModernDialog.confirm(
-  context: context,
-  title: 'Hapus Produk?',
-  message: 'Produk akan dihapus permanen',
-  confirmLabel: 'Hapus',
-  onConfirm: onDelete,
-)
-
-// Toasts
-ModernToast.success(context: context, message: 'Berhasil disimpan')
-ModernToast.error(context: context, message: 'Gagal menyimpan')
+ModernEmptyState(icon: Icons.inventory_2_outlined, title: 'Belum Ada Produk', actionLabel: 'Tambah', onAction: onAdd)
+ModernErrorState(message: 'Gagal memuat', onRetry: onRetry)
+ModernDialog.confirm(context, title: 'Hapus?', message: 'Permanen', confirmLabel: 'Hapus', onConfirm: onDel)
+ModernToast.success(context: context, message: 'Berhasil')
 ```
 
 ### Data Display
 ```dart
 ModernBadge.success(label: 'Lunas')
 ModernBadge.warning(label: 'Hutang')
-ModernBadge.error(label: 'Gagal')
-
-ModernChip(label: 'Makanan', isSelected: true, onTap: onSelect)
-
-ModernAvatar(imageUrl: product.imageUrl, fallbackText: 'P')
-
-ModernListTile(
-  title: 'Nama Produk',
-  subtitle: 'Rp 50.000',
-  leading: ModernAvatar(...),
-  trailing: ModernBadge.success(label: 'Tersedia'),
-  onTap: onProductTap,
-)
-
+ModernListTile(title: 'Produk', subtitle: 'Rp 50.000', leading: avatar, trailing: badge, onTap: onTap)
 ModernSummaryRow(label: 'Subtotal', value: 'Rp 150.000')
 ModernSummaryRow.total(label: 'TOTAL', value: 'Rp 150.000')
-```
-
-### Size Variants & Responsive Design
-```dart
-// All components support sizes
-ModernSize.small   // Compact UI
-ModernSize.medium  // Default
-ModernSize.large   // Prominent actions
-
-// Responsive design
-if (context.isMobile) {
-  // Mobile layout
-} else {
-  // Tablet layout
-}
-```
-
-## Modern Widget Patterns
-
-**Screen with Loading/Error/Empty States:**
-```dart
-class ProductListScreen extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final productsAsync = ref.watch(productsProvider);
-
-    return Scaffold(
-      appBar: ModernAppBar.simple(title: 'Produk'),
-      body: productsAsync.when(
-        loading: () => const Center(child: ModernLoading()),
-        error: (err, _) => ModernErrorState(
-          message: err.toString(),
-          onRetry: () => ref.invalidate(productsProvider),
-        ),
-        data: (products) => products.isEmpty
-            ? ModernEmptyState(
-                icon: Icons.inventory_2_outlined,
-                title: 'Belum Ada Produk',
-                actionLabel: 'Tambah',
-                onAction: () => context.push('/products/add'),
-              )
-            : _buildProductList(products),
-      ),
-    );
-  }
-}
-```
-
-**Form with Modern Inputs:**
-```dart
-Column(
-  children: [
-    ModernTextField(
-      label: 'Nama Produk',
-      controller: nameController,
-      errorText: errors['name'],
-    ),
-    const SizedBox(height: AppDimensions.spacing16),
-    ModernCurrencyField(
-      label: 'Harga Jual',
-      controller: priceController,
-    ),
-    const SizedBox(height: AppDimensions.spacing16),
-    ModernDropdown<String>(
-      label: 'Kategori',
-      value: selectedCategory,
-      items: categories.map((c) => DropdownMenuItem(
-        value: c.id, child: Text(c.name)
-      )).toList(),
-      onChanged: (v) => setState(() => selectedCategory = v),
-    ),
-    const SizedBox(height: AppDimensions.spacing24),
-    ModernButton.primary(
-      child: Text('Simpan'),
-      fullWidth: true,
-      isLoading: isSaving,
-      onPressed: onSave,
-    ),
-  ],
-)
 ```
 
 ## Dependency Injection
 
 All dependencies registered in `lib/config/di/injection.dart`:
-1. Core services (Logger, DatabaseHelper)
-2. DataSources (feature-specific)
+1. Core services (Logger, SupabaseClientProvider)
+2. DataSources (remote Supabase datasources)
 3. Repositories
 4. UseCases
-5. **Supabase services** — registered inside `if (AppConfig.isSupabaseMode)` block only
 
 Access anywhere: `getIt<ProductRepository>()`
 
 ## Navigation
 
-GoRouter with ShellRoute for bottom navigation:
+GoRouter with ShellRoute for bottom navigation + auth redirect:
 - `AppRoutes` class defines route paths
-- Full-screen routes (forms, details) outside shell
+- Auth routes (`/login`, `/register`) outside shell
+- Full-screen routes (POS success, receipt) outside shell
 - Navigation: `context.go('/products')` or `context.push('/products/add')`
 
 ## Code Conventions
@@ -409,24 +202,13 @@ GoRouter with ShellRoute for bottom navigation:
 
 ## Adding a New Feature
 
-1. **Check if feature is mode-specific:** If supabase-only (auth, sync), guard all code behind `AppConfig.isSupabaseMode`
-2. Create feature folder structure under `lib/features/<name>/`
-3. Define entity in `domain/entities/`
-4. Define repository interface in `domain/repositories/`
-5. Implement datasource in `data/datasources/`
+1. Create feature folder structure under `lib/features/<name>/`
+2. Define entity in `domain/entities/`
+3. Define repository interface in `domain/repositories/`
+4. Implement remote datasource in `data/datasources/` (uses SupabaseClientProvider)
+5. Implement models with `fromJson`/`toJson` in `data/models/`
 6. Implement repository in `data/repositories/`
 7. Create use cases in `domain/usecases/`
-8. Register all in `injection.dart` (inside `if (AppConfig.isSupabaseMode)` block if supabase-only)
+8. Register all in `injection.dart`
 9. Add providers in `presentation/providers/`
-10. Build screens using Modern widgets:
-   - Import: `import 'package:kasbon_frontend/shared/modern/modern.dart';`
-   - Use `ModernAppBar.*` for app bars
-   - Use `ModernButton.*` for all buttons
-   - Use `ModernTextField`, `ModernCurrencyField` for inputs
-   - Use `ModernCard.*` for card layouts
-   - Use `ModernLoading`, `ModernEmptyState`, `ModernErrorState` for states
-   - Use `ModernDialog`, `ModernToast` for feedback
-
-## Current Status
-
-Track progress in `../TASKS/PROGRESS.md`. MVP P0 and P1 features complete. Auth feature was implemented then reverted (Feb 2026) — `supabase_flutter` removed from pubspec.yaml. `AppConfig` dual-mode system is in place for future Phase 2 (supabase-mode) features.
+10. Build screens using Modern widgets

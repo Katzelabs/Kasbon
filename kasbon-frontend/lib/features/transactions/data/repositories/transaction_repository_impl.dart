@@ -5,15 +5,15 @@ import '../../../../core/errors/failures.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/transaction_item.dart';
 import '../../domain/repositories/transaction_repository.dart';
-import '../datasources/transaction_local_datasource.dart';
+import '../datasources/transaction_remote_datasource.dart';
 import '../models/transaction_item_model.dart';
 import '../models/transaction_model.dart';
 
 /// Implementation of TransactionRepository
 class TransactionRepositoryImpl implements TransactionRepository {
-  final TransactionLocalDataSource _localDataSource;
+  final TransactionRemoteDataSource _remoteDataSource;
 
-  TransactionRepositoryImpl(this._localDataSource);
+  TransactionRepositoryImpl(this._remoteDataSource);
 
   @override
   Future<Either<Failure, Transaction>> createTransaction(
@@ -25,7 +25,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       final itemModels =
           items.map((item) => TransactionItemModel.fromEntity(item)).toList();
 
-      final result = await _localDataSource.createTransaction(
+      final result = await _remoteDataSource.createTransaction(
         transactionModel,
         itemModels,
       );
@@ -47,14 +47,13 @@ class TransactionRepositoryImpl implements TransactionRepository {
     DateTime? endDate,
   }) async {
     try {
-      final models = await _localDataSource.getTransactions(
+      final models = await _remoteDataSource.getTransactions(
         limit: limit,
         offset: offset,
         startDate: startDate,
         endDate: endDate,
       );
 
-      // Convert models to entities (without items for list view)
       return Right(models.map((m) => m.toEntity()).toList());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
@@ -66,14 +65,10 @@ class TransactionRepositoryImpl implements TransactionRepository {
   @override
   Future<Either<Failure, Transaction>> getTransactionById(String id) async {
     try {
-      // Get transaction
-      final transactionModel = await _localDataSource.getTransactionById(id);
-
-      // Get transaction items
-      final itemModels = await _localDataSource.getTransactionItems(id);
+      final transactionModel = await _remoteDataSource.getTransactionById(id);
+      final itemModels = await _remoteDataSource.getTransactionItems(id);
       final items = itemModels.map((m) => m.toEntity()).toList();
 
-      // Return transaction with items
       return Right(transactionModel.toEntity(items: items));
     } on NotFoundException catch (e) {
       return Left(NotFoundFailure(message: e.message));
@@ -87,7 +82,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
   @override
   Future<Either<Failure, int>> getTodayTransactionCount() async {
     try {
-      final count = await _localDataSource.getTodayTransactionCount();
+      final count = await _remoteDataSource.getTodayTransactionCount();
       return Right(count);
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
@@ -102,7 +97,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
   ) async {
     try {
       final models =
-          await _localDataSource.getTransactionsByPaymentStatus(status);
+          await _remoteDataSource.getTransactionsByPaymentStatus(status);
       return Right(models.map((m) => m.toEntity()).toList());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
@@ -118,14 +113,13 @@ class TransactionRepositoryImpl implements TransactionRepository {
     DateTime? debtPaidAt,
   }) async {
     try {
-      final model = await _localDataSource.updateTransaction(
+      final model = await _remoteDataSource.updateTransaction(
         id,
         paymentStatus: paymentStatus,
-        debtPaidAt: debtPaidAt?.millisecondsSinceEpoch,
+        debtPaidAt: debtPaidAt,
       );
 
-      // Get items to return complete transaction
-      final itemModels = await _localDataSource.getTransactionItems(id);
+      final itemModels = await _remoteDataSource.getTransactionItems(id);
       final items = itemModels.map((m) => m.toEntity()).toList();
 
       return Right(model.toEntity(items: items));

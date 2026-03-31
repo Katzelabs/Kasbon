@@ -18,8 +18,8 @@ dependencies:
   flutter_riverpod: ^2.4.9
   riverpod_annotation: ^2.3.3
 
-  # Local Database (Offline-First)
-  sqflite: ^2.3.0
+  # Cloud Database (Supabase)
+  supabase_flutter: ^2.8.0
   path_provider: ^2.1.1
   path: ^1.8.3
 

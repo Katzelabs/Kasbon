@@ -1,8 +1,7 @@
-import '../../../../core/constants/database_constants.dart';
 import '../../domain/entities/product.dart';
 
 /// Data Transfer Object for Product
-/// Handles conversion between SQLite Map and Product entity
+/// Handles conversion between Supabase JSON and Product entity
 class ProductModel {
   final String id;
   final String? categoryId;
@@ -38,49 +37,43 @@ class ProductModel {
     required this.updatedAt,
   });
 
-  /// Create ProductModel from SQLite Map
-  factory ProductModel.fromMap(Map<String, dynamic> map) {
+  /// Create ProductModel from Supabase JSON
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
-      id: map[DatabaseConstants.colId] as String,
-      categoryId: map[DatabaseConstants.colCategoryId] as String?,
-      sku: map[DatabaseConstants.colSku] as String,
-      name: map[DatabaseConstants.colName] as String,
-      description: map[DatabaseConstants.colDescription] as String?,
-      barcode: map[DatabaseConstants.colBarcode] as String?,
-      costPrice: (map[DatabaseConstants.colCostPrice] as num).toDouble(),
-      sellingPrice: (map[DatabaseConstants.colSellingPrice] as num).toDouble(),
-      stock: map[DatabaseConstants.colStock] as int,
-      minStock: map[DatabaseConstants.colMinStock] as int,
-      unit: map[DatabaseConstants.colUnit] as String,
-      imageUrl: map[DatabaseConstants.colImageUrl] as String?,
-      isActive: (map[DatabaseConstants.colIsActive] as int) == 1,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(
-        map[DatabaseConstants.colCreatedAt] as int,
-      ),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(
-        map[DatabaseConstants.colUpdatedAt] as int,
-      ),
+      id: json['id'] as String,
+      categoryId: json['category_id'] as String?,
+      sku: json['sku'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      barcode: json['barcode'] as String?,
+      costPrice: (json['cost_price'] as num).toDouble(),
+      sellingPrice: (json['selling_price'] as num).toDouble(),
+      stock: json['stock'] as int,
+      minStock: json['min_stock'] as int? ?? 5,
+      unit: json['unit'] as String? ?? 'pcs',
+      imageUrl: json['image_url'] as String?,
+      isActive: json['is_active'] as bool? ?? true,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
-  /// Convert ProductModel to SQLite Map
-  Map<String, dynamic> toMap() {
+  /// Convert ProductModel to Supabase JSON
+  Map<String, dynamic> toJson() {
     return {
-      DatabaseConstants.colId: id,
-      DatabaseConstants.colCategoryId: categoryId,
-      DatabaseConstants.colSku: sku,
-      DatabaseConstants.colName: name,
-      DatabaseConstants.colDescription: description,
-      DatabaseConstants.colBarcode: barcode,
-      DatabaseConstants.colCostPrice: costPrice,
-      DatabaseConstants.colSellingPrice: sellingPrice,
-      DatabaseConstants.colStock: stock,
-      DatabaseConstants.colMinStock: minStock,
-      DatabaseConstants.colUnit: unit,
-      DatabaseConstants.colImageUrl: imageUrl,
-      DatabaseConstants.colIsActive: isActive ? 1 : 0,
-      DatabaseConstants.colCreatedAt: createdAt.millisecondsSinceEpoch,
-      DatabaseConstants.colUpdatedAt: updatedAt.millisecondsSinceEpoch,
+      'id': id,
+      'category_id': categoryId,
+      'sku': sku,
+      'name': name,
+      'description': description,
+      'barcode': barcode,
+      'cost_price': costPrice,
+      'selling_price': sellingPrice,
+      'stock': stock,
+      'min_stock': minStock,
+      'unit': unit,
+      'image_url': imageUrl,
+      'is_active': isActive,
     };
   }
 

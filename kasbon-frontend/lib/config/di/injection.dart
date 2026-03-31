@@ -1,10 +1,17 @@
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 
-import '../app_config.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/image_storage/image_storage_service.dart';
 import '../../core/services/image_storage/local_image_storage_service.dart';
+import '../../core/services/supabase_client_provider.dart';
+import '../../features/auth/data/datasources/auth_remote_datasource.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/usecases/get_current_user.dart';
+import '../../features/auth/domain/usecases/sign_in.dart';
+import '../../features/auth/domain/usecases/sign_out.dart';
+import '../../features/auth/domain/usecases/sign_up.dart';
 import '../../features/backup/data/repositories/backup_repository_impl.dart';
 import '../../features/backup/domain/repositories/backup_repository.dart';
 import '../../features/backup/domain/usecases/create_backup.dart';
@@ -13,11 +20,11 @@ import '../../features/backup/domain/usecases/get_data_counts.dart';
 import '../../features/backup/domain/usecases/get_last_backup.dart';
 import '../../features/backup/domain/usecases/clear_all_data.dart';
 import '../../features/backup/domain/usecases/restore_backup.dart';
-import '../../features/categories/data/datasources/category_local_datasource.dart';
+import '../../features/categories/data/datasources/category_remote_datasource.dart';
 import '../../features/categories/data/repositories/category_repository_impl.dart';
 import '../../features/categories/domain/repositories/category_repository.dart';
 import '../../features/categories/domain/usecases/get_all_categories.dart';
-import '../../features/products/data/datasources/product_local_datasource.dart';
+import '../../features/products/data/datasources/product_remote_datasource.dart';
 import '../../features/products/data/repositories/product_repository_impl.dart';
 import '../../features/products/domain/repositories/product_repository.dart';
 import '../../features/products/domain/usecases/create_product.dart';
@@ -27,17 +34,17 @@ import '../../features/products/domain/usecases/get_paginated_products.dart';
 import '../../features/products/domain/usecases/get_product.dart';
 import '../../features/products/domain/usecases/search_products.dart';
 import '../../features/products/domain/usecases/update_product.dart';
-import '../../features/dashboard/data/datasources/dashboard_local_datasource.dart';
+import '../../features/dashboard/data/datasources/dashboard_remote_datasource.dart';
 import '../../features/dashboard/data/repositories/dashboard_repository_impl.dart';
 import '../../features/dashboard/domain/repositories/dashboard_repository.dart';
 import '../../features/dashboard/domain/usecases/get_dashboard_summary.dart';
-import '../../features/receipt/data/datasources/shop_settings_local_datasource.dart';
+import '../../features/receipt/data/datasources/shop_settings_remote_datasource.dart';
 import '../../features/receipt/data/repositories/shop_settings_repository_impl.dart';
 import '../../features/receipt/domain/repositories/shop_settings_repository.dart';
 import '../../features/receipt/domain/usecases/get_shop_settings.dart';
 import '../../features/settings/domain/usecases/update_shop_settings.dart';
-import '../../features/reports/data/datasources/profit_local_datasource.dart';
-import '../../features/reports/data/datasources/report_local_datasource.dart';
+import '../../features/reports/data/datasources/profit_remote_datasource.dart';
+import '../../features/reports/data/datasources/report_remote_datasource.dart';
 import '../../features/reports/data/repositories/profit_report_repository_impl.dart';
 import '../../features/reports/data/repositories/report_repository_impl.dart';
 import '../../features/reports/domain/repositories/profit_report_repository.dart';
@@ -50,13 +57,12 @@ import '../../features/reports/domain/usecases/get_profit_summary.dart';
 import '../../features/reports/domain/usecases/get_sales_summary.dart';
 import '../../features/reports/domain/usecases/get_top_products.dart';
 import '../../features/reports/domain/usecases/get_top_profitable_products.dart';
-import '../../features/transactions/data/datasources/transaction_local_datasource.dart';
+import '../../features/transactions/data/datasources/transaction_remote_datasource.dart';
 import '../../features/transactions/data/repositories/transaction_repository_impl.dart';
 import '../../features/transactions/domain/repositories/transaction_repository.dart';
 import '../../features/transactions/domain/usecases/create_transaction.dart';
 import '../../features/transactions/domain/usecases/get_transaction.dart';
 import '../../features/transactions/domain/usecases/get_transactions.dart';
-import '../database/database_helper.dart';
 
 /// Global service locator instance
 final GetIt getIt = GetIt.instance;
@@ -80,10 +86,13 @@ Future<void> configureDependencies() async {
   // Register logger
   getIt.registerLazySingleton<Logger>(() => logger);
 
-  // Register database helper (singleton)
-  final databaseHelper = DatabaseHelper();
-  await databaseHelper.database; // Initialize database on startup
-  getIt.registerSingleton<DatabaseHelper>(databaseHelper);
+  // ===========================================
+  // CORE SERVICES
+  // ===========================================
+
+  getIt.registerLazySingleton<SupabaseClientProvider>(
+    () => SupabaseClientProvider(),
+  );
 
   // ===========================================
   // IMAGE STORAGE SERVICE
@@ -93,20 +102,34 @@ Future<void> configureDependencies() async {
   );
 
   // ===========================================
+  // AUTH FEATURE
+  // ===========================================
+
+  getIt.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(getIt<SupabaseClientProvider>()),
+  );
+
+  getIt.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(getIt<AuthRemoteDataSource>()),
+  );
+
+  getIt.registerLazySingleton(() => SignIn(getIt<AuthRepository>()));
+  getIt.registerLazySingleton(() => SignUp(getIt<AuthRepository>()));
+  getIt.registerLazySingleton(() => SignOut(getIt<AuthRepository>()));
+  getIt.registerLazySingleton(() => GetCurrentUser(getIt<AuthRepository>()));
+
+  // ===========================================
   // PRODUCTS FEATURE
   // ===========================================
 
-  // Data Sources
-  getIt.registerLazySingleton<ProductLocalDataSource>(
-    () => ProductLocalDataSourceImpl(getIt<DatabaseHelper>()),
+  getIt.registerLazySingleton<ProductRemoteDataSource>(
+    () => ProductRemoteDataSourceImpl(getIt<SupabaseClientProvider>()),
   );
 
-  // Repositories
   getIt.registerLazySingleton<ProductRepository>(
-    () => ProductRepositoryImpl(getIt<ProductLocalDataSource>()),
+    () => ProductRepositoryImpl(getIt<ProductRemoteDataSource>()),
   );
 
-  // Use Cases
   getIt.registerLazySingleton(() => GetAllProducts(getIt<ProductRepository>()));
   getIt.registerLazySingleton(() => GetProduct(getIt<ProductRepository>()));
   getIt.registerLazySingleton(() => SearchProducts(getIt<ProductRepository>()));
@@ -123,17 +146,14 @@ Future<void> configureDependencies() async {
   // CATEGORIES FEATURE
   // ===========================================
 
-  // Data Sources
-  getIt.registerLazySingleton<CategoryLocalDataSource>(
-    () => CategoryLocalDataSourceImpl(getIt<DatabaseHelper>()),
+  getIt.registerLazySingleton<CategoryRemoteDataSource>(
+    () => CategoryRemoteDataSourceImpl(getIt<SupabaseClientProvider>()),
   );
 
-  // Repositories
   getIt.registerLazySingleton<CategoryRepository>(
-    () => CategoryRepositoryImpl(getIt<CategoryLocalDataSource>()),
+    () => CategoryRepositoryImpl(getIt<CategoryRemoteDataSource>()),
   );
 
-  // Use Cases
   getIt.registerLazySingleton(
       () => GetAllCategories(getIt<CategoryRepository>()));
 
@@ -141,17 +161,14 @@ Future<void> configureDependencies() async {
   // TRANSACTIONS FEATURE
   // ===========================================
 
-  // Data Sources
-  getIt.registerLazySingleton<TransactionLocalDataSource>(
-    () => TransactionLocalDataSourceImpl(getIt<DatabaseHelper>()),
+  getIt.registerLazySingleton<TransactionRemoteDataSource>(
+    () => TransactionRemoteDataSourceImpl(getIt<SupabaseClientProvider>()),
   );
 
-  // Repositories
   getIt.registerLazySingleton<TransactionRepository>(
-    () => TransactionRepositoryImpl(getIt<TransactionLocalDataSource>()),
+    () => TransactionRepositoryImpl(getIt<TransactionRemoteDataSource>()),
   );
 
-  // Use Cases
   getIt.registerLazySingleton(
       () => CreateTransaction(getIt<TransactionRepository>()));
   getIt.registerLazySingleton(
@@ -163,7 +180,6 @@ Future<void> configureDependencies() async {
   // DEBT FEATURE
   // ===========================================
 
-  // Use Cases (reuses TransactionRepository)
   getIt.registerLazySingleton(
       () => GetUnpaidDebts(getIt<TransactionRepository>()));
   getIt.registerLazySingleton(
@@ -173,17 +189,14 @@ Future<void> configureDependencies() async {
   // DASHBOARD FEATURE
   // ===========================================
 
-  // Data Sources
-  getIt.registerLazySingleton<DashboardLocalDataSource>(
-    () => DashboardLocalDataSourceImpl(getIt<DatabaseHelper>()),
+  getIt.registerLazySingleton<DashboardRemoteDataSource>(
+    () => DashboardRemoteDataSourceImpl(getIt<SupabaseClientProvider>()),
   );
 
-  // Repositories
   getIt.registerLazySingleton<DashboardRepository>(
-    () => DashboardRepositoryImpl(getIt<DashboardLocalDataSource>()),
+    () => DashboardRepositoryImpl(getIt<DashboardRemoteDataSource>()),
   );
 
-  // Use Cases
   getIt.registerLazySingleton(
     () => GetDashboardSummary(getIt<DashboardRepository>()),
   );
@@ -192,17 +205,14 @@ Future<void> configureDependencies() async {
   // RECEIPT / SHOP SETTINGS FEATURE
   // ===========================================
 
-  // Data Sources
-  getIt.registerLazySingleton<ShopSettingsLocalDataSource>(
-    () => ShopSettingsLocalDataSourceImpl(getIt<DatabaseHelper>()),
+  getIt.registerLazySingleton<ShopSettingsRemoteDataSource>(
+    () => ShopSettingsRemoteDataSourceImpl(getIt<SupabaseClientProvider>()),
   );
 
-  // Repositories
   getIt.registerLazySingleton<ShopSettingsRepository>(
-    () => ShopSettingsRepositoryImpl(getIt<ShopSettingsLocalDataSource>()),
+    () => ShopSettingsRepositoryImpl(getIt<ShopSettingsRemoteDataSource>()),
   );
 
-  // Use Cases
   getIt.registerLazySingleton(
     () => GetShopSettings(getIt<ShopSettingsRepository>()),
   );
@@ -214,23 +224,20 @@ Future<void> configureDependencies() async {
   // REPORTS / PROFIT FEATURE
   // ===========================================
 
-  // Data Sources
-  getIt.registerLazySingleton<ProfitLocalDataSource>(
-    () => ProfitLocalDataSourceImpl(getIt<DatabaseHelper>()),
+  getIt.registerLazySingleton<ProfitRemoteDataSource>(
+    () => ProfitRemoteDataSourceImpl(getIt<SupabaseClientProvider>()),
   );
-  getIt.registerLazySingleton<ReportLocalDataSource>(
-    () => ReportLocalDataSourceImpl(getIt<DatabaseHelper>()),
+  getIt.registerLazySingleton<ReportRemoteDataSource>(
+    () => ReportRemoteDataSourceImpl(getIt<SupabaseClientProvider>()),
   );
 
-  // Repositories
   getIt.registerLazySingleton<ProfitReportRepository>(
-    () => ProfitReportRepositoryImpl(getIt<ProfitLocalDataSource>()),
+    () => ProfitReportRepositoryImpl(getIt<ProfitRemoteDataSource>()),
   );
   getIt.registerLazySingleton<ReportRepository>(
-    () => ReportRepositoryImpl(getIt<ReportLocalDataSource>()),
+    () => ReportRepositoryImpl(getIt<ReportRemoteDataSource>()),
   );
 
-  // Use Cases - Profit
   getIt.registerLazySingleton(
     () => GetProfitSummary(getIt<ProfitReportRepository>()),
   );
@@ -241,7 +248,6 @@ Future<void> configureDependencies() async {
     () => GetProductProfitability(getIt<ProfitReportRepository>()),
   );
 
-  // Use Cases - Basic Reports
   getIt.registerLazySingleton(
     () => GetSalesSummary(getIt<ReportRepository>()),
   );
@@ -256,17 +262,14 @@ Future<void> configureDependencies() async {
   // BACKUP FEATURE
   // ===========================================
 
-  // Services
   getIt.registerLazySingleton<BackupService>(
-    () => BackupService(getIt<DatabaseHelper>()),
+    () => BackupService(),
   );
 
-  // Repositories
   getIt.registerLazySingleton<BackupRepository>(
     () => BackupRepositoryImpl(getIt<BackupService>()),
   );
 
-  // Use Cases
   getIt.registerLazySingleton(() => CreateBackup(getIt<BackupRepository>()));
   getIt.registerLazySingleton(() => RestoreBackup(getIt<BackupRepository>()));
   getIt.registerLazySingleton(() => GetBackupInfo(getIt<BackupRepository>()));
@@ -274,11 +277,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton(() => GetDataCounts(getIt<BackupRepository>()));
   getIt.registerLazySingleton(() => ClearAllData(getIt<BackupRepository>()));
 
-  // TODO: Register Supabase services when APP_MODE=supabase (future task)
-  // if (AppConfig.isSupabaseMode) { _registerSupabaseServices(); }
-
-  logger.i('Dependencies configured successfully (mode: ${AppConfig.modeLabel})');
-  logger.i('Database initialized: ${databaseHelper.isInitialized}');
+  logger.i('Dependencies configured successfully (Supabase mode)');
 }
 
 /// Reset all dependencies (useful for testing)

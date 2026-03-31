@@ -5,13 +5,13 @@ import '../../../../core/errors/failures.dart';
 import '../../domain/entities/product_profitability.dart';
 import '../../domain/entities/profit_summary.dart';
 import '../../domain/repositories/profit_report_repository.dart';
-import '../datasources/profit_local_datasource.dart';
+import '../datasources/profit_remote_datasource.dart';
 
 /// Implementation of ProfitReportRepository
 class ProfitReportRepositoryImpl implements ProfitReportRepository {
-  final ProfitLocalDataSource _localDataSource;
+  final ProfitRemoteDataSource _remoteDataSource;
 
-  ProfitReportRepositoryImpl(this._localDataSource);
+  ProfitReportRepositoryImpl(this._remoteDataSource);
 
   @override
   Future<Either<Failure, ProfitSummary>> getProfitByDateRange({
@@ -19,7 +19,7 @@ class ProfitReportRepositoryImpl implements ProfitReportRepository {
     required DateTime to,
   }) async {
     try {
-      final result = await _localDataSource.getProfitByDateRange(
+      final result = await _remoteDataSource.getProfitByDateRange(
         from: from,
         to: to,
       );
@@ -27,23 +27,26 @@ class ProfitReportRepositoryImpl implements ProfitReportRepository {
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
     } catch (e) {
-      return const Left(DatabaseFailure(message: 'Gagal mengambil ringkasan laba'));
+      return const Left(
+          DatabaseFailure(message: 'Gagal mengambil ringkasan laba'));
     }
   }
 
   @override
-  Future<Either<Failure, List<ProductProfitability>>> getTopProfitableProducts({
+  Future<Either<Failure, List<ProductProfitability>>>
+      getTopProfitableProducts({
     required int limit,
   }) async {
     try {
-      final result = await _localDataSource.getTopProfitableProducts(
+      final result = await _remoteDataSource.getTopProfitableProducts(
         limit: limit,
       );
       return Right(result.map((m) => m.toEntity()).toList());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
     } catch (e) {
-      return const Left(DatabaseFailure(message: 'Gagal mengambil produk terlaris'));
+      return const Left(
+          DatabaseFailure(message: 'Gagal mengambil produk terlaris'));
     }
   }
 
@@ -52,14 +55,15 @@ class ProfitReportRepositoryImpl implements ProfitReportRepository {
     required String productId,
   }) async {
     try {
-      final result = await _localDataSource.getProductProfitability(
+      final result = await _remoteDataSource.getProductProfitability(
         productId: productId,
       );
       return Right(result.toEntity());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
     } catch (e) {
-      return const Left(DatabaseFailure(message: 'Gagal mengambil data keuntungan produk'));
+      return const Left(DatabaseFailure(
+          message: 'Gagal mengambil data keuntungan produk'));
     }
   }
 }

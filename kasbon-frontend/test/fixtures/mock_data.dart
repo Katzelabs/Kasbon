@@ -270,7 +270,7 @@ class MockData {
 
   /// Creates test shop settings
   static ShopSettings createShopSettings({
-    int? id,
+    String? id,
     String? name,
     String? address,
     String? phone,
@@ -284,7 +284,7 @@ class MockData {
   }) {
     final now = DateTime.now();
     return ShopSettings(
-      id: id ?? 1,
+      id: id ?? 'shop-1',
       name: name ?? 'Toko Test',
       address: address ?? 'Jl. Test No. 123',
       phone: phone ?? '081234567890',
@@ -304,7 +304,7 @@ class MockData {
   }) {
     final now = DateTime.now();
     return ShopSettings(
-      id: 1,
+      id: 'shop-minimal',
       name: name ?? 'Toko Minimal',
       createdAt: now,
       updatedAt: now,

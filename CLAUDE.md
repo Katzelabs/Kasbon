@@ -4,39 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-KASBON (Kasir Bisnis Online) is an offline-first POS application for Indonesian small businesses (UMKM) built with Flutter. The app supports two modes: **local mode** (SQLite only, default) and **supabase mode** (SQLite + Supabase cloud sync, opt-in). It prioritizes simplicity, offline reliability, and profit tracking.
+KASBON (Kasir Bisnis Online) is a cloud-based POS application for Indonesian small businesses (UMKM) built with Flutter and Supabase. It requires authentication and stores all data in Supabase (PostgreSQL). It prioritizes simplicity, profit tracking, and multi-device access.
 
 **Key Differentiators:**
-- 100% offline-first (SQLite) - works without internet
+- Cloud-first with Supabase (PostgreSQL + Auth + RLS)
+- Mandatory authentication (email/password)
 - Profit tracking built-in (not just revenue)
 - Debt tracking (hutang) - culture-specific for Indonesia
-- Designed for low-end devices (2GB RAM, Android 5.0+)
-
-## App Modes (CRITICAL)
-
-KASBON uses a compile-time flag system (`AppConfig`) to support two modes:
-
-| Mode | Default? | Description | Build Command |
-|------|----------|-------------|---------------|
-| **Local** | Yes | SQLite only, no Supabase dependency | `flutter run` / `flutter build apk` |
-| **Supabase** | No | SQLite + Supabase cloud sync, auth | `flutter run --dart-define=APP_MODE=supabase --dart-define=SUPABASE_URL=... --dart-define=SUPABASE_ANON_KEY=...` |
-
-**Config:** `lib/config/app_config.dart` — use `AppConfig.isLocalMode` / `AppConfig.isSupabaseMode`
-
-**Rules for implementing features:**
-1. **All features MUST work in local mode** without any Supabase dependency
-2. Supabase-only features (auth, cloud sync) MUST be guarded behind `AppConfig.isSupabaseMode`
-3. **NEVER** add `supabase_flutter` as an unconditional dependency in pubspec.yaml
-4. DI registrations for Supabase services go inside `if (AppConfig.isSupabaseMode)` blocks in `injection.dart`
-5. UI elements for cloud-only features (account, sync status) must be shown conditionally
-6. Routes for Supabase-only screens must be registered conditionally
+- Multi-tenant with Row Level Security (user_id scoped)
 
 ## Project Structure
 
 ```
 Kasbon/
 ├── kasbon-frontend/    # Flutter mobile app
-├── supabase/           # Supabase local dev config
+├── supabase/           # Supabase config, migrations, seed data
 ├── DOCS/               # Project documentation
 │   ├── PROJECT_BRIEF.md           # Full business & technical spec
 │   ├── TECHNICAL_REQUIREMENTS.md  # Database schema, API specs
@@ -47,30 +29,22 @@ Kasbon/
 
 ## Development Commands
 
-### Flutter — Local Mode (run from kasbon-frontend/)
+### Flutter (run from kasbon-frontend/)
 ```bash
 flutter pub get              # Install dependencies
-flutter run                  # Run app (local mode, default)
-flutter build apk            # Build Android APK (local mode)
-flutter build appbundle      # Build Android App Bundle (local mode)
+flutter run \
+  --dart-define=SUPABASE_URL=http://127.0.0.1:54321 \
+  --dart-define=SUPABASE_ANON_KEY=your-local-anon-key
 flutter analyze              # Analyze code
 flutter test                 # Run all tests
 flutter test test/path/      # Run specific test directory
 dart run build_runner build  # Generate code (freezed, riverpod, json)
 dart format lib/             # Format code
-```
 
-### Flutter — Supabase Mode (run from kasbon-frontend/)
-```bash
-flutter run \
-  --dart-define=APP_MODE=supabase \
-  --dart-define=SUPABASE_URL=https://xxx.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=your-key
-
+# Production build
 flutter build apk \
-  --dart-define=APP_MODE=supabase \
   --dart-define=SUPABASE_URL=https://xxx.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=your-key
+  --dart-define=SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ### Supabase Local Development (run from project root)
@@ -79,7 +53,7 @@ supabase start               # Start local Supabase (API: 54321, DB: 54322)
 supabase stop                # Stop local Supabase
 supabase migration new <name>  # Create new migration
 supabase db push             # Apply migrations to local
-supabase db reset            # Reset local database
+supabase db reset            # Reset local database (applies migrations + seed)
 ```
 
 ## Architecture
@@ -88,46 +62,110 @@ supabase db reset            # Reset local database
 
 ```
 lib/
-├── main.dart
-├── core/                    # Shared utilities, constants, base classes
-│   ├── constants/           # App-wide constants
-│   ├── errors/              # Failures & Exceptions
-│   ├── utils/               # Formatters (currency, date), validators
-│   └── usecase/             # Base UseCase class
+├── main.dart                     # Supabase.initialize(), DI init, ProviderScope
+├── core/
+│   ├── constants/                # App-wide constants
+│   ├── errors/                   # Failures & Exceptions (incl. AuthFailure, NetworkFailure)
+│   ├── services/                 # SupabaseClientProvider, BackupService, ImageStorage
+│   ├── utils/                    # Formatters (currency, date), validators
+│   └── usecase/                  # Base UseCase class
 ├── config/
-│   ├── app_config.dart      # Dual-mode config (local/supabase)
-│   ├── di/                  # Dependency injection (GetIt)
-│   ├── routes/              # Navigation (GoRouter)
-│   └── theme/               # Colors, typography, dimensions
-├── features/                # Feature modules
+│   ├── app_config.dart           # Supabase URL & anon key from dart-define
+│   ├── di/injection.dart         # GetIt service locator (all dependencies)
+│   ├── routes/app_router.dart    # GoRouter with auth redirect
+│   └── theme/                    # Colors, typography, dimensions
+├── features/
+│   ├── auth/                     # Authentication (login, register, auth state)
+│   ├── products/                 # Product CRUD
+│   ├── categories/               # Category management
+│   ├── transactions/             # Transaction history
+│   ├── pos/                      # Point of Sale screen
+│   ├── dashboard/                # Dashboard summary
+│   ├── reports/                  # Sales, product, profit reports
+│   ├── debt/                     # Debt (hutang) tracking
+│   ├── receipt/                  # Digital receipt & shop settings
+│   ├── backup/                   # Data export (JSON)
+│   ├── settings/                 # App settings
+│   └── dev_tools/                # Dev-only tools (seed data)
 │   └── <feature>/
 │       ├── data/
-│       │   ├── datasources/ # Local SQLite / Remote Supabase
-│       │   ├── models/      # DTOs with JSON serialization
-│       │   └── repositories/# Repository implementations
+│       │   ├── datasources/      # Remote Supabase datasources
+│       │   ├── models/           # DTOs with fromJson/toJson
+│       │   └── repositories/     # Repository implementations
 │       ├── domain/
-│       │   ├── entities/    # Business models
-│       │   ├── repositories/# Abstract interfaces
-│       │   └── usecases/    # Business logic
+│       │   ├── entities/         # Business models
+│       │   ├── repositories/     # Abstract interfaces
+│       │   └── usecases/         # Business logic
 │       └── presentation/
-│           ├── providers/   # Riverpod state management
-│           ├── screens/     # Page widgets
-│           └── widgets/     # Feature-specific widgets
+│           ├── providers/        # Riverpod state management
+│           ├── screens/          # Page widgets
+│           └── widgets/          # Feature-specific widgets
 └── shared/
-    ├── modern/              # REQUIRED: Modern Widget Library (use this)
-    │   ├── modern.dart      # Main export
-    │   ├── components/      # Buttons, cards, inputs, layout, feedback
-    │   └── utils/           # Variants and enums
-    └── widgets/             # DEPRECATED: Legacy widgets (do not use)
+    ├── modern/                   # REQUIRED: Modern Widget Library
+    │   ├── modern.dart           # Main export
+    │   ├── components/           # Buttons, cards, inputs, layout, feedback
+    │   └── utils/                # Variants and enums
+    └── widgets/                  # DEPRECATED: Legacy widgets (do not use)
 ```
 
 **Key Libraries:**
 - **State Management:** Riverpod (flutter_riverpod, riverpod_generator)
-- **Navigation:** GoRouter
-- **Local Database:** SQLite (sqflite) - offline-first
+- **Navigation:** GoRouter (with auth-based redirect)
+- **Database:** Supabase (PostgreSQL via supabase_flutter)
+- **Authentication:** Supabase Auth (email/password)
 - **Code Generation:** Freezed, JSON Serializable
 - **DI:** GetIt
-- **Cloud (conditional):** Supabase — only added when `APP_MODE=supabase`, not a default dependency
+
+## Database
+
+All data stored in Supabase PostgreSQL with Row Level Security (RLS). Every table has a `user_id` column with RLS policies ensuring users only see their own data.
+
+**Main tables:**
+- `user_profiles` - User profile info (auto-created on signup via trigger)
+- `shop_settings` - Per-user shop configuration
+- `categories` - Product categories (Makanan, Minuman, etc.)
+- `products` - Products with cost_price and selling_price for profit tracking
+- `transactions` - Transaction headers with payment_status (paid/debt)
+- `transaction_items` - Line items with snapshot of prices at transaction time
+
+**RPC functions** (in `supabase/migrations/`):
+- `create_pos_transaction` - Atomic: insert transaction + items + update stock
+- `get_dashboard_summary` - Today's sales/profit/txn count + comparisons
+- `get_sales_summary`, `get_top_products`, `get_daily_sales` - Sales reports
+- `get_profit_summary`, `get_top_profitable_products`, `get_product_profitability` - Profit reports
+
+**Data types:**
+- IDs: UUID (generated by Supabase)
+- Timestamps: TIMESTAMPTZ (ISO 8601 strings in Dart)
+- Booleans: native bool
+- Money: DECIMAL(12,2) → double in Dart
+
+## Authentication
+
+Mandatory email/password auth via Supabase Auth. Route guarding in `app_router.dart`:
+- Unauthenticated users → redirected to `/login`
+- Authenticated users on auth routes → redirected to `/dashboard`
+- `GoRouterRefreshStream` listens to `onAuthStateChange` for reactive redirects
+
+## Key Patterns
+
+**Repository Pattern:**
+- Repositories return `Either<Failure, T>` from dartz
+- Remote datasources use `SupabaseClientProvider` for client access
+- Datasources throw custom exceptions, repos catch and return Failures
+
+**SupabaseClientProvider:**
+```dart
+final provider = getIt<SupabaseClientProvider>();
+provider.client;          // SupabaseClient
+provider.currentUserId;   // String? (nullable)
+provider.requireUserId;   // String (throws if not authenticated)
+```
+
+**Riverpod Providers:**
+- Use `FutureProvider.autoDispose` for data fetching
+- Use `StateNotifier` for complex state with mutations
+- Access use cases via GetIt: `getIt<GetAllProducts>()`
 
 ## Modern Widget Library (REQUIRED)
 
@@ -148,58 +186,7 @@ import 'package:kasbon_frontend/shared/modern/modern.dart';
 | **Feedback** | `ModernDialog`, `ModernToast`, `ModernLoading`, `ModernBottomSheet`, `ModernEmptyState`, `ModernErrorState` |
 | **Data Display** | `ModernBadge`, `ModernChip`, `ModernAvatar`, `ModernListTile`, `ModernSummaryRow`, `ModernDataTable` |
 
-**Widget Replacement Table:**
-| Instead of... | Use Modern Widget |
-|--------------|-------------------|
-| `ElevatedButton` | `ModernButton.primary()` |
-| `OutlinedButton` | `ModernButton.outline()` |
-| `TextButton` | `ModernButton.text()` |
-| `TextField` | `ModernTextField` |
-| `Card` | `ModernCard.elevated()` |
-| `CircularProgressIndicator` | `ModernLoading()` |
-| `AlertDialog` | `ModernDialog` |
-| `SnackBar` | `ModernToast` |
-
 **Size Variants:** All components support `ModernSize.small`, `ModernSize.medium`, `ModernSize.large`
-
-**Responsive Design:**
-```dart
-if (context.isMobile) { /* mobile layout */ }
-else { /* tablet layout */ }
-```
-
-## Database Schema
-
-Main tables (SQLite locally, PostgreSQL in Supabase cloud):
-
-- `shop_settings` - Single row for shop config
-- `categories` - Product categories (Makanan, Minuman, etc.)
-- `products` - Products with cost_price and selling_price for profit tracking
-- `transactions` - Transaction headers with payment_status (paid/debt)
-- `transaction_items` - Line items with snapshot of prices at transaction time
-
-**Important:** Always use parameterized queries for SQLite. Store timestamps as milliseconds since epoch (INTEGER).
-
-## Development Task Order
-
-Follow TASKS/ directory in numerical order. Check TASKS/PROGRESS.md for current status.
-
-**Phases:**
-1. **Setup (001-003):** Project structure, database, core infrastructure
-2. **MVP P0 (004-009):** Products, POS, transactions, dashboard, receipt, stock
-3. **MVP P1 (010-014):** Profit, debt tracking, reports, settings, backup
-4. **Testing (015-016):** Unit/widget tests, beta prep
-5. **Phase 2 (017-021):** Auth, cloud sync, advanced reports, QRIS, deployment *(supabase-mode features — guard behind `AppConfig.isSupabaseMode`)*
-
-## Feature Priorities
-
-**P0 (Critical MVP):** Product management, POS (cash only), transaction history, dashboard, digital receipt, stock tracking, profit display
-
-**P1 (Pre-launch polish):** Debt tracking (hutang), low stock alerts, basic reports, settings, backup/restore
-
-**P2 (Phase 2 - Cloud):** Authentication, cloud sync, QRIS payment, customer database
-
-**P3 (Nice-to-have):** Barcode scanner, product photos, category management, thermal printing
 
 ## UI/UX Guidelines
 
@@ -209,16 +196,9 @@ Follow TASKS/ directory in numerical order. Check TASKS/PROGRESS.md for current 
 - **Typography:** Use `AppTextStyles.*` (h1-h4, bodyLarge/Medium/Small, priceLarge/Medium/Small, button)
 - **Radius:** Use `AppDimensions.radius*` (Small: 4, Medium: 8, Large: 12, XLarge: 16)
 
-### Color Palette (AppColors)
-- Primary: Blue `#2563EB` (trust, professional)
-- Primary Dark: `#1D4ED8`
-- Secondary: Navy Blue `#1E3A8A`
-- Success: `#10B981`, Warning: `#F59E0B`, Error: `#EF4444`, Info: `#3B82F6`
-
 ### Design Principles
 - Touch targets: minimum 48dp (`AppDimensions.minTouchTarget`)
 - All text in Bahasa Indonesia
-- Clear offline status indicators using `ModernBadge`
 - Loading states with `ModernLoading()`
 - Empty states with `ModernEmptyState()`
 - Error states with `ModernErrorState()`
@@ -231,13 +211,8 @@ Follow TASKS/ directory in numerical order. Check TASKS/PROGRESS.md for current 
 - Always handle empty states and loading states
 - Prefer `Either<Failure, T>` from dartz for repository returns
 - Use freezed for immutable data classes
-
-### Widget Usage Rules
 - ALWAYS import Modern widgets: `import 'package:kasbon_frontend/shared/modern/modern.dart';`
 - NEVER use deprecated widgets from `lib/shared/widgets/`
-- Use factory constructors: `ModernButton.primary()`, `ModernCard.elevated()`
-- Handle async states with `ModernLoading`, `ModernEmptyState`, `ModernErrorState`
-- Use `context.isMobile` for responsive layout decisions
 
 ## Performance Targets
 
@@ -252,4 +227,3 @@ Follow TASKS/ directory in numerical order. Check TASKS/PROGRESS.md for current 
 - Unit tests: 70% coverage target (business logic, use cases)
 - Widget tests: Critical UI components
 - Integration tests: Complete transaction flow
-- Manual testing on low-end Android (2GB RAM)

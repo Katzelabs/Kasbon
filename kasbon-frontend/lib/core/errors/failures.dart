@@ -75,3 +75,19 @@ class FileFailure extends Failure {
     super.code,
   });
 }
+
+/// Failure for authentication operations
+class AuthFailure extends Failure {
+  const AuthFailure({
+    required super.message,
+    super.code,
+  });
+}
+
+/// Failure for network operations
+class NetworkFailure extends Failure {
+  const NetworkFailure({
+    required super.message,
+    super.code,
+  });
+}

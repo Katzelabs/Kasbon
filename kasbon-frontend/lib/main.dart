@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'config/app_config.dart';
 import 'config/di/injection.dart';
 import 'config/routes/app_router.dart';
 import 'config/theme/app_theme.dart';
@@ -12,7 +14,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Allow all orientations for tablet support
-  // Portrait is preferred on phones, but tablets can use landscape
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -21,7 +22,6 @@ void main() async {
   ]);
 
   // Set system UI overlay style
-  // Use dark icons for transparent/white app bar design
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -34,7 +34,13 @@ void main() async {
   // Initialize Indonesian locale data for date formatting
   await initializeDateFormatting('id_ID', null);
 
-  // TODO: Initialize Supabase when APP_MODE=supabase (future task)
+  // Initialize Supabase
+  assert(AppConfig.isConfigValid,
+      'SUPABASE_URL and SUPABASE_ANON_KEY must be provided via --dart-define');
+  await Supabase.initialize(
+    url: AppConfig.supabaseUrl,
+    anonKey: AppConfig.supabaseAnonKey,
+  );
 
   // Configure dependency injection
   await configureDependencies();
