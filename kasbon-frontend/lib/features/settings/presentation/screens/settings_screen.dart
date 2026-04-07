@@ -6,6 +6,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_tile.dart';
@@ -100,6 +101,34 @@ class SettingsScreen extends ConsumerWidget {
                       title: 'Tentang Aplikasi',
                       subtitle: 'Versi & informasi',
                       onTap: () => context.push('/settings/about'),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppDimensions.spacing24),
+
+                // AKUN Section
+                SettingsSection(
+                  title: 'Akun',
+                  children: [
+                    SettingsTile.destructive(
+                      icon: Icons.logout_rounded,
+                      title: 'Keluar',
+                      subtitle: 'Keluar dari akun Anda',
+                      onTap: () async {
+                        final confirmed = await ModernDialog.confirm(
+                          context,
+                          title: 'Keluar dari Akun',
+                          message: 'Apakah Anda yakin ingin keluar?',
+                          confirmLabel: 'Keluar',
+                          isDestructive: true,
+                        );
+                        if (confirmed == true) {
+                          ref
+                              .read(authNotifierProvider.notifier)
+                              .logout();
+                        }
+                      },
                     ),
                   ],
                 ),

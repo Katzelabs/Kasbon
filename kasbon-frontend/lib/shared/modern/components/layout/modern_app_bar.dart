@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_utils.dart';
+import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../providers/providers.dart';
 import '../../utils/modern_variants.dart';
 import '../data_display/modern_avatar.dart';
 import '../data_display/modern_badge.dart';
+import '../feedback/modern_dialog.dart';
 
 /// A Modern-styled app bar with consistent theming and convenience constructors
 ///
@@ -536,18 +539,71 @@ class _ResponsiveActionsWidget extends ConsumerWidget {
           count: notificationCount,
           onTap: onNotificationTap,
         ),
-        // Avatar (tablet/desktop only)
+        // Avatar with popup menu (tablet/desktop only)
         if (isTabletOrDesktop) ...[
           const SizedBox(width: AppDimensions.spacing8),
-          ModernAvatar.small(
-            imageUrl: userInfo.avatarUrl,
-            initials: userInfo.initials,
-            onTap: onProfileTap,
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'settings') {
+                context.push('/settings');
+              } else if (value == 'logout') {
+                _handleAppBarLogout(context, ref);
+              }
+            },
+            offset: const Offset(0, 40),
+            shape: RoundedRectangleBorder(
+              borderRadius:
+                  BorderRadius.circular(AppDimensions.radiusMedium),
+            ),
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'settings',
+                child: Row(
+                  children: [
+                    Icon(Icons.settings_outlined,
+                        color: AppColors.textSecondary, size: 20),
+                    SizedBox(width: AppDimensions.spacing8),
+                    Text('Pengaturan'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem<String>(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout_rounded,
+                        color: AppColors.error, size: 20),
+                    SizedBox(width: AppDimensions.spacing8),
+                    Text('Keluar',
+                        style: TextStyle(color: AppColors.error)),
+                  ],
+                ),
+              ),
+            ],
+            child: ModernAvatar.small(
+              imageUrl: userInfo.avatarUrl,
+              initials: userInfo.initials,
+            ),
           ),
         ],
         const SizedBox(width: AppDimensions.spacing8),
       ],
     );
+  }
+}
+
+/// Handles logout from the app bar popup menu
+Future<void> _handleAppBarLogout(BuildContext context, WidgetRef ref) async {
+  final confirmed = await ModernDialog.confirm(
+    context,
+    title: 'Keluar dari Akun',
+    message: 'Apakah Anda yakin ingin keluar?',
+    confirmLabel: 'Keluar',
+    isDestructive: true,
+  );
+  if (confirmed == true) {
+    ref.read(authNotifierProvider.notifier).logout();
   }
 }
 
