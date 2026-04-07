@@ -209,7 +209,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return 'Email sudah terdaftar. Silakan login';
     }
     if (lower.contains('weak password') ||
-        lower.contains('password')) {
+        lower.contains('password is too short') ||
+        lower.contains('password_too_short')) {
       return 'Password terlalu lemah. Gunakan minimal 6 karakter';
     }
     if (lower.contains('rate limit') || lower.contains('too many')) {
