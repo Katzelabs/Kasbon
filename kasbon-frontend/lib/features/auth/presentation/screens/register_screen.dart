@@ -6,6 +6,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../shared/modern/modern.dart';
+import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
 
 /// Registration screen for new user accounts.
@@ -52,7 +53,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     if (success) {
       ModernToast.success(context, 'Pendaftaran berhasil! Selamat datang.');
-      context.go('/');
+      context.go('/dashboard');
     } else {
       final errorMessage = ref.read(authNotifierProvider).errorMessage;
       if (errorMessage != null) {
@@ -117,6 +118,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       leading: const Icon(Icons.person_outlined),
                       textInputAction: TextInputAction.next,
                       textCapitalization: TextCapitalization.words,
+                      maxLength: 100,
                       validator: _validateFullName,
                       enabled: !isLoading,
                     ),
@@ -130,6 +132,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       leading: const Icon(Icons.email_outlined),
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
+                      maxLength: 254,
                       validator: _validateEmail,
                       enabled: !isLoading,
                     ),
@@ -143,6 +146,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       leading: const Icon(Icons.phone_outlined),
                       keyboardType: TextInputType.phone,
                       textInputAction: TextInputAction.next,
+                      maxLength: 15,
                       validator: _validatePhone,
                       enabled: !isLoading,
                     ),
@@ -151,11 +155,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Password
                     ModernTextField(
                       label: 'Password',
-                      hint: 'Minimal 6 karakter',
+                      hint: 'Minimal 8 karakter dengan huruf besar, kecil, dan angka',
                       controller: _passwordController,
                       leading: const Icon(Icons.lock_outlined),
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.next,
+                      maxLength: 128,
                       validator: _validatePassword,
                       enabled: !isLoading,
                       trailing: IconButton(
@@ -182,6 +187,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       obscureText: _obscureConfirmPassword,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _onRegister(),
+                      maxLength: 128,
                       validator: _validateConfirmPassword,
                       enabled: !isLoading,
                       trailing: IconButton(
@@ -244,45 +250,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   String? _validateFullName(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Nama lengkap wajib diisi';
-    }
-    if (value.trim().length < 2) {
-      return 'Nama minimal 2 karakter';
-    }
-    return null;
+    return Validators.fullName(value);
   }
 
   String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Email wajib diisi';
-    }
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegex.hasMatch(value.trim())) {
-      return 'Format email tidak valid';
-    }
-    return null;
+    return Validators.email(value);
   }
 
   String? _validatePhone(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return null; // Optional field
-    }
-    final phoneRegex = RegExp(r'^0\d{9,13}$');
-    if (!phoneRegex.hasMatch(value.trim())) {
-      return 'Format nomor telepon tidak valid';
-    }
-    return null;
+    return Validators.phoneNumber(value);
   }
 
   String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Password wajib diisi';
-    }
-    if (value.length < 6) {
-      return 'Password minimal 6 karakter';
-    }
-    return null;
+    return Validators.password(value);
   }
 
   String? _validateConfirmPassword(String? value) {

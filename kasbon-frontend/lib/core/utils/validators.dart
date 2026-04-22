@@ -95,12 +95,49 @@ class Validators {
   }
 
   /// Validate email with error message
-  static String? email(String? value, {bool required = true}) {
+  static String? email(String? value, {bool isRequired = true}) {
     if (value == null || value.trim().isEmpty) {
-      return required ? 'Email wajib diisi' : null;
+      return isRequired ? 'Email wajib diisi' : null;
     }
     if (!isValidEmail(value)) {
       return 'Format email tidak valid';
+    }
+    return null;
+  }
+
+  /// Validate password with strength requirements.
+  /// When [requireStrong] is true, enforces uppercase, lowercase, and number.
+  static String? password(String? value, {bool requireStrong = true}) {
+    if (value == null || value.isEmpty) {
+      return 'Password wajib diisi';
+    }
+    if (value.length < 8) {
+      return 'Password minimal 8 karakter';
+    }
+    if (requireStrong) {
+      if (!RegExp(r'[a-z]').hasMatch(value)) {
+        return 'Password harus mengandung huruf kecil';
+      }
+      if (!RegExp(r'[A-Z]').hasMatch(value)) {
+        return 'Password harus mengandung huruf besar';
+      }
+      if (!RegExp(r'[0-9]').hasMatch(value)) {
+        return 'Password harus mengandung angka';
+      }
+    }
+    return null;
+  }
+
+  /// Validate full name (2-100 characters)
+  static String? fullName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Nama lengkap wajib diisi';
+    }
+    if (value.trim().length < 2) {
+      return 'Nama minimal 2 karakter';
+    }
+    if (value.trim().length > 100) {
+      return 'Nama maksimal 100 karakter';
     }
     return null;
   }

@@ -6,6 +6,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../shared/modern/modern.dart';
+import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
 
 /// Login screen with email and password authentication.
@@ -40,7 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      context.go('/');
+      context.go('/dashboard');
     } else {
       final errorMessage = ref.read(authNotifierProvider).errorMessage;
       if (errorMessage != null) {
@@ -111,6 +112,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       leading: const Icon(Icons.email_outlined),
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
+                      maxLength: 254,
                       validator: _validateEmail,
                       enabled: !isLoading,
                     ),
@@ -125,6 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _onLogin(),
+                      maxLength: 128,
                       validator: _validatePassword,
                       enabled: !isLoading,
                       trailing: IconButton(
@@ -187,14 +190,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Email wajib diisi';
-    }
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegex.hasMatch(value.trim())) {
-      return 'Format email tidak valid';
-    }
-    return null;
+    return Validators.email(value);
   }
 
   String? _validatePassword(String? value) {

@@ -111,6 +111,12 @@ class AppRouter {
       return null;
     },
     routes: [
+      // Root "/" redirect to dashboard
+      GoRoute(
+        path: '/',
+        redirect: (_, __) => AppRoutes.dashboard,
+      ),
+
       // Auth routes (outside shell, no bottom nav)
       GoRoute(
         path: AppRoutes.login,

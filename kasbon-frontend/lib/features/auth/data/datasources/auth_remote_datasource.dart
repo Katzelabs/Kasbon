@@ -132,7 +132,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       await _client.auth.signOut();
     } on sb.AuthException catch (e) {
       throw AuthException(
-        message: 'Gagal keluar: ${e.message}',
+        message: 'Gagal keluar. Silakan coba lagi',
         code: e.statusCode,
         originalError: e,
       );
@@ -206,12 +206,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
     if (lower.contains('user already registered') ||
         lower.contains('already_exists')) {
-      return 'Email sudah terdaftar. Silakan login';
+      return 'Pendaftaran gagal. Periksa kembali data Anda atau coba login';
     }
     if (lower.contains('weak password') ||
         lower.contains('password is too short') ||
         lower.contains('password_too_short')) {
-      return 'Password terlalu lemah. Gunakan minimal 6 karakter';
+      return 'Password tidak memenuhi persyaratan keamanan';
     }
     if (lower.contains('rate limit') || lower.contains('too many')) {
       return 'Terlalu banyak percobaan. Coba lagi nanti';
@@ -219,6 +219,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (lower.contains('network') || lower.contains('connection')) {
       return 'Tidak ada koneksi internet';
     }
-    return 'Terjadi kesalahan: $message';
+    return 'Terjadi kesalahan. Silakan coba lagi';
   }
 }
