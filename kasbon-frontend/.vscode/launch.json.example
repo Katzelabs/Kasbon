@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Kasbon (local Supabase)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--dart-define=SUPABASE_URL=http://10.0.2.2:54321",
+        "--dart-define=SUPABASE_ANON_KEY=<your-local-publishable-key-from-supabase-status>"
+      ]
+    }
+  ]
+}
