@@ -1,0 +1,2 @@
+# VSCode launch config holds Supabase keys; only the .example is committed.
+.vscode/launch.json

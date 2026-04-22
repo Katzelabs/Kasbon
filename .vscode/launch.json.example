@@ -5,6 +5,7 @@
       "name": "Kasbon (local Supabase)",
       "request": "launch",
       "type": "dart",
+      "cwd": "${workspaceFolder}/kasbon-frontend",
       "program": "lib/main.dart",
       "toolArgs": [
         "--dart-define=SUPABASE_URL=http://10.0.2.2:54321",
