@@ -4,15 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../config/di/injection.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/modern/modern.dart';
+import '../../../categories/domain/usecases/create_category.dart';
+import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/usecases/create_product.dart';
 import '../providers/products_provider.dart';
+import '../widgets/category_autocomplete_field.dart';
 import '../widgets/product_image_picker.dart';
 
 /// Screen for adding or editing a product
@@ -44,6 +48,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   String? _imagePath;
   late String _tempProductId;
   Product? _existingProduct;
+  CategorySelection _categorySelection = const NoCategory();
+  String? _initialCategoryId;
 
   final List<String> _units = [
     'pcs',
@@ -91,6 +97,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     // Safely set unit - default to 'pcs' if unit not in list
     _selectedUnit = _units.contains(product.unit) ? product.unit : 'pcs';
     _imagePath = product.imageUrl;
+    _initialCategoryId = product.categoryId;
   }
 
   Future<void> _submitForm() async {
@@ -102,10 +109,43 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final description = _descriptionController.text.trim();
     final barcode = _barcodeController.text.trim();
 
+    // Resolve category selection
+    String? categoryId;
+    switch (_categorySelection) {
+      case ExistingCategory(:final category):
+        categoryId = category.id;
+      case NewCategoryName(:final name):
+        final createCategory = getIt<CreateCategory>();
+        final result =
+            await createCategory(CreateCategoryParams(name: name));
+        final resolved = result.fold(
+          (failure) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content:
+                      Text('Gagal membuat kategori: ${failure.message}'),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+            }
+            return null;
+          },
+          (category) => category.id,
+        );
+        if (resolved == null) return;
+        categoryId = resolved;
+        ref.invalidate(categoriesProvider);
+      case NoCategory():
+        categoryId = null;
+    }
+
     if (widget.isEditing && _existingProduct != null) {
       final updatedProduct = _existingProduct!.copyWith(
         name: _nameController.text.trim(),
         description: description.isNotEmpty ? description : null,
+        categoryId: categoryId,
+        clearCategoryId: categoryId == null,
         costPrice: double.parse(_costPriceController.text),
         sellingPrice: double.parse(_sellingPriceController.text),
         stock: int.parse(_stockController.text),
@@ -119,6 +159,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       final params = CreateProductParams(
         name: _nameController.text.trim(),
         description: description.isNotEmpty ? description : null,
+        categoryId: categoryId,
         costPrice: double.parse(_costPriceController.text),
         sellingPrice: double.parse(_sellingPriceController.text),
         stock: int.parse(_stockController.text),
@@ -335,6 +376,38 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             label: 'Deskripsi',
             hint: 'Deskripsi produk (opsional)',
             maxLines: 3,
+          ),
+          const SizedBox(height: AppDimensions.spacing16),
+          Consumer(
+            builder: (context, ref, _) {
+              final categoriesAsync = ref.watch(categoriesProvider);
+              return categoriesAsync.when(
+                data: (categories) {
+                  final initialCategory = _initialCategoryId != null
+                      ? categories
+                          .where((c) => c.id == _initialCategoryId)
+                          .firstOrNull
+                      : null;
+                  return CategoryAutocompleteField(
+                    categories: categories,
+                    initialCategory: initialCategory,
+                    onChanged: (selection) {
+                      setState(() => _categorySelection = selection);
+                    },
+                  );
+                },
+                loading: () => const ModernTextField(
+                  label: 'Kategori',
+                  hint: 'Memuat...',
+                  enabled: false,
+                ),
+                error: (_, __) => const ModernTextField(
+                  label: 'Kategori',
+                  hint: 'Gagal memuat kategori',
+                  enabled: false,
+                ),
+              );
+            },
           ),
         ],
       ),

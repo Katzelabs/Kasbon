@@ -37,4 +37,16 @@ class CategoryRepositoryImpl implements CategoryRepository {
       return const Left(UnexpectedFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, Category>> createCategory(String name) async {
+    try {
+      final model = await _remoteDataSource.createCategory(name);
+      return Right(model.toEntity());
+    } on DatabaseException catch (e) {
+      return Left(DatabaseFailure(message: e.message));
+    } catch (e) {
+      return const Left(UnexpectedFailure());
+    }
+  }
 }

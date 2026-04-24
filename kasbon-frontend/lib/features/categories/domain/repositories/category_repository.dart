@@ -10,4 +10,7 @@ abstract class CategoryRepository {
 
   /// Get a single category by ID
   Future<Either<Failure, Category>> getCategoryById(String id);
+
+  /// Create a new category with the given name
+  Future<Either<Failure, Category>> createCategory(String name);
 }

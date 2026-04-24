@@ -53,6 +53,7 @@ class Product extends Equatable {
   Product copyWith({
     String? id,
     String? categoryId,
+    bool clearCategoryId = false,
     String? sku,
     String? name,
     String? description,
@@ -69,7 +70,7 @@ class Product extends Equatable {
   }) {
     return Product(
       id: id ?? this.id,
-      categoryId: categoryId ?? this.categoryId,
+      categoryId: clearCategoryId ? null : (categoryId ?? this.categoryId),
       sku: sku ?? this.sku,
       name: name ?? this.name,
       description: description ?? this.description,

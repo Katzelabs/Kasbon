@@ -23,6 +23,7 @@ import '../../features/backup/domain/usecases/restore_backup.dart';
 import '../../features/categories/data/datasources/category_remote_datasource.dart';
 import '../../features/categories/data/repositories/category_repository_impl.dart';
 import '../../features/categories/domain/repositories/category_repository.dart';
+import '../../features/categories/domain/usecases/create_category.dart';
 import '../../features/categories/domain/usecases/get_all_categories.dart';
 import '../../features/products/data/datasources/product_remote_datasource.dart';
 import '../../features/products/data/repositories/product_repository_impl.dart';
@@ -156,6 +157,8 @@ Future<void> configureDependencies() async {
 
   getIt.registerLazySingleton(
       () => GetAllCategories(getIt<CategoryRepository>()));
+  getIt.registerLazySingleton(
+      () => CreateCategory(getIt<CategoryRepository>()));
 
   // ===========================================
   // TRANSACTIONS FEATURE
