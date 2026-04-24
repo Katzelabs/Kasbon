@@ -46,8 +46,19 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
   void _setCash(double amount) {
     setState(() {
       _cashReceived = amount;
-      _cashController.text = amount.toInt().toString();
+      _cashController.text = _formatCurrency(amount.toInt());
     });
+  }
+
+  String _formatCurrency(int number) {
+    if (number == 0) return '';
+    final chars = number.toString().split('').reversed.toList();
+    final result = <String>[];
+    for (var i = 0; i < chars.length; i++) {
+      if (i > 0 && i % 3 == 0) result.add('.');
+      result.add(chars[i]);
+    }
+    return result.reversed.join();
   }
 
   void _selectPaymentMethod(SelectedPaymentMethod method) {
@@ -178,20 +189,14 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
             const SizedBox(height: AppDimensions.spacing24),
 
             // Cash received input (only for cash payment)
-            ModernTextField(
+            ModernCurrencyField(
               controller: _cashController,
               label: 'Uang Diterima',
-              hint: '0',
               variant: ModernInputVariant.filled,
               autofocus: true,
-              keyboardType: TextInputType.number,
-              leading: const Icon(Icons.payments_outlined),
               onChanged: (value) {
-                final cleanValue =
-                    value.replaceAll('.', '').replaceAll(',', '');
-                final parsed = double.tryParse(cleanValue) ?? 0;
                 setState(() {
-                  _cashReceived = parsed;
+                  _cashReceived = value.toDouble();
                 });
               },
             ),

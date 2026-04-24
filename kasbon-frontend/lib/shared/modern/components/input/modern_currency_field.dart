@@ -97,21 +97,9 @@ class _ModernCurrencyFieldState extends State<ModernCurrencyField> {
       hintText: widget.hint,
       helperText: widget.helperText,
       errorText: widget.errorText,
-      prefixIcon: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.spacing12,
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          widget.currencySymbol,
-          style: AppTextStyles.labelLarge.copyWith(
-            color: _hasError ? AppColors.error : AppColors.textSecondary,
-          ),
-        ),
-      ),
-      prefixIconConstraints: const BoxConstraints(
-        minWidth: 0,
-        minHeight: 0,
+      prefixText: '${widget.currencySymbol} ',
+      prefixStyle: AppTextStyles.priceMedium.copyWith(
+        color: _hasError ? AppColors.error : AppColors.textSecondary,
       ),
       filled: widget.variant == ModernInputVariant.filled,
       fillColor: widget.variant == ModernInputVariant.filled

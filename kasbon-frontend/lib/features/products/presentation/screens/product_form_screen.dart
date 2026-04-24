@@ -85,12 +85,27 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     super.dispose();
   }
 
+  String _formatCurrency(int number) {
+    if (number == 0) return '';
+    final chars = number.toString().split('').reversed.toList();
+    final result = <String>[];
+    for (var i = 0; i < chars.length; i++) {
+      if (i > 0 && i % 3 == 0) result.add('.');
+      result.add(chars[i]);
+    }
+    return result.reversed.join();
+  }
+
+  double _parseCurrencyText(String text) {
+    return double.parse(text.replaceAll('.', ''));
+  }
+
   void _populateForm(Product product) {
     _existingProduct = product;
     _nameController.text = product.name;
     _descriptionController.text = product.description ?? '';
-    _costPriceController.text = product.costPrice.toStringAsFixed(0);
-    _sellingPriceController.text = product.sellingPrice.toStringAsFixed(0);
+    _costPriceController.text = _formatCurrency(product.costPrice.toInt());
+    _sellingPriceController.text = _formatCurrency(product.sellingPrice.toInt());
     _stockController.text = product.stock.toString();
     _minStockController.text = product.minStock.toString();
     _barcodeController.text = product.barcode ?? '';
@@ -146,8 +161,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         description: description.isNotEmpty ? description : null,
         categoryId: categoryId,
         clearCategoryId: categoryId == null,
-        costPrice: double.parse(_costPriceController.text),
-        sellingPrice: double.parse(_sellingPriceController.text),
+        costPrice: _parseCurrencyText(_costPriceController.text),
+        sellingPrice: _parseCurrencyText(_sellingPriceController.text),
         stock: int.parse(_stockController.text),
         minStock: int.parse(_minStockController.text),
         barcode: barcode.isNotEmpty ? barcode : null,
@@ -160,8 +175,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         name: _nameController.text.trim(),
         description: description.isNotEmpty ? description : null,
         categoryId: categoryId,
-        costPrice: double.parse(_costPriceController.text),
-        sellingPrice: double.parse(_sellingPriceController.text),
+        costPrice: _parseCurrencyText(_costPriceController.text),
+        sellingPrice: _parseCurrencyText(_sellingPriceController.text),
         stock: int.parse(_stockController.text),
         minStock: int.parse(_minStockController.text),
         barcode: barcode.isNotEmpty ? barcode : null,
@@ -422,24 +437,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         children: [
           _buildSectionHeader('Harga'),
           const SizedBox(height: AppDimensions.spacing12),
-          ModernTextField(
+          ModernCurrencyField(
             controller: _costPriceController,
             label: 'Harga Modal *',
-            hint: '0',
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            leading: const Icon(Icons.monetization_on_outlined),
             validator: (value) =>
                 Validators.positiveNumber(value, fieldName: 'Harga modal'),
           ),
           const SizedBox(height: AppDimensions.spacing16),
-          ModernTextField(
+          ModernCurrencyField(
             controller: _sellingPriceController,
             label: 'Harga Jual *',
-            hint: '0',
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            leading: const Icon(Icons.sell_outlined),
             validator: (value) =>
                 Validators.positiveNumber(value, fieldName: 'Harga jual'),
           ),
