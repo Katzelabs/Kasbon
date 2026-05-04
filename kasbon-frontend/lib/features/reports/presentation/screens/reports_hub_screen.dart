@@ -24,7 +24,6 @@ class ReportsHubScreen extends ConsumerWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Laporan',
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: Builder(

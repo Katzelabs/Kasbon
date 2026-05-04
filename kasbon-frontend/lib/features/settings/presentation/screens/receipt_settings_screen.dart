@@ -80,7 +80,6 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
       appBar: ModernAppBar.backWithActions(
         title: 'Pengaturan Struk',
         onBack: () => context.pop(),
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: formState.isLoading

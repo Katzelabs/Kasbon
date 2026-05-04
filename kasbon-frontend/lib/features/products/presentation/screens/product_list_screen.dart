@@ -51,9 +51,6 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Daftar Produk',
-        onNotificationTap: () {
-          // TODO: Navigate to notifications
-        },
         onProfileTap: () {
           // TODO: Navigate to profile
         },

@@ -50,9 +50,6 @@ class _DesignSystemShowcaseScreenState
       appBar: ModernAppBar.backWithActions(
         title: 'Design System',
         onBack: () => Navigator.of(context).maybePop(),
-        onNotificationTap: () {
-          // TODO: Navigate to notifications
-        },
         onProfileTap: () {
           // TODO: Navigate to profile
         },

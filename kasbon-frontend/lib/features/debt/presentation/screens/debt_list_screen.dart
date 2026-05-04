@@ -25,9 +25,6 @@ class DebtListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Hutang',
-        onNotificationTap: () {
-          // TODO: Navigate to notifications
-        },
         onProfileTap: () {
           // TODO: Navigate to profile
         },

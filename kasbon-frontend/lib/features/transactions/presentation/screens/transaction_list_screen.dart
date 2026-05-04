@@ -22,7 +22,6 @@ class TransactionListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Riwayat Transaksi',
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: Column(

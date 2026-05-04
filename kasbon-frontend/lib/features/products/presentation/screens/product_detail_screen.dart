@@ -43,9 +43,6 @@ class ProductDetailScreen extends ConsumerWidget {
       appBar: ModernAppBar.backWithActions(
         title: 'Detail Produk',
         onBack: () => context.pop(),
-        onNotificationTap: () {
-          // TODO: Navigate to notifications
-        },
         onProfileTap: () {
           // TODO: Navigate to profile
         },

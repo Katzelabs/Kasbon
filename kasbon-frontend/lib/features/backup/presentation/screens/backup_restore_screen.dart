@@ -33,7 +33,6 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     return Scaffold(
       appBar: ModernAppBar.backWithActions(
         title: 'Backup & Restore',
-        onNotificationTap: () => {},
         onProfileTap: () => {},
       ),
       body: Builder(

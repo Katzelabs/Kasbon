@@ -54,7 +54,6 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
       appBar: ModernAppBar.backWithActions(
         title: 'Profil Toko',
         onBack: () => context.pop(),
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: formState.isLoading

@@ -24,7 +24,6 @@ class ProfitReportScreen extends ConsumerWidget {
     return Scaffold(
       appBar: ModernAppBar.backWithActions(
         title: 'Laporan Laba',
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: Builder(

@@ -22,7 +22,6 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Pengaturan',
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: settingsAsync.when(

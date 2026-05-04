@@ -31,7 +31,6 @@ class _ProductReportScreenState extends ConsumerState<ProductReportScreen> {
       appBar: ModernAppBar.backWithActions(
         title: 'Laporan Produk',
         onBack: () => context.pop(),
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: Column(

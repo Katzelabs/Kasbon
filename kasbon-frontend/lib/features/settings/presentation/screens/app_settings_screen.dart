@@ -72,7 +72,6 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
       appBar: ModernAppBar.backWithActions(
         title: 'Pengaturan Aplikasi',
         onBack: () => context.pop(),
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: formState.isLoading

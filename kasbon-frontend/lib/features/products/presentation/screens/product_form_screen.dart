@@ -208,9 +208,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       appBar: ModernAppBar.backWithActions(
         title: widget.isEditing ? 'Edit Produk' : 'Tambah Produk',
         onBack: () => context.pop(),
-        onNotificationTap: () {
-          // TODO: Navigate to notifications
-        },
         onProfileTap: () {
           // TODO: Navigate to profile
         },

@@ -102,9 +102,6 @@ class _PosScreenState extends ConsumerState<PosScreen> {
       resizeToAvoidBottomInset: false,
       appBar: ModernAppBar.withActions(
         title: 'Kasir',
-        onNotificationTap: () {
-          // TODO: Navigate to notifications
-        },
         onProfileTap: () {
           // TODO: Navigate to profile
         },

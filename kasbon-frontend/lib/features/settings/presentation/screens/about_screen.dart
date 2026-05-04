@@ -24,7 +24,6 @@ class AboutScreen extends ConsumerWidget {
       appBar: ModernAppBar.backWithActions(
         title: 'Tentang Aplikasi',
         onBack: () => context.pop(),
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: Builder(

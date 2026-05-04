@@ -40,7 +40,6 @@ class TransactionDetailScreen extends ConsumerWidget {
             context.go('/transactions');
           }
         },
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: transactionAsync.when(

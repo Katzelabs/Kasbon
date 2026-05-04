@@ -15,7 +15,6 @@ class DevToolsScreen extends StatelessWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Dev Tools',
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: SingleChildScrollView(

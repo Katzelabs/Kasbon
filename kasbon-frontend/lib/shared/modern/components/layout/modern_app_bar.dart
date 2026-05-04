@@ -11,7 +11,6 @@ import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../providers/providers.dart';
 import '../../utils/modern_variants.dart';
 import '../data_display/modern_avatar.dart';
-import '../data_display/modern_badge.dart';
 import '../feedback/modern_dialog.dart';
 
 /// A Modern-styled app bar with consistent theming and convenience constructors
@@ -126,14 +125,13 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// Creates an app bar with user info display (for tablet layout)
   ///
-  /// Shows notification button and user avatar/info on the right side.
+  /// Shows the user avatar/info on the right side.
   /// Example:
   /// ```dart
   /// ModernAppBar.withUserInfo(
   ///   title: 'Beranda',
   ///   userName: 'John Doe',
   ///   userRole: 'Kasir',
-  ///   onNotificationTap: () => {},
   ///   onProfileTap: () => {},
   /// )
   /// ```
@@ -143,7 +141,6 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     String? userName,
     String? userRole,
     String? userAvatarUrl,
-    VoidCallback? onNotificationTap,
     VoidCallback? onProfileTap,
     List<Widget>? actions,
     bool showBackButton = false,
@@ -153,16 +150,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     ModernAppBarVariant variant = ModernAppBarVariant.flat,
   }) {
     final userInfoActions = <Widget>[
-      // Custom actions first
       if (actions != null) ...actions,
-      // Notification button
-      IconButton(
-        onPressed: onNotificationTap,
-        icon: const Icon(Icons.notifications_outlined),
-        color: AppColors.textSecondary,
-      ),
-      // User info
-      const SizedBox(width: AppDimensions.spacing8),
       _UserInfoWidget(
         userName: userName,
         userRole: userRole,
@@ -187,17 +175,16 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// Creates an app bar with back button + title (left-aligned) and responsive actions
   ///
-  /// Mobile: Back button + title + notification icon with badge
-  /// Tablet: Back button + title + notification icon with badge + avatar
+  /// Mobile: Back button + title
+  /// Tablet: Back button + title + avatar
   ///
-  /// Uses Riverpod providers for user info and notification count.
+  /// Uses Riverpod providers for user info.
   ///
   /// Example:
   /// ```dart
   /// ModernAppBar.backWithActions(
   ///   title: 'Detail Produk',
   ///   onBack: () => context.pop(),
-  ///   onNotificationTap: () => context.push('/notifications'),
   ///   onProfileTap: () => context.push('/profile'),
   /// )
   /// ```
@@ -205,7 +192,6 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     Key? key,
     required String title,
     VoidCallback? onBack,
-    VoidCallback? onNotificationTap,
     VoidCallback? onProfileTap,
     List<Widget>? additionalActions,
     Color? backgroundColor,
@@ -219,10 +205,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       actions: [
         if (additionalActions != null) ...additionalActions,
-        _ResponsiveActionsWidget(
-          onNotificationTap: onNotificationTap,
-          onProfileTap: onProfileTap,
-        ),
+        _ResponsiveActionsWidget(onProfileTap: onProfileTap),
       ],
       centerTitle: false,
       backgroundColor: backgroundColor,
@@ -235,23 +218,21 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
   ///
   /// For parent/main screens like Dashboard, Products list, etc.
   ///
-  /// Mobile: Title + notification icon with badge
-  /// Tablet: Title + notification icon with badge + avatar
+  /// Mobile: Title only
+  /// Tablet: Title + avatar
   ///
-  /// Uses Riverpod providers for user info and notification count.
+  /// Uses Riverpod providers for user info.
   ///
   /// Example:
   /// ```dart
   /// ModernAppBar.withActions(
   ///   title: 'Produk',
-  ///   onNotificationTap: () => context.push('/notifications'),
   ///   onProfileTap: () => context.push('/profile'),
   /// )
   /// ```
   factory ModernAppBar.withActions({
     Key? key,
     required String title,
-    VoidCallback? onNotificationTap,
     VoidCallback? onProfileTap,
     List<Widget>? additionalActions,
     Color? backgroundColor,
@@ -264,10 +245,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       actions: [
         if (additionalActions != null) ...additionalActions,
-        _ResponsiveActionsWidget(
-          onNotificationTap: onNotificationTap,
-          onProfileTap: onProfileTap,
-        ),
+        _ResponsiveActionsWidget(onProfileTap: onProfileTap),
       ],
       centerTitle: false,
       backgroundColor: backgroundColor,
@@ -515,80 +493,64 @@ class _UserInfoWidget extends StatelessWidget {
   }
 }
 
-/// Internal widget for responsive actions (notification + avatar on tablet)
+/// Internal widget for responsive actions (avatar on tablet only)
 class _ResponsiveActionsWidget extends ConsumerWidget {
-  const _ResponsiveActionsWidget({
-    this.onNotificationTap,
-    this.onProfileTap,
-  });
+  const _ResponsiveActionsWidget({this.onProfileTap});
 
-  final VoidCallback? onNotificationTap;
   final VoidCallback? onProfileTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notificationCount = ref.watch(notificationCountProvider);
-    final userInfo = ref.watch(userInfoProvider);
-    final isTabletOrDesktop = context.isTabletOrDesktop;
+    if (!context.isTabletOrDesktop) {
+      return const SizedBox.shrink();
+    }
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Notification button with badge
-        _NotificationButton(
-          count: notificationCount,
-          onTap: onNotificationTap,
+    final userInfo = ref.watch(userInfoProvider);
+
+    return Padding(
+      padding: const EdgeInsets.only(right: AppDimensions.spacing8),
+      child: PopupMenuButton<String>(
+        onSelected: (value) {
+          if (value == 'settings') {
+            context.push('/settings');
+          } else if (value == 'logout') {
+            _handleAppBarLogout(context, ref);
+          }
+        },
+        offset: const Offset(0, 40),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
         ),
-        // Avatar with popup menu (tablet/desktop only)
-        if (isTabletOrDesktop) ...[
-          const SizedBox(width: AppDimensions.spacing8),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'settings') {
-                context.push('/settings');
-              } else if (value == 'logout') {
-                _handleAppBarLogout(context, ref);
-              }
-            },
-            offset: const Offset(0, 40),
-            shape: RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(AppDimensions.radiusMedium),
+        itemBuilder: (context) => [
+          const PopupMenuItem<String>(
+            value: 'settings',
+            child: Row(
+              children: [
+                Icon(Icons.settings_outlined,
+                    color: AppColors.textSecondary, size: 20),
+                SizedBox(width: AppDimensions.spacing8),
+                Text('Pengaturan'),
+              ],
             ),
-            itemBuilder: (context) => [
-              const PopupMenuItem<String>(
-                value: 'settings',
-                child: Row(
-                  children: [
-                    Icon(Icons.settings_outlined,
-                        color: AppColors.textSecondary, size: 20),
-                    SizedBox(width: AppDimensions.spacing8),
-                    Text('Pengaturan'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout_rounded,
-                        color: AppColors.error, size: 20),
-                    SizedBox(width: AppDimensions.spacing8),
-                    Text('Keluar',
-                        style: TextStyle(color: AppColors.error)),
-                  ],
-                ),
-              ),
-            ],
-            child: ModernAvatar.small(
-              imageUrl: userInfo.avatarUrl,
-              initials: userInfo.initials,
+          ),
+          const PopupMenuDivider(),
+          const PopupMenuItem<String>(
+            value: 'logout',
+            child: Row(
+              children: [
+                Icon(Icons.logout_rounded,
+                    color: AppColors.error, size: 20),
+                SizedBox(width: AppDimensions.spacing8),
+                Text('Keluar', style: TextStyle(color: AppColors.error)),
+              ],
             ),
           ),
         ],
-        const SizedBox(width: AppDimensions.spacing8),
-      ],
+        child: ModernAvatar.small(
+          imageUrl: userInfo.avatarUrl,
+          initials: userInfo.initials,
+        ),
+      ),
     );
   }
 }
@@ -607,34 +569,3 @@ Future<void> _handleAppBarLogout(BuildContext context, WidgetRef ref) async {
   }
 }
 
-/// Internal notification button with badge
-class _NotificationButton extends StatelessWidget {
-  const _NotificationButton({
-    required this.count,
-    this.onTap,
-  });
-
-  final int count;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        IconButton(
-          onPressed: onTap,
-          icon: const Icon(Icons.notifications_outlined),
-          color: AppColors.textSecondary,
-          tooltip: 'Notifikasi',
-        ),
-        if (count > 0)
-          Positioned(
-            right: 4,
-            top: 4,
-            child: ModernCounterBadge(count: count),
-          ),
-      ],
-    );
-  }
-}

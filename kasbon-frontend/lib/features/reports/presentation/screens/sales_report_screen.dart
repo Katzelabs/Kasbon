@@ -26,7 +26,6 @@ class SalesReportScreen extends ConsumerWidget {
     return Scaffold(
       appBar: ModernAppBar.backWithActions(
         title: 'Laporan Penjualan',
-        onNotificationTap: () {},
         onProfileTap: () {},
       ),
       body: Builder(
