@@ -83,14 +83,14 @@ class GoRouterRefreshStream extends ChangeNotifier {
 class AppRouter {
   AppRouter._();
 
-  static final GlobalKey<NavigatorState> _rootNavigatorKey =
+  static final GlobalKey<NavigatorState> rootNavigatorKey =
       GlobalKey<NavigatorState>(debugLabel: 'root');
 
   static final GlobalKey<NavigatorState> _shellNavigatorKey =
       GlobalKey<NavigatorState>(debugLabel: 'shell');
 
   static final GoRouter router = GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.dashboard,
     debugLogDiagnostics: true,
     refreshListenable: GoRouterRefreshStream(

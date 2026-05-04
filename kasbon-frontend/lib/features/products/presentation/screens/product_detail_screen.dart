@@ -32,20 +32,10 @@ class ProductDetailScreen extends ConsumerWidget {
     ref.listen(productFormProvider, (previous, next) {
       if (next.isSuccess && previous?.isLoading == true) {
         ref.invalidate(productsProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Produk berhasil dihapus'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ModernToast.success(context, 'Produk berhasil dihapus');
         context.pop();
       } else if (next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.errorMessage!),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ModernToast.error(context, next.errorMessage!);
       }
     });
 

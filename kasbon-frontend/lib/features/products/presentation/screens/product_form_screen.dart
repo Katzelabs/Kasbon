@@ -136,12 +136,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         final resolved = result.fold(
           (failure) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content:
-                      Text('Gagal membuat kategori: ${failure.message}'),
-                  backgroundColor: AppColors.error,
-                ),
+              ModernToast.error(
+                context,
+                'Gagal membuat kategori: ${failure.message}',
               );
             }
             return null;
@@ -195,24 +192,15 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     ref.listen(productFormProvider, (previous, next) {
       if (next.isSuccess) {
         ref.invalidate(productsProvider);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.isEditing
-                  ? 'Produk berhasil diperbarui'
-                  : 'Produk berhasil ditambahkan',
-            ),
-            backgroundColor: AppColors.success,
-          ),
+        ModernToast.success(
+          context,
+          widget.isEditing
+              ? 'Produk berhasil diperbarui'
+              : 'Produk berhasil ditambahkan',
         );
         context.pop();
       } else if (next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.errorMessage!),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ModernToast.error(context, next.errorMessage!);
       }
     });
 

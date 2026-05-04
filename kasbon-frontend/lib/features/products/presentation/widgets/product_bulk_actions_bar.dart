@@ -9,6 +9,7 @@ import '../../../../shared/modern/components/button/modern_button.dart';
 import '../../../../shared/modern/components/card/modern_card.dart';
 import '../../../../shared/modern/components/data_display/modern_list_tile.dart';
 import '../../../../shared/modern/components/feedback/modern_dialog.dart';
+import '../../../../shared/modern/components/feedback/modern_toast.dart';
 import '../../../../shared/modern/utils/modern_variants.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/usecases/delete_product.dart';
@@ -187,23 +188,14 @@ class _ProductBulkActionsBarState extends ConsumerState<ProductBulkActionsBar> {
       ref.invalidate(productsProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${products.length} produk berhasil diperbarui',
-            ),
-            backgroundColor: AppColors.success,
-          ),
+        ModernToast.success(
+          context,
+          '${products.length} produk berhasil diperbarui',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal memperbarui produk: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ModernToast.error(context, 'Gagal memperbarui produk: $e');
       }
     } finally {
       if (mounted) {
@@ -226,23 +218,14 @@ class _ProductBulkActionsBarState extends ConsumerState<ProductBulkActionsBar> {
       ref.invalidate(productsProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${products.length} produk berhasil dihapus',
-            ),
-            backgroundColor: AppColors.success,
-          ),
+        ModernToast.success(
+          context,
+          '${products.length} produk berhasil dihapus',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal menghapus produk: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ModernToast.error(context, 'Gagal menghapus produk: $e');
       }
     } finally {
       if (mounted) {
