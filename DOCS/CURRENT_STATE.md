@@ -1,125 +1,64 @@
 # KASBON - Current Project State
 
-**Last Updated:** December 2024
-**Status:** Fresh Initialization - Ready for Development
+**Last Updated:** July 2026
+**Status:** MVP complete, Supabase migration complete — preparing for deployment
+
+> This document is a snapshot. For live progress see [TASKS/PROGRESS.md](../TASKS/PROGRESS.md).
+> For current architecture and conventions see the root [CLAUDE.md](../CLAUDE.md).
 
 ---
 
 ## Project Overview
 
-KASBON (Kasir Bisnis Online) is a POS (Point of Sale) application for Indonesian UMKM (small businesses). This document tracks the current state of the project versus what's planned.
+KASBON (Kasir Bisnis Online) is a cloud-based POS application for Indonesian UMKM (small businesses) built with Flutter and Supabase. All data is stored in Supabase (PostgreSQL) with Row Level Security; authentication (email/password) is mandatory.
+
+**Important:** The project originally launched as an offline-first SQLite app. In Feb–Mar 2026 it was fully migrated to a Supabase-only architecture — SQLite was removed entirely. The other documents in this folder (`PROJECT_BRIEF.md`, `TECHNICAL_REQUIREMENTS.md`, `FEATURE_PRIORITY_AND_PHASES.md`) predate that migration and describe the old architecture in places.
 
 ---
 
-## Current State
+## What Is Built (as of July 2026)
 
-### Project Structure
-```
-Kasbon/
-├── DOCS/                          # Documentation (complete)
-│   ├── PROJECT_BRIEF.md           # Vision, business model, marketing
-│   ├── FEATURE_PRIORITY_AND_PHASES.md  # Feature prioritization
-│   ├── TECHNICAL_REQUIREMENTS.md  # Tech specs, database schema
-│   └── CURRENT_STATE.md           # This file
-├── TASKS/                         # Development tasks (complete)
-│   ├── README.md
-│   ├── PROGRESS.md
-│   └── TASK_XXX_*.md files
-└── kasbon-frontend/               # Flutter app (initialized only)
-    ├── lib/
-    │   └── main.dart              # Default Flutter counter app
-    ├── pubspec.yaml               # Basic dependencies only
-    ├── android/
-    ├── ios/
-    ├── web/
-    ├── linux/
-    ├── macos/
-    └── windows/
-```
+All MVP features (TASK_001–015) plus authentication (TASK_017) are complete:
 
-### Flutter Project Status
+- **Products & Categories** — Full CRUD, search, filtering, bulk actions, create-category-from-product-form
+- **POS** — Cart, payment flow (cash/debt), atomic transaction creation via `create_pos_transaction` RPC, stock validation
+- **Transactions** — History with date filtering, detail view, grouped by date
+- **Dashboard** — Today's sales/profit/transaction count with comparisons (via `get_dashboard_summary` RPC), low stock alerts
+- **Receipts** — Text-based digital receipt, copy/share/WhatsApp
+- **Stock Tracking** — Automatic deduction, low stock alerts
+- **Profit & Reports** — Profit reports, sales reports, top products (via reporting RPCs)
+- **Debt (Hutang)** — Debt payment option, debt list, mark as paid, summary
+- **Settings** — Shop profile, receipt customization, low stock threshold
+- **Backup** — JSON export/import
+- **Auth** — Login/register screens, route guarding, logout
+- **Testing** — 358 tests, 95–100% coverage on business logic
 
-| Aspect | Current | Planned |
-|--------|---------|---------|
-| **Package Name** | `kasbon_app` | `kasbon_pos` |
-| **App Code** | Default counter app | Full POS system |
-| **Dependencies** | flutter, cupertino_icons | 15+ packages (Riverpod, SQLite, etc.) |
-| **Architecture** | None | Clean Architecture |
-| **State Management** | None | Riverpod |
-| **Database** | None | SQLite (offline-first) |
-| **Navigation** | None | GoRouter |
-| **Theme** | Default Material | Custom (Orange/Navy) |
+## Remaining Work
 
-### What Exists
-- Flutter project initialized with `flutter create`
-- Basic pubspec.yaml with default dependencies
-- Platform folders (android, ios, web, etc.)
-- Comprehensive documentation in DOCS/
-
-### What Needs to Be Built
-- Everything defined in TECHNICAL_REQUIREMENTS.md
-- See TASKS/ directory for structured development tasks
+| Task | Status |
+|------|--------|
+| TASK_016 Beta Preparation | Not started |
+| TASK_019 Advanced Reports | Not started |
+| TASK_020 QRIS Payment | Not started |
+| TASK_021 Deployment | Not started |
+| TASK_018 Cloud Sync | Obsolete (Supabase-only architecture makes it unnecessary) |
 
 ---
 
-## Known Discrepancies
+## Architecture Summary
 
-### Package Naming
-- **Current:** `name: kasbon_app` (in pubspec.yaml)
-- **Docs Reference:** `name: kasbon_pos`
-- **Action:** Will be updated in TASK_001
+- **Frontend:** Flutter, Clean Architecture, feature modules under `kasbon-frontend/lib/features/` (auth, products, categories, pos, transactions, dashboard, reports, debt, receipt, backup, settings, dev_tools)
+- **State:** Riverpod; **DI:** GetIt; **Navigation:** GoRouter with auth redirect
+- **Backend:** Supabase — schema in `supabase/migrations/`, seed in `supabase/seed.sql`
+- **UI:** Modern Widget Library (`lib/shared/modern/`) is REQUIRED; `lib/shared/widgets/` is deprecated
+- **Config:** Supabase URL and anon key injected via `--dart-define` (see `lib/config/app_config.dart`)
 
-### SDK Version
-- **Current:** `sdk: ^3.10.0-162.1.beta`
-- **Docs Reference:** `sdk: '>=3.2.0 <4.0.0'`
-- **Action:** Consider using stable channel
+## Sources of Truth
 
----
-
-## Quick Start Guide
-
-### Prerequisites
-- Flutter SDK 3.16+ (stable channel recommended)
-- Android Studio or VS Code with Flutter extensions
-- Android device/emulator for testing
-
-### Getting Started
-1. Navigate to `kasbon-frontend/` directory
-2. Run `flutter pub get` to install dependencies
-3. Run `flutter run` to start the default app
-4. Begin with **TASK_001_PROJECT_SETUP.md** in TASKS/
-
-### Development Order
-Follow tasks in numerical order:
-1. Setup (001-003) - Project foundation
-2. MVP Features (004-014) - Core functionality
-3. Testing (015-016) - Quality assurance
-4. Phase 2 (017-020) - Cloud features (post-MVP)
-5. Deployment (021) - Launch preparation
-
----
-
-## Reference Documents
-
-| Document | Purpose |
-|----------|---------|
-| [PROJECT_BRIEF.md](./PROJECT_BRIEF.md) | Vision, business model, marketing strategy |
-| [FEATURE_PRIORITY_AND_PHASES.md](./FEATURE_PRIORITY_AND_PHASES.md) | Feature prioritization (P0-P4) |
-| [TECHNICAL_REQUIREMENTS.md](./TECHNICAL_REQUIREMENTS.md) | Tech specs, database schema, architecture |
-| [TASKS/README.md](../TASKS/README.md) | Task tracking overview |
-| [TASKS/PROGRESS.md](../TASKS/PROGRESS.md) | Development progress |
-
----
-
-## Next Steps
-
-Start development by following tasks in TASKS/ directory:
-
-```
-TASK_001_PROJECT_SETUP.md      <- START HERE
-TASK_002_DATABASE_SETUP.md
-TASK_003_CORE_INFRASTRUCTURE.md
-...
-```
-
-Good luck building KASBON!
+| Topic | Where to look |
+|-------|---------------|
+| Database schema | `supabase/migrations/` (NOT the docs in this folder) |
+| RPC functions | `supabase/migrations/20260316000001_create_rpc_functions.sql` |
+| Progress | `TASKS/PROGRESS.md` |
+| Architecture & conventions | Root `CLAUDE.md` and `kasbon-frontend/CLAUDE.md` |
+| Business vision & roadmap | `DOCS/PROJECT_BRIEF.md`, `DOCS/FEATURE_PRIORITY_AND_PHASES.md` (still valid for business context) |

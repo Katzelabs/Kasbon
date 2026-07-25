@@ -1,6 +1,12 @@
 # KASBON - Feature Prioritization & Development Phases
 ## Refined MVP & Roadmap
 
+> ⚠️ **HISTORICAL DOCUMENT (planning-phase).** Feature priorities remain useful
+> context, but references to SQLite/offline-first/cloud-sync are outdated — the
+> project is now **Supabase-only** (cloud-native, no local database, no sync layer;
+> TASK_018 Cloud Sync is obsolete). For completed vs. remaining work see
+> `TASKS/PROGRESS.md`; for current architecture see root `CLAUDE.md`.
+
 ---
 
 ## 📊 EXECUTIVE SUMMARY

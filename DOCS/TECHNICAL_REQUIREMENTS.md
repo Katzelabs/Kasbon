@@ -1,5 +1,14 @@
 # KASBON - Technical Requirements Document
 
+> ⚠️ **HISTORICAL DOCUMENT (planning-phase, Nov 2024).** The project has since
+> migrated to a **Supabase-only** architecture (Feb–Mar 2026) — SQLite/sqflite was
+> removed entirely and the offline-first/sync design described below was abandoned.
+> Do **not** use this document as the source of truth for the database schema or
+> architecture. Current sources of truth:
+> - Database schema & RPC functions: `supabase/migrations/`
+> - Architecture & conventions: root `CLAUDE.md` and `kasbon-frontend/CLAUDE.md`
+> - Current state: `DOCS/CURRENT_STATE.md`, progress: `TASKS/PROGRESS.md`
+
 **Version:** 1.0  
 **Last Updated:** November 2024  
 **Budget:** Rp 3,000,000  

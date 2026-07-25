@@ -119,6 +119,18 @@ Mandatory email/password auth via Supabase Auth:
 import 'package:kasbon_frontend/shared/modern/modern.dart';
 ```
 
+**Widget Mapping (raw Flutter → Modern equivalent):**
+| Raw Flutter | Modern Equivalent |
+|-------------|-------------------|
+| `ElevatedButton` | `ModernButton.primary()` |
+| `OutlinedButton` | `ModernButton.outline()` |
+| `TextButton` | `ModernButton.text()` |
+| `TextField` | `ModernTextField` |
+| `Card` | `ModernCard.elevated()` |
+| `CircularProgressIndicator` | `ModernLoading()` |
+| `AlertDialog` | `ModernDialog` |
+| `SnackBar` | `ModernToast` |
+
 ### Buttons
 ```dart
 ModernButton.primary(child: Text('Bayar'), onPressed: onPay)

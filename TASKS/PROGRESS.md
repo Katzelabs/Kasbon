@@ -1,8 +1,8 @@
 # KASBON Development Progress
 
 **Started:** December 2024
-**Current Phase:** Setup
-**Target:** MVP Release
+**Current Phase:** Phase 2 (Cloud Features) — Supabase migration complete
+**Target:** Public Launch
 
 ---
 
@@ -16,10 +16,10 @@ Testing & Polish:  [#####     ] 50% (1/2)
 --------------------------------------------
 MVP TOTAL:         [######### ] 94% (15/16)
 
-Phase 2:           [          ] 0% (0/4)
+Phase 2:           [#####     ] 50% (2/4)  # 017 done, 018 obsolete
 Deployment:        [          ] 0% (0/1)
 --------------------------------------------
-FULL PROJECT:      [#######   ] 71% (15/21)
+FULL PROJECT:      [########  ] 81% (17/21)
 ```
 
 ---
@@ -42,7 +42,11 @@ FULL PROJECT:      [#######   ] 71% (15/21)
 | 012 | Basic Reports | Jan 24, 2025 | Reports hub, sales report with date range selection, revenue/transaction summaries |
 | 013 | Settings | Jan 24, 2025 | Shop profile, receipt customization, app settings (low stock threshold), about screen |
 | 014 | Backup & Restore | Jan 24, 2025 | JSON export/import, file picker, share functionality, restore confirmation |
-| 015 | Testing | Jan 26, 2025 | 358 tests, 95-100% coverage on business logic, unit + widget tests |
+| 015 | Testing | Jan 26, 2026 | 358 tests, 95-100% coverage on business logic, unit + widget tests |
+| — | Supabase Migration | Feb–Mar 2026 | Removed SQLite entirely; Supabase-only (PostgreSQL + RLS), migrations + RPC functions |
+| 017 | Authentication | Apr 2026 | Mandatory email/password via Supabase Auth, login/register screens, route guarding, logout |
+| 018 | Cloud Sync | Mar 2026 | Obsolete as originally scoped — Supabase-only architecture means all data is cloud-native (no local/cloud sync needed) |
+| — | UI Polish | Apr–May 2026 | Categories CRUD in product form, currency formatting, ModernToast + ToastController replacing Snackbar |
 
 ---
 
@@ -58,7 +62,10 @@ FULL PROJECT:      [#######   ] 71% (15/21)
 
 | # | Task | Priority | Prerequisites |
 |---|------|----------|---------------|
-| 016 | Beta Preparation | P1 | 015 ✅ |
+| 019 | Advanced Reports | P2 | 012 ✅ (no blockers) |
+| 021 | Deployment | P2 | 001-016 (016 pending) |
+| 016 | Open Source Release Prep | P1 | Do after 001-021 (per task note) |
+| 020 | QRIS Payment | P2 | Blocked: business entity registration + Xendit approval |
 
 ---
 
@@ -88,13 +95,13 @@ FULL PROJECT:      [#######   ] 71% (15/21)
 
 ### Milestone 5: Beta Ready
 - [x] TASK_015: Testing
-- [ ] TASK_016: Beta Preparation
+- [ ] TASK_016: Open Source Release Prep (do after 017-021)
 
 ### Milestone 6: Cloud Features (Phase 2)
-- [ ] TASK_017: Authentication
-- [ ] TASK_018: Cloud Sync
+- [x] TASK_017: Authentication (Apr 2026)
+- [x] TASK_018: Cloud Sync (obsolete — Supabase-only architecture, Mar 2026)
 - [ ] TASK_019: Advanced Reports
-- [ ] TASK_020: QRIS Payment
+- [ ] TASK_020: QRIS Payment (blocked on Xendit/business registration)
 
 ### Milestone 7: Launch
 - [ ] TASK_021: Deployment
@@ -149,4 +156,4 @@ FULL PROJECT:      [#######   ] 71% (15/21)
 
 ---
 
-*Last Updated: January 26, 2025 - TASK_015 Testing Completed (358 tests, 95-100% coverage)*
+*Last Updated: July 25, 2026 - Tracker reconciled with git history: Supabase migration + TASK_017 Auth done, TASK_018 obsolete. Known issue: test/widget_test.dart "App loads without errors" fails (needs Supabase init mock). Next: TASK_019 Advanced Reports.*

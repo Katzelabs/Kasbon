@@ -17,15 +17,50 @@ KASBON (Kasir Bisnis Online) is a cloud-based POS application for Indonesian sma
 
 ```
 Kasbon/
-├── kasbon-frontend/    # Flutter mobile app
+├── kasbon-frontend/    # Flutter mobile app (has its own CLAUDE.md)
 ├── supabase/           # Supabase config, migrations, seed data
-├── DOCS/               # Project documentation
-│   ├── PROJECT_BRIEF.md           # Full business & technical spec
-│   ├── TECHNICAL_REQUIREMENTS.md  # Database schema, API specs
-│   └── FEATURE_PRIORITY_AND_PHASES.md  # Feature breakdown & priorities
+├── DOCS/               # HISTORICAL planning docs (see warning below)
+│   ├── CURRENT_STATE.md           # Snapshot of project state
+│   ├── PROJECT_BRIEF.md           # Business vision (tech sections outdated)
+│   ├── TECHNICAL_REQUIREMENTS.md  # OUTDATED - describes old SQLite design
+│   └── FEATURE_PRIORITY_AND_PHASES.md  # Feature priorities (sync refs outdated)
 └── TASKS/              # Development tasks (TASK_001-021)
     └── PROGRESS.md     # Current progress tracker
 ```
+
+## Sources of Truth
+
+The project migrated from offline-first SQLite to **Supabase-only** (Feb–Mar 2026). The planning docs in `DOCS/` predate that migration — treat them as historical context only.
+
+| Topic | Authoritative source |
+|-------|---------------------|
+| Database schema | `supabase/migrations/` (NOT `DOCS/TECHNICAL_REQUIREMENTS.md`) |
+| RPC functions | `supabase/migrations/20260316000001_create_rpc_functions.sql` |
+| Seed / test data | `supabase/seed.sql` (test user: `test@kasbon.id` / `password123`) |
+| Development progress | `TASKS/PROGRESS.md` |
+| Frontend conventions | `kasbon-frontend/CLAUDE.md` |
+| Business vision | `DOCS/PROJECT_BRIEF.md` (business sections still valid) |
+
+## Claude Code Setup (Required Plugins)
+
+This project relies on user-scope Claude Code plugins rather than bundling generic
+skills in the repo. If they are not installed, run in Claude Code:
+
+```
+/plugin marketplace add flutter/agent-plugins
+/plugin install dart-flutter@dart-flutter          # Dart/Flutter MCP tools + skills
+/plugin install supabase@claude-plugins-official   # Supabase skills & best practices
+```
+
+Recommended (optional): `feature-dev@claude-plugins-official` (planning/review agents),
+`frontend-design@claude-plugins-official` (UI design guidance).
+
+Prefer the dart-flutter MCP tools (analyze, run_tests, hot_reload, etc.) over raw
+shell commands when available.
+
+The repo ships one project-specific skill: `.claude/skills/pos-uiux-designer`
+(KASBON POS UI/UX patterns) — this stays in the repo because it is not covered by
+any plugin.
 
 ## Development Commands
 
