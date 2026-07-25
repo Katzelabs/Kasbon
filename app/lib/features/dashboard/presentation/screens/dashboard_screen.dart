@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
+import '../../../../config/theme/app_gradients.dart';
+import '../../../../config/theme/app_shadows.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/responsive_utils.dart';
@@ -193,19 +195,9 @@ class _BannerSection extends StatelessWidget {
         width: double.infinity,
         height: 160,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
-          ),
+          gradient: AppGradients.primaryCard,
           borderRadius: BorderRadius.circular(AppDimensions.radiusXLarge),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          boxShadow: AppShadows.glow(AppColors.primary),
         ),
         child: Stack(
           children: [
@@ -317,47 +309,42 @@ class _SummaryStatsRowSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _SkeletonCard(),
-        ),
-        const SizedBox(width: AppDimensions.spacing16),
-        Expanded(
-          child: _SkeletonCard(),
-        ),
-        const SizedBox(width: AppDimensions.spacing16),
-        Expanded(
-          child: _SkeletonCard(),
-        ),
-        const SizedBox(width: AppDimensions.spacing16),
-        Expanded(
-          child: _SkeletonCard(),
-        ),
-      ],
+    return const ModernSkeleton(
+      child: Row(
+        children: [
+          Expanded(child: _SkeletonStatCard()),
+          SizedBox(width: AppDimensions.spacing16),
+          Expanded(child: _SkeletonStatCard()),
+          SizedBox(width: AppDimensions.spacing16),
+          Expanded(child: _SkeletonStatCard()),
+          SizedBox(width: AppDimensions.spacing16),
+          Expanded(child: _SkeletonStatCard()),
+        ],
+      ),
     );
   }
 }
 
-/// Skeleton card widget
-class _SkeletonCard extends StatelessWidget {
+/// Placeholder shaped like a [GradientSummaryCard].
+class _SkeletonStatCard extends StatelessWidget {
+  const _SkeletonStatCard();
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return const ModernSkeletonBox(
       height: 100,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const Center(
-        child: ModernLoading(),
+      borderRadius: BorderRadius.all(
+        Radius.circular(AppDimensions.radiusLarge),
       ),
     );
   }
 }
 
 /// Skeleton loader for sales summary card
+///
+/// Mirrors the real card's structure - icon, title, headline figure,
+/// comparison badge, then the two-up stat row - so nothing jumps when the
+/// data arrives.
 class _SalesSummaryCardSkeleton extends StatelessWidget {
   const _SalesSummaryCardSkeleton();
 
@@ -365,55 +352,55 @@ class _SalesSummaryCardSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ModernCard.elevated(
       padding: const EdgeInsets.all(AppDimensions.spacing20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusMedium),
+      child: ModernSkeleton(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                ModernSkeletonBox(
+                  width: 36,
+                  height: 36,
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(AppDimensions.radiusMedium),
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppDimensions.spacing12),
-              Container(
-                width: 150,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusSmall),
+                SizedBox(width: AppDimensions.spacing12),
+                ModernSkeletonBox.text(width: 150, height: 20),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.spacing16),
+            const ModernSkeletonBox.text(width: 180, height: 32),
+            const SizedBox(height: AppDimensions.spacing8),
+            const ModernSkeletonBox.text(width: 120, height: 24),
+            const SizedBox(height: AppDimensions.spacing16),
+            const ModernDivider(),
+            const SizedBox(height: AppDimensions.spacing16),
+            Row(
+              children: [
+                const Expanded(
+                  child: Column(
+                    children: [
+                      ModernSkeletonBox.text(width: 60, height: 12),
+                      SizedBox(height: AppDimensions.spacing8),
+                      ModernSkeletonBox.text(width: 90, height: 18),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.spacing16),
-          Container(
-            width: 180,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusSmall),
+                Container(height: 60, width: 1, color: AppColors.border),
+                const Expanded(
+                  child: Column(
+                    children: [
+                      ModernSkeletonBox.text(width: 70, height: 12),
+                      SizedBox(height: AppDimensions.spacing8),
+                      ModernSkeletonBox.text(width: 40, height: 18),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: AppDimensions.spacing8),
-          Container(
-            width: 120,
-            height: 24,
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusSmall),
-            ),
-          ),
-          const SizedBox(height: AppDimensions.spacing16),
-          const ModernDivider(),
-          const SizedBox(height: AppDimensions.spacing16),
-          const Center(child: ModernLoading()),
-        ],
+          ],
+        ),
       ),
     );
   }

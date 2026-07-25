@@ -82,7 +82,7 @@ class TopProductTile extends StatelessWidget {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: _getMedalColor(),
+          color: AppColors.rankColor(rank),
           shape: BoxShape.circle,
         ),
         child: Center(
@@ -113,15 +113,6 @@ class TopProductTile extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Color _getMedalColor() {
-    return switch (rank) {
-      1 => const Color(0xFFFFD700), // Gold
-      2 => const Color(0xFFC0C0C0), // Silver
-      3 => const Color(0xFFCD7F32), // Bronze
-      _ => AppColors.surfaceVariant,
-    };
   }
 
   String _getSubtitle() {

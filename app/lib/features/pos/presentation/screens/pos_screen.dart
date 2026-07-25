@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
+import '../../../../config/theme/app_shadows.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/responsive_utils.dart';
@@ -221,9 +222,10 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             },
           ),
           const SizedBox(height: AppDimensions.spacing12),
-          // Category chips
+          // Category chips - sized to the minimum touch target, since a
+          // cashier taps these constantly and often one-handed.
           SizedBox(
-            height: 36,
+            height: AppDimensions.minTouchTarget,
             child: categoriesAsync.when(
               loading: () => const Center(child: ModernLoading.small()),
               error: (_, __) => const SizedBox.shrink(),
@@ -482,11 +484,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
               IconButton(
                 onPressed: () => setState(() => _isCartExpanded = false),
                 icon: const Icon(Icons.close),
-                iconSize: 20,
+                iconSize: AppDimensions.iconMedium,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(
-                  minWidth: 32,
-                  minHeight: 32,
+                  minWidth: AppDimensions.minTouchTarget,
+                  minHeight: AppDimensions.minTouchTarget,
                 ),
                 tooltip: 'Tutup keranjang',
               ),
@@ -594,17 +596,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     return Container(
       padding: const EdgeInsets.all(AppDimensions.spacing16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         border: const Border(
           top: BorderSide(color: AppColors.border),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -4),
-          ),
-        ],
+        boxShadow: AppShadows.up,
       ),
       child: Column(
         children: [

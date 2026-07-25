@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app_colors.dart';
+import 'app_dimensions.dart';
 import 'app_text_styles.dart';
 
 /// Application theme configuration
+///
+/// This is the fallback layer: it styles raw Material widgets so that anything
+/// not yet migrated to the Modern component library still inherits the app's
+/// font, radii and colours. Every radius here is pulled from
+/// [AppDimensions] - hardcoding them is how the theme and the components drift
+/// apart until a plain `AppBar` or `Card` looks like a different app.
 class AppTheme {
   AppTheme._();
 
@@ -16,6 +23,7 @@ class AppTheme {
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.background,
       fontFamily: AppTextStyles.fontFamily,
+      textTheme: _textTheme,
 
       // Color Scheme
       colorScheme: const ColorScheme.light(
@@ -31,30 +39,34 @@ class AppTheme {
       ),
 
       // AppBar Theme
+      //
+      // Matches ModernAppBar's default `flat` variant: a white surface with
+      // dark, left-aligned text. This previously declared a blue bar with
+      // centred white text, which no screen used - so a plain `AppBar` dropped
+      // into any screen rendered as a completely different component.
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
-        centerTitle: true,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: false,
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.light,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
         ),
-        titleTextStyle: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          fontFamily: AppTextStyles.fontFamily,
-          color: Colors.white,
-        ),
+        titleTextStyle: AppTextStyles.h4,
       ),
 
       // Card Theme
       cardTheme: CardThemeData(
         color: AppColors.card,
-        elevation: 2,
+        elevation: 0,
         shadowColor: AppColors.shadow,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
         ),
       ),
 
@@ -63,10 +75,14 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          elevation: 2,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          elevation: 0,
+          minimumSize: const Size(0, AppDimensions.buttonHeightMedium),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.spacing24,
+            vertical: AppDimensions.spacing12,
+          ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
           ),
           textStyle: AppTextStyles.button,
         ),
@@ -77,9 +93,13 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
           side: const BorderSide(color: AppColors.primary, width: 1.5),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          minimumSize: const Size(0, AppDimensions.buttonHeightMedium),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.spacing24,
+            vertical: AppDimensions.spacing12,
+          ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
           ),
           textStyle: AppTextStyles.button.copyWith(color: AppColors.primary),
         ),
@@ -89,7 +109,14 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primary,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          minimumSize: const Size(0, AppDimensions.minTouchTarget),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.spacing16,
+            vertical: AppDimensions.spacing8,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+          ),
           textStyle: AppTextStyles.button.copyWith(color: AppColors.primary),
         ),
       ),
@@ -98,7 +125,10 @@ class AppTheme {
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        elevation: 4,
+        elevation: 0,
+        focusElevation: 0,
+        hoverElevation: 0,
+        highlightElevation: 0,
         shape: CircleBorder(),
       ),
 
@@ -106,27 +136,20 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.spacing16,
+          vertical: AppDimensions.spacing12,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.border),
+        border: _inputBorder(AppColors.border),
+        enabledBorder: _inputBorder(AppColors.border),
+        focusedBorder: _inputBorder(
+          AppColors.primary,
+          width: AppDimensions.inputFocusBorderWidth,
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.error),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.error, width: 2),
+        errorBorder: _inputBorder(AppColors.error),
+        focusedErrorBorder: _inputBorder(
+          AppColors.error,
+          width: AppDimensions.inputFocusBorderWidth,
         ),
         labelStyle: AppTextStyles.bodyMedium,
         hintStyle:
@@ -135,22 +158,24 @@ class AppTheme {
       ),
 
       // Bottom Navigation Bar Theme
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.surface,
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
+        unselectedItemColor: AppColors.textTertiary,
         type: BottomNavigationBarType.fixed,
-        elevation: 8,
-        selectedLabelStyle:
-            TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-        unselectedLabelStyle: TextStyle(fontSize: 12),
+        elevation: 0,
+        selectedLabelStyle: AppTextStyles.labelSmall.copyWith(
+          color: AppColors.primary,
+          fontWeight: FontWeight.w700,
+        ),
+        unselectedLabelStyle: AppTextStyles.labelSmall,
       ),
 
       // Divider Theme
       dividerTheme: const DividerThemeData(
         color: AppColors.divider,
-        thickness: 1,
-        space: 1,
+        thickness: AppDimensions.dividerThickness,
+        space: AppDimensions.dividerThickness,
       ),
 
       // Snackbar Theme
@@ -160,31 +185,79 @@ class AppTheme {
             AppTextStyles.bodyMedium.copyWith(color: Colors.white),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
         ),
       ),
 
       // Dialog Theme
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
-        elevation: 8,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusXLarge),
         ),
         titleTextStyle: AppTextStyles.h4,
         contentTextStyle: AppTextStyles.bodyMedium,
       ),
 
+      // Bottom Sheet Theme
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppDimensions.radiusXXLarge),
+          ),
+        ),
+      ),
+
       // Chip Theme
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceVariant,
-        selectedColor: AppColors.primaryContainer,
+        selectedColor: AppColors.primary,
         labelStyle: AppTextStyles.labelMedium,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        side: BorderSide.none,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.spacing12,
+          vertical: AppDimensions.spacing8,
+        ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
         ),
       ),
     );
   }
+
+  static OutlineInputBorder _inputBorder(
+    Color color, {
+    double width = AppDimensions.inputBorderWidth,
+  }) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+      borderSide: BorderSide(color: color, width: width),
+    );
+  }
+
+  /// Maps the app's own type scale onto Material's slot names so raw widgets
+  /// (`Text` without an explicit style, `ListTile`, `DataTable`, ...) inherit
+  /// the same hierarchy the Modern components use.
+  static const TextTheme _textTheme = TextTheme(
+    displayLarge: AppTextStyles.h1,
+    displayMedium: AppTextStyles.h2,
+    displaySmall: AppTextStyles.h3,
+    headlineLarge: AppTextStyles.h2,
+    headlineMedium: AppTextStyles.h3,
+    headlineSmall: AppTextStyles.h4,
+    titleLarge: AppTextStyles.h3,
+    titleMedium: AppTextStyles.h4,
+    titleSmall: AppTextStyles.labelLarge,
+    bodyLarge: AppTextStyles.bodyLarge,
+    bodyMedium: AppTextStyles.bodyMedium,
+    bodySmall: AppTextStyles.bodySmall,
+    labelLarge: AppTextStyles.labelLarge,
+    labelMedium: AppTextStyles.labelMedium,
+    labelSmall: AppTextStyles.labelSmall,
+  );
 }

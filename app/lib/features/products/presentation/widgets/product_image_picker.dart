@@ -240,30 +240,20 @@ class _ProductImagePickerState extends State<ProductImagePicker> {
     widget.onImageChanged(null);
   }
 
-  void _showPermissionDeniedDialog(String permissionName) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Izin Diperlukan'),
-        content: Text(
+  Future<void> _showPermissionDeniedDialog(String permissionName) async {
+    final openSettings = await ModernDialog.confirm(
+      context,
+      title: 'Izin Diperlukan',
+      message:
           'Untuk menggunakan fitur ini, aplikasi memerlukan akses $permissionName. '
           'Silakan berikan izin melalui pengaturan perangkat.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              openAppSettings();
-            },
-            child: const Text('Buka Pengaturan'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Buka Pengaturan',
+      cancelLabel: 'Batal',
     );
+
+    if (openSettings == true) {
+      await openAppSettings();
+    }
   }
 
   @override

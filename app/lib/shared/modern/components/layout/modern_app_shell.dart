@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
+import '../../../../config/theme/app_gradients.dart';
+import '../../../../config/theme/app_shadows.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../providers/navigation_sidebar_provider.dart';
@@ -228,7 +230,9 @@ class _ModernAppShellState extends ConsumerState<ModernAppShell> {
     final currentIndex = _getNavIndexFromPath(currentPath, _mobileItems);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      // Inherits AppColors.background from the theme. The canvas is a cool
+      // grey so white cards read as surfaces resting on a page; on a white
+      // scaffold they were invisible except for their shadow.
       extendBody: true,
       body: widget.child,
       bottomNavigationBar: _ModernMobileBottomNav(
@@ -248,7 +252,8 @@ class _ModernAppShellState extends ConsumerState<ModernAppShell> {
     final isSidebarExpanded = ref.watch(navigationSidebarExpandedProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      // Rail stays white, content area takes the cool canvas - the two zones
+      // separate by value rather than by a shadow drawn between two whites.
       body: SafeArea(
         bottom: false, // Typically not needed for tablet
         child: Row(
@@ -303,14 +308,8 @@ class _ModernMobileBottomNav extends StatelessWidget {
         // Wrap BottomAppBar in Container with BoxShadow for upward shadow
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 4,
-                offset: const Offset(0, -2), // Negative Y = shadow goes UP
-              ),
-            ],
+            color: AppColors.surface,
+            boxShadow: AppShadows.up,
           ),
           child: BottomAppBar(
             height: AppDimensions.bottomNavHeight,
@@ -344,14 +343,27 @@ class _ModernMobileBottomNav extends StatelessWidget {
           right: 0,
           bottom: AppDimensions.bottomNavHeight / 2 - 8,
           child: Center(
-            child: FloatingActionButton(
-              onPressed: onFabTap,
-              backgroundColor:
+            // The glow is drawn on a wrapper rather than via FAB elevation:
+            // Material's own shadow is neutral grey, which dulls the primary
+            // blue. A hue-matched glow keeps the button reading as lit.
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: AppShadows.glow(
                   isPosSelected ? AppColors.primaryDark : AppColors.primary,
-              foregroundColor: Colors.white,
-              elevation: isPosSelected ? 8 : 4,
-              shape: const CircleBorder(),
-              child: Icon(fabIcon, size: AppDimensions.iconLarge),
+                  opacity: isPosSelected ? 0.42 : 0.32,
+                ),
+              ),
+              child: FloatingActionButton(
+                onPressed: onFabTap,
+                backgroundColor:
+                    isPosSelected ? AppColors.primaryDark : AppColors.primary,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                highlightElevation: 0,
+                shape: const CircleBorder(),
+                child: Icon(fabIcon, size: AppDimensions.iconLarge),
+              ),
             ),
           ),
         ),
@@ -363,14 +375,8 @@ class _ModernMobileBottomNav extends StatelessWidget {
     // Wrap BottomNavigationBar in Container with BoxShadow for upward shadow
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 4,
-            offset: const Offset(0, -2), // Negative Y = shadow goes UP
-          ),
-        ],
+        color: AppColors.surface,
+        boxShadow: AppShadows.up,
       ),
       child: BottomNavigationBar(
         currentIndex: currentIndex,
@@ -456,28 +462,27 @@ class _ModernTabletSidebar extends StatelessWidget {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
       width: width,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(2, 0),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        // A hairline, not a shadow. The rail no longer needs to cast onto the
+        // content area now that the canvas behind it is tinted - the value
+        // difference does the separating, and an edge reads crisper.
+        border: Border(
+          right: BorderSide(color: AppColors.border),
+        ),
       ),
       child: Column(
         children: [
           // Logo area
           _buildLogoArea(),
-          const SizedBox(height: AppDimensions.spacing16),
           // Navigation items
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.spacing8,
-                vertical: AppDimensions.spacing8,
+                horizontal: AppDimensions.spacing12,
+                vertical: AppDimensions.spacing12,
               ),
               itemCount: items.length,
               itemBuilder: (context, index) => _buildNavItem(index),
@@ -494,7 +499,14 @@ class _ModernTabletSidebar extends StatelessWidget {
   Widget _buildLogoArea() {
     return Container(
       height: AppDimensions.appBarHeight,
-      padding: const EdgeInsets.all(AppDimensions.spacing16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.spacing16,
+      ),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.borderLight),
+        ),
+      ),
       child: Row(
         mainAxisAlignment:
             isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
@@ -503,11 +515,12 @@ class _ModernTabletSidebar extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              gradient: AppGradients.primaryCard,
               borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+              boxShadow: AppShadows.glow(AppColors.primary, opacity: 0.22),
             ),
             child: const Icon(
-              Icons.store,
+              Icons.store_rounded,
               color: Colors.white,
               size: AppDimensions.iconLarge,
             ),
@@ -518,8 +531,9 @@ class _ModernTabletSidebar extends StatelessWidget {
               child: Text(
                 'KASBON',
                 style: AppTextStyles.h4.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -534,70 +548,85 @@ class _ModernTabletSidebar extends StatelessWidget {
     final item = items[index];
     final isSelected = currentIndex == index;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppDimensions.spacing4),
-      child: Material(
-        color: isSelected
-            ? AppColors.primary.withValues(alpha: 0.1)
-            : Colors.transparent,
+    final foreground =
+        isSelected ? AppColors.primary : AppColors.textSecondary;
+
+    final content = Material(
+      // A solid container tint rather than 10% primary. At one-tenth alpha the
+      // active row was barely distinguishable from its neighbours, so the rail
+      // gave no answer to "where am I?" at a glance.
+      color: isSelected ? AppColors.primaryContainer : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+      child: InkWell(
+        onTap: () => onTap(index),
         borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-        child: InkWell(
-          onTap: () => onTap(index),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-          child: Container(
-            height: AppDimensions.navItemHeight,
-            padding: EdgeInsets.symmetric(
-              horizontal:
-                  isExpanded ? AppDimensions.spacing16 : AppDimensions.spacing12,
-            ),
-            child: Row(
-              mainAxisAlignment:
-                  isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isSelected ? (item.activeIcon ?? item.icon) : item.icon,
-                  color:
-                      isSelected ? AppColors.primary : AppColors.textSecondary,
-                  size: AppDimensions.iconLarge,
-                ),
-                if (isExpanded) ...[
-                  const SizedBox(width: AppDimensions.spacing16),
-                  Expanded(
-                    child: Text(
-                      item.label,
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+        hoverColor: AppColors.surfaceVariant,
+        splashColor: AppColors.primaryContainer.withValues(alpha: 0.6),
+        child: Container(
+          height: AppDimensions.navItemHeight,
+          padding: EdgeInsets.symmetric(
+            horizontal:
+                isExpanded ? AppDimensions.spacing16 : AppDimensions.spacing12,
+          ),
+          child: Row(
+            mainAxisAlignment:
+                isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+            children: [
+              Icon(
+                isSelected ? (item.activeIcon ?? item.icon) : item.icon,
+                color: foreground,
+                size: AppDimensions.iconLarge,
+              ),
+              if (isExpanded) ...[
+                const SizedBox(width: AppDimensions.spacing16),
+                Expanded(
+                  child: Text(
+                    item.label,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: foreground,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w500,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ],
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),
     );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppDimensions.spacing4),
+      // Collapsed, the rail is a column of unlabelled glyphs. A tooltip is the
+      // only thing naming them, so it is not optional here.
+      child: isExpanded
+          ? content
+          : Tooltip(
+              message: item.label,
+              waitDuration: const Duration(milliseconds: 400),
+              child: content,
+            ),
+    );
   }
 
   Widget _buildToggleButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing8),
+    return Tooltip(
+      message: isExpanded ? 'Ciutkan menu' : 'Lebarkan menu',
       child: IconButton(
         onPressed: onToggleExpanded,
         icon: Icon(
-          isExpanded ? Icons.chevron_left : Icons.chevron_right,
-          color: AppColors.textSecondary,
+          isExpanded
+              ? Icons.keyboard_double_arrow_left_rounded
+              : Icons.keyboard_double_arrow_right_rounded,
+          color: AppColors.textTertiary,
+          size: AppDimensions.iconMedium,
         ),
         style: IconButton.styleFrom(
-          backgroundColor: AppColors.background,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-          ),
+          minimumSize: const Size.square(AppDimensions.minTouchTarget),
+          shape: const CircleBorder(),
+          hoverColor: AppColors.surfaceVariant,
         ),
       ),
     );

@@ -20,7 +20,13 @@ class AppDimensions {
   static const double breakpointDesktop = 1300.0;
 
   // Border Radius (modern rounded design)
-  static const double radiusSmall = 4.0;
+  //
+  // A continuous 4 -> 8 -> 12 -> 16 -> 20 -> 24 ramp. `radiusSmall` used to be
+  // 4, leaving a jarring gap to the 12 of `radiusMedium`: thumbnails and
+  // badges sat visibly sharper than the cards containing them. Anything truly
+  // tiny now uses `radiusXSmall`.
+  static const double radiusXSmall = 4.0;
+  static const double radiusSmall = 8.0;
   static const double radiusMedium = 12.0;
   static const double radiusLarge = 16.0;
   static const double radiusXLarge = 20.0;

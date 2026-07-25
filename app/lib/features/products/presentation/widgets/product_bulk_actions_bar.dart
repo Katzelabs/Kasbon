@@ -9,6 +9,7 @@ import '../../../../shared/modern/components/button/modern_button.dart';
 import '../../../../shared/modern/components/card/modern_card.dart';
 import '../../../../shared/modern/components/data_display/modern_list_tile.dart';
 import '../../../../shared/modern/components/feedback/modern_dialog.dart';
+import '../../../../shared/modern/components/feedback/modern_loading.dart';
 import '../../../../shared/modern/components/feedback/modern_toast.dart';
 import '../../../../shared/modern/utils/modern_variants.dart';
 import '../../domain/entities/product.dart';
@@ -54,9 +55,12 @@ class _ProductBulkActionsBarState extends ConsumerState<ProductBulkActionsBar> {
                 : () => ref
                     .read(productSelectionProvider.notifier)
                     .clearSelection(),
-            iconSize: 20,
+            iconSize: AppDimensions.iconMedium,
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            constraints: const BoxConstraints(
+              minWidth: AppDimensions.minTouchTarget,
+              minHeight: AppDimensions.minTouchTarget,
+            ),
             color: AppColors.textSecondary,
             tooltip: 'Batal pilih',
           ),
@@ -73,11 +77,7 @@ class _ProductBulkActionsBarState extends ConsumerState<ProductBulkActionsBar> {
 
           // Bulk action buttons
           if (_isLoading)
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
+            const ModernLoading.medium()
           else ...[
             // On mobile, show icon-only buttons
             if (isMobile) ...[

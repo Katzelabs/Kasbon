@@ -5,6 +5,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../shared/modern/components/card/modern_card.dart';
+import '../../../../shared/modern/components/feedback/modern_loading.dart';
 import '../../../../shared/modern/components/input/modern_search_field.dart';
 import '../../../categories/domain/entities/category.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
@@ -84,13 +85,7 @@ class _ProductFilterCardState extends ConsumerState<ProductFilterCard> {
                 categories,
                 filter.categoryId,
               ),
-              loading: () => const Center(
-                child: SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
+              loading: () => const Center(child: ModernLoading.small()),
               error: (_, __) => _buildCategoryChips([], filter.categoryId),
             ),
           ),

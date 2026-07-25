@@ -8,3 +8,4 @@ export 'modern_toast_controller.dart';
 export 'modern_loading.dart';
 export 'modern_empty_state.dart';
 export 'modern_error_state.dart';
+export 'modern_skeleton.dart';

@@ -162,7 +162,7 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
             product.sku,
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.textSecondary,
-              fontFamily: AppTextStyles.fontFamilyMono,
+              fontFeatures: AppTextStyles.tabularFigures,
             ),
           ),
         ),
@@ -266,19 +266,19 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
 
   Widget _buildActionButtons(BuildContext context, Product product) {
     return SizedBox(
-      width: 36,
-      height: 36,
+      width: AppDimensions.minTouchTarget,
+      height: AppDimensions.minTouchTarget,
       child: IconButton(
         icon: const Icon(Icons.edit_outlined),
-        iconSize: 20,
+        iconSize: AppDimensions.iconMedium,
         color: AppColors.textSecondary,
         onPressed: () {
           context.push('${AppRoutes.products}/${product.id}/edit');
         },
         tooltip: 'Edit',
         constraints: const BoxConstraints(
-          minWidth: 36,
-          minHeight: 36,
+          minWidth: AppDimensions.minTouchTarget,
+          minHeight: AppDimensions.minTouchTarget,
         ),
         padding: EdgeInsets.zero,
       ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
+import '../../../../config/theme/app_shadows.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../utils/modern_variants.dart';
 import 'modern_toast_controller.dart';
@@ -83,13 +84,7 @@ class _ToastCardState extends State<ToastCard>
                 color: _backgroundColor(variant),
                 borderRadius:
                     BorderRadius.circular(AppDimensions.radiusMedium),
-                boxShadow: const [
-                  BoxShadow(
-                    color: AppColors.shadow,
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
-                  ),
-                ],
+                boxShadow: AppShadows.lg,
               ),
               padding: const EdgeInsets.symmetric(
                 horizontal: AppDimensions.spacing16,

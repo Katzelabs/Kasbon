@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
+import '../../../../config/theme/app_gradients.dart';
+import '../../../../config/theme/app_shadows.dart';
 import '../../utils/modern_variants.dart';
 
 /// A Modern-styled card with consistent theming and multiple variants
@@ -153,21 +155,26 @@ class ModernCard extends StatelessWidget {
     return null;
   }
 
+  /// Maps the numeric [elevation] onto the semantic shadow ramp.
+  ///
+  /// The previous formula - `blurRadius: elevation * 2` at 10% black - gave a
+  /// 4px-blur contact shadow with no ambient layer, which is what made cards
+  /// look stamped onto the page rather than resting above it.
   List<BoxShadow>? get _shadow {
-    if (!variant.hasElevation || _elevation == 0) return null;
-    return [
-      BoxShadow(
-        color: AppColors.shadow,
-        blurRadius: _elevation * 2,
-        offset: Offset(0, _elevation),
-      ),
-    ];
+    if (!variant.hasElevation) return null;
+    final e = _elevation;
+    if (e <= 0) return null;
+    if (e <= 1) return AppShadows.xs;
+    if (e <= 2) return AppShadows.sm;
+    if (e <= 4) return AppShadows.md;
+    if (e <= 8) return AppShadows.lg;
+    return AppShadows.xl;
   }
 
   @override
   Widget build(BuildContext context) {
     final effectiveBorderRadius =
-        borderRadius ?? BorderRadius.circular(AppDimensions.radiusMedium);
+        borderRadius ?? BorderRadius.circular(AppDimensions.radiusLarge);
 
     Widget content = child;
 
@@ -232,11 +239,7 @@ class ModernGradientCard extends StatelessWidget {
   }) {
     return ModernGradientCard(
       key: key,
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [AppColors.primary, AppColors.primaryDark],
-      ),
+      gradient: AppGradients.primaryCard,
       padding: padding,
       margin: margin,
       onTap: onTap,
@@ -260,11 +263,7 @@ class ModernGradientCard extends StatelessWidget {
   }) {
     return ModernGradientCard(
       key: key,
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [AppColors.success, Color(0xFF059669)],
-      ),
+      gradient: AppGradients.successCard,
       padding: padding,
       margin: margin,
       onTap: onTap,
@@ -288,11 +287,7 @@ class ModernGradientCard extends StatelessWidget {
   }) {
     return ModernGradientCard(
       key: key,
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [AppColors.warning, Color(0xFFD97706)],
-      ),
+      gradient: AppGradients.warningCard,
       padding: padding,
       margin: margin,
       onTap: onTap,
@@ -316,11 +311,7 @@ class ModernGradientCard extends StatelessWidget {
   }) {
     return ModernGradientCard(
       key: key,
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [AppColors.error, Color(0xFFDC2626)],
-      ),
+      gradient: AppGradients.errorCard,
       padding: padding,
       margin: margin,
       onTap: onTap,
@@ -358,7 +349,9 @@ class ModernGradientCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveBorderRadius =
-        borderRadius ?? BorderRadius.circular(AppDimensions.radiusMedium);
+        borderRadius ?? BorderRadius.circular(AppDimensions.radiusLarge);
+
+    final effectiveGradient = gradient ?? AppGradients.primaryCard;
 
     Widget content = child;
 
@@ -366,25 +359,20 @@ class ModernGradientCard extends StatelessWidget {
       content = Padding(padding: padding!, child: content);
     }
 
+    // Tint the shadow with the card's own hue. A neutral grey shadow beneath a
+    // saturated surface desaturates its edge and reads as grime.
+    final glowSource = effectiveGradient is LinearGradient
+        ? effectiveGradient.colors.first
+        : AppColors.primary;
+
     Widget card = Container(
       width: width,
       height: height,
       margin: margin,
       decoration: BoxDecoration(
-        gradient: gradient ??
-            const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [AppColors.primary, AppColors.primaryDark],
-            ),
+        gradient: effectiveGradient,
         borderRadius: effectiveBorderRadius,
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 8,
-            offset: Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppShadows.glow(glowSource, opacity: 0.24),
       ),
       child: content,
     );

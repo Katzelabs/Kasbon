@@ -35,9 +35,13 @@ class AppColors {
   static const Color infoLight = Color(0xFFDBEAFE);
 
   // Neutral Colors
-  static const Color background = Color(0xFFF5F5F5);
+  //
+  // The canvas carries a slight cool cast rather than pure neutral grey. Set
+  // against white cards it reads as clean daylight instead of the muddy,
+  // washed-out look flat #F5F5F5 gives.
+  static const Color background = Color(0xFFF5F7FA);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF0F0F0);
+  static const Color surfaceVariant = Color(0xFFEFF2F6);
   static const Color card = Color(0xFFFFFFFF);
 
   // Text Colors
@@ -54,16 +58,50 @@ class AppColors {
   static const Color divider = Color(0xFFE5E7EB);
 
   // Shadow Color
-  static const Color shadow = Color(0x1A000000);
+  //
+  // Prefer the semantic ramp in `AppShadows` for any BoxShadow. This single
+  // colour remains only for Material APIs that take a `shadowColor` and build
+  // the geometry themselves.
+  static const Color shadow = Color(0x140F172A);
 
-  // Shimmer Colors
-  static const Color shimmerBase = Color(0xFFE5E7EB);
-  static const Color shimmerHighlight = Color(0xFFF3F4F6);
+  // Shimmer Colors (cool-cast to sit correctly on the new canvas)
+  static const Color shimmerBase = Color(0xFFE6EAF0);
+  static const Color shimmerHighlight = Color(0xFFF7F9FC);
 
   // Surface Variants
   static const Color surfaceElevated = Color(0xFFFFFFFF);
   static const Color surfaceMuted = Color(0xFFF8FAFC);
   static const Color overlay = Color(0x80000000);
+
+  // Extended Accents
+  //
+  // The status colours above cover most tinted-surface needs (a saturated
+  // foreground paired with its `*Light` wash). These two fill the gaps for
+  // category tiles that must stay visually distinct from any status meaning.
+  static const Color accentCyan = Color(0xFF06B6D4);
+  static const Color accentCyanLight = Color(0xFFCFFAFE);
+  static const Color accentPink = Color(0xFFEC4899);
+  static const Color accentPinkLight = Color(0xFFFCE7F3);
+
+  // Rank Medals (leaderboard positions in reports)
+  static const Color rankGold = Color(0xFFD4A017);
+  static const Color rankSilver = Color(0xFF9CA3AF);
+  static const Color rankBronze = Color(0xFFB87333);
+
+  /// Medal colour for a leaderboard position.
+  ///
+  /// Three report widgets each defined their own version of this, and two of
+  /// them disagreed with the third about what gold and silver were. Anything
+  /// past third place falls back to a neutral so the podium stays distinct.
+  static Color rankColor(int rank) => switch (rank) {
+        1 => rankGold,
+        2 => rankSilver,
+        3 => rankBronze,
+        _ => textTertiary,
+      };
+
+  // Brand Colors (third-party services)
+  static const Color whatsapp = Color(0xFF25D366);
 
   // Category Colors (for product categories)
   static const List<Color> categoryColors = [

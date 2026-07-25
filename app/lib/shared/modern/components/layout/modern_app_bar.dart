@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
-import '../../../../core/utils/responsive_utils.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../providers/providers.dart';
 import '../../utils/modern_variants.dart';
@@ -123,61 +122,10 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  /// Creates an app bar with user info display (for tablet layout)
+  /// Creates an app bar with back button + title (left-aligned) and an
+  /// account menu.
   ///
-  /// Shows the user avatar/info on the right side.
-  /// Example:
-  /// ```dart
-  /// ModernAppBar.withUserInfo(
-  ///   title: 'Beranda',
-  ///   userName: 'John Doe',
-  ///   userRole: 'Kasir',
-  ///   onProfileTap: () => {},
-  /// )
-  /// ```
-  factory ModernAppBar.withUserInfo({
-    Key? key,
-    required String title,
-    String? userName,
-    String? userRole,
-    String? userAvatarUrl,
-    VoidCallback? onProfileTap,
-    List<Widget>? actions,
-    bool showBackButton = false,
-    VoidCallback? onBack,
-    Color? backgroundColor,
-    Color? foregroundColor,
-    ModernAppBarVariant variant = ModernAppBarVariant.flat,
-  }) {
-    final userInfoActions = <Widget>[
-      if (actions != null) ...actions,
-      _UserInfoWidget(
-        userName: userName,
-        userRole: userRole,
-        userAvatarUrl: userAvatarUrl,
-        onTap: onProfileTap,
-      ),
-      const SizedBox(width: AppDimensions.spacing8),
-    ];
-
-    return ModernAppBar(
-      key: key,
-      title: title,
-      leading: showBackButton ? _BackButton(onBack: onBack) : null,
-      automaticallyImplyLeading: false,
-      actions: userInfoActions,
-      centerTitle: false,
-      backgroundColor: backgroundColor,
-      foregroundColor: foregroundColor,
-      variant: variant,
-    );
-  }
-
-  /// Creates an app bar with back button + title (left-aligned) and responsive actions
-  ///
-  /// Mobile: Back button + title
-  /// Tablet: Back button + title + avatar
-  ///
+  /// Renders identically at every breakpoint: back button + title + avatar.
   /// Uses Riverpod providers for user info.
   ///
   /// Example:
@@ -205,7 +153,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       actions: [
         if (additionalActions != null) ...additionalActions,
-        _ResponsiveActionsWidget(onProfileTap: onProfileTap),
+        _AccountMenu(onProfileTap: onProfileTap),
       ],
       centerTitle: false,
       backgroundColor: backgroundColor,
@@ -214,13 +162,12 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  /// Creates an app bar with title (left-aligned) and responsive actions (no back button)
+  /// Creates an app bar with title (left-aligned) and an account menu, with no
+  /// back button.
   ///
   /// For parent/main screens like Dashboard, Products list, etc.
   ///
-  /// Mobile: Title only
-  /// Tablet: Title + avatar
-  ///
+  /// Renders identically at every breakpoint: title + avatar.
   /// Uses Riverpod providers for user info.
   ///
   /// Example:
@@ -245,7 +192,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       actions: [
         if (additionalActions != null) ...additionalActions,
-        _ResponsiveActionsWidget(onProfileTap: onProfileTap),
+        _AccountMenu(onProfileTap: onProfileTap),
       ],
       centerTitle: false,
       backgroundColor: backgroundColor,
@@ -328,7 +275,10 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
         return 2;
       case ModernAppBarVariant.flat:
       case ModernAppBarVariant.primary:
-        return 1; // Thin shadow for visual separation
+        // The white bar now sits above a tinted canvas, so the two separate by
+        // value on their own. The old 1dp shadow drew a grey smudge under the
+        // header on every screen to solve a problem that no longer exists.
+        return 0;
       case ModernAppBarVariant.transparent:
         return 0;
     }
@@ -361,7 +311,10 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
         (title != null
             ? Text(
                 title!,
-                style: AppTextStyles.h4.copyWith(color: _foregroundColor),
+                // h3 rather than h4: a screen title is the page's primary
+                // heading and the mockups set it noticeably larger than body
+                // chrome. At 18sp it competed with ordinary card headings.
+                style: AppTextStyles.h3.copyWith(color: _foregroundColor),
               )
             : null);
 
@@ -411,105 +364,23 @@ class _BackButton extends StatelessWidget {
   }
 }
 
-/// Internal user info widget for app bar
-class _UserInfoWidget extends StatelessWidget {
-  const _UserInfoWidget({
-    this.userName,
-    this.userRole,
-    this.userAvatarUrl,
-    this.onTap,
-  });
-
-  final String? userName;
-  final String? userRole;
-  final String? userAvatarUrl;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.spacing8,
-          vertical: AppDimensions.spacing4,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  userName ?? 'User',
-                  style: AppTextStyles.labelMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  userRole ?? 'Kasir',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: AppDimensions.spacing12),
-            _buildAvatar(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAvatar() {
-    return Container(
-      width: AppDimensions.avatarMedium,
-      height: AppDimensions.avatarMedium,
-      decoration: BoxDecoration(
-        color: AppColors.primaryContainer,
-        shape: BoxShape.circle,
-        image: userAvatarUrl != null
-            ? DecorationImage(
-                image: NetworkImage(userAvatarUrl!),
-                fit: BoxFit.cover,
-              )
-            : null,
-      ),
-      child: userAvatarUrl == null
-          ? Center(
-              child: Text(
-                (userName ?? 'U')[0].toUpperCase(),
-                style: AppTextStyles.labelLarge.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            )
-          : null,
-    );
-  }
-}
-
-/// Internal widget for responsive actions (avatar on tablet only)
-class _ResponsiveActionsWidget extends ConsumerWidget {
-  const _ResponsiveActionsWidget({this.onProfileTap});
+/// Internal widget for the account menu shown at the end of the app bar
+class _AccountMenu extends ConsumerWidget {
+  const _AccountMenu({this.onProfileTap});
 
   final VoidCallback? onProfileTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (!context.isTabletOrDesktop) {
-      return const SizedBox.shrink();
-    }
-
+    // Previously this returned an empty box below the tablet breakpoint, so
+    // the mobile header carried a title and nothing else - and profile/logout
+    // were reachable only by navigating to the Pengaturan tab.
     final userInfo = ref.watch(userInfoProvider);
 
     return Padding(
       padding: const EdgeInsets.only(right: AppDimensions.spacing8),
       child: PopupMenuButton<String>(
+        tooltip: 'Akun',
         onSelected: (value) {
           if (value == 'settings') {
             context.push('/settings');
@@ -546,9 +417,16 @@ class _ResponsiveActionsWidget extends ConsumerWidget {
             ),
           ),
         ],
-        child: ModernAvatar.small(
-          imageUrl: userInfo.avatarUrl,
-          initials: userInfo.initials,
+        child: SizedBox.square(
+          // The avatar itself is smaller than a comfortable tap; pad it out to
+          // the minimum target rather than relying on PopupMenuButton's default.
+          dimension: AppDimensions.minTouchTarget,
+          child: Center(
+            child: ModernAvatar.small(
+              imageUrl: userInfo.avatarUrl,
+              initials: userInfo.initials,
+            ),
+          ),
         ),
       ),
     );

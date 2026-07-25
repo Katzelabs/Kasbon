@@ -82,3 +82,20 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/sample_data/
+
+  # Plus Jakarta Sans (SIL Open Font License 1.1 - see assets/fonts/OFL.txt).
+  # Bundled rather than fetched at runtime so first paint never flashes a
+  # fallback font. Italics are intentionally omitted - the app never uses them.
+  fonts:
+    - family: PlusJakartaSans
+      fonts:
+        - asset: assets/fonts/PlusJakartaSans-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/PlusJakartaSans-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/PlusJakartaSans-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/PlusJakartaSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
+          weight: 800

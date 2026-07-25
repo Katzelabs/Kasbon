@@ -20,12 +20,14 @@ class ModernLoading extends StatelessWidget {
     this.size = ModernSize.medium,
     this.color,
     this.strokeWidth,
+    this.value,
   });
 
   /// Creates a small loading indicator
   const ModernLoading.small({
     super.key,
     this.color,
+    this.value,
   })  : size = ModernSize.small,
         strokeWidth = 2.0;
 
@@ -33,6 +35,7 @@ class ModernLoading extends StatelessWidget {
   const ModernLoading.medium({
     super.key,
     this.color,
+    this.value,
   })  : size = ModernSize.medium,
         strokeWidth = 3.0;
 
@@ -40,6 +43,7 @@ class ModernLoading extends StatelessWidget {
   const ModernLoading.large({
     super.key,
     this.color,
+    this.value,
   })  : size = ModernSize.large,
         strokeWidth = 4.0;
 
@@ -79,6 +83,10 @@ class ModernLoading extends StatelessWidget {
   /// The stroke width of the circular indicator
   final double? strokeWidth;
 
+  /// Progress from 0.0 to 1.0 for determinate loading (e.g. an image or file
+  /// download reporting bytes received). Null spins indefinitely.
+  final double? value;
+
   double get _dimension {
     switch (size) {
       case ModernSize.small:
@@ -109,6 +117,7 @@ class ModernLoading extends StatelessWidget {
       height: _dimension,
       child: CircularProgressIndicator(
         strokeWidth: _strokeWidth,
+        value: value,
         valueColor: AlwaysStoppedAnimation<Color>(
           color ?? AppColors.primary,
         ),

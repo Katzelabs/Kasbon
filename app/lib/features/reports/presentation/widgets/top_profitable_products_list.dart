@@ -144,18 +144,7 @@ class TopProfitableProductsList extends StatelessWidget {
     );
   }
 
-  Color _getRankColor(int rank) {
-    switch (rank) {
-      case 1:
-        return AppColors.warning; // Gold
-      case 2:
-        return AppColors.textSecondary; // Silver
-      case 3:
-        return const Color(0xFFCD7F32); // Bronze
-      default:
-        return AppColors.textTertiary;
-    }
-  }
+  Color _getRankColor(int rank) => AppColors.rankColor(rank);
 
   Color _getMarginColor(double margin) {
     if (margin >= 30) return AppColors.success;

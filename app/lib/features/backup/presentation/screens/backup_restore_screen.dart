@@ -94,8 +94,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     // If user cancelled the picker, ask if they want to use default
     if (selectedDirectory == null && mounted) {
       final useDefault = await _showUseDefaultDirectoryDialog();
-      if (useDefault == null) {
-        // User cancelled completely
+      if (useDefault != true) {
+        // User cancelled or dismissed the dialog
         return;
       }
       // useDefault == true means use default directory (selectedDirectory stays null)
@@ -133,26 +133,17 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
   }
 
   /// Shows a dialog asking if user wants to use default directory
-  /// Returns true if user wants to use default, null if they want to cancel completely
-  Future<bool?> _showUseDefaultDirectoryDialog() async {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Gunakan Folder Default?'),
-        content: const Text(
+  ///
+  /// Returns true only if the user opted into the default folder; cancelling
+  /// or dismissing both return false.
+  Future<bool?> _showUseDefaultDirectoryDialog() {
+    return ModernDialog.confirm(
+      context,
+      title: 'Gunakan Folder Default?',
+      message:
           'Anda belum memilih folder. Backup akan disimpan di folder Download/KASBON_Backup.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(null),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Gunakan Default'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Gunakan Default',
+      cancelLabel: 'Batal',
     );
   }
 

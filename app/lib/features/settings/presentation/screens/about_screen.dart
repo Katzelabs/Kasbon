@@ -51,7 +51,7 @@ class AboutScreen extends ConsumerWidget {
                   children: [
                     SettingsTile.externalLink(
                       icon: Icons.chat_rounded,
-                      iconColor: const Color(0xFF25D366), // WhatsApp green
+                      iconColor: AppColors.whatsapp,
                       title: 'WhatsApp',
                       subtitle: 'Kirim pesan via WhatsApp',
                       onTap: () => _launchWhatsApp(context),
