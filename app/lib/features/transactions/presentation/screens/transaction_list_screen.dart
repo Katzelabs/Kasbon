@@ -10,6 +10,7 @@ import '../providers/transactions_provider.dart';
 import '../widgets/date_filter_chips.dart';
 import '../widgets/transaction_card.dart';
 import '../widgets/transaction_date_header.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Screen displaying list of transactions with date filtering
 class TransactionListScreen extends ConsumerWidget {
@@ -99,7 +100,7 @@ class TransactionListScreen extends ConsumerWidget {
                   ),
                   child: TransactionCard(
                     transaction: txn,
-                    onTap: () => context.push('/transactions/${txn.id}'),
+                    onTap: () => context.go(AppRoutes.transactionDetailPath(txn.id)),
                   ),
                 );
               },

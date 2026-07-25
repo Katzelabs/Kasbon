@@ -10,6 +10,7 @@ import '../../../../shared/modern/modern.dart';
 import '../providers/cart_provider.dart';
 import '../providers/payment_provider.dart';
 import 'debt_payment_dialog.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Payment dialog for processing payments
 ///
@@ -93,7 +94,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
       Navigator.pop(context, true);
 
       final transactionId = paymentState.completedTransaction!.id;
-      context.go('/pos/success/$transactionId');
+      context.go(AppRoutes.posSuccessPath(transactionId));
     } else if (paymentState.hasError && mounted) {
       ModernToast.error(context, paymentState.errorMessage!);
     }

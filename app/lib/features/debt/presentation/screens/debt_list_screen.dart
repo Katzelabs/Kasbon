@@ -11,6 +11,7 @@ import '../../../transactions/domain/entities/transaction.dart';
 import '../providers/debt_provider.dart';
 import '../widgets/debt_card.dart';
 import '../widgets/debt_summary_card.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Screen for displaying and managing debt transactions
 class DebtListScreen extends ConsumerWidget {
@@ -82,7 +83,7 @@ class DebtListScreen extends ConsumerWidget {
                           debts: customerDebts,
                           onDebtTap: (debt) {
                             // Navigate to transaction detail
-                            context.push('/transactions/${debt.id}');
+                            context.go(AppRoutes.transactionDetailPath(debt.id));
                           },
                           onMarkPaid: (debt) {
                             _showMarkPaidConfirmation(context, ref, debt);

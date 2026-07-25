@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Warning banner for low stock products
 class LowStockAlert extends StatelessWidget {
@@ -26,7 +27,7 @@ class LowStockAlert extends StatelessWidget {
         horizontal: AppDimensions.spacing16,
       ),
       child: GestureDetector(
-        onTap: onTap ?? () => context.go('/products?filter=lowStock'),
+        onTap: onTap ?? () => context.go(AppRoutes.products),
         child: Container(
           padding: const EdgeInsets.all(AppDimensions.spacing12),
           decoration: BoxDecoration(

@@ -13,7 +13,7 @@ import '../button/modern_button.dart';
 ///   title: 'Belum Ada Produk',
 ///   message: 'Tambahkan produk pertama Anda',
 ///   actionLabel: 'Tambah Produk',
-///   onAction: () => context.push('/products/add'),
+///   onAction: () => context.go('/products/add'),
 /// )
 /// ```
 class ModernEmptyState extends StatelessWidget {

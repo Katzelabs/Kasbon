@@ -8,6 +8,7 @@ import '../../../../config/theme/app_text_styles.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Login screen with email and password authentication.
 class LoginScreen extends ConsumerStatefulWidget {
@@ -41,7 +42,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      context.go('/dashboard');
+      context.go(AppRoutes.dashboard);
     } else {
       final errorMessage = ref.read(authNotifierProvider).errorMessage;
       if (errorMessage != null) {
@@ -168,7 +169,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ModernButton.text(
                           onPressed: isLoading
                               ? null
-                              : () => context.push('/register'),
+                              : () => context.go(AppRoutes.register),
                           child: Text(
                             'Daftar',
                             style: AppTextStyles.bodyMedium.copyWith(

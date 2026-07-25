@@ -10,6 +10,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/domain/usecases/get_transaction.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Provider to fetch transaction by ID
 final transactionByIdProvider = FutureProvider.autoDispose
@@ -70,7 +71,7 @@ class TransactionSuccessScreen extends ConsumerWidget {
             alignment: Alignment.topRight,
             child: ModernIconButton(
               icon: Icons.close,
-              onPressed: () => context.go('/pos'),
+              onPressed: () => context.go(AppRoutes.pos),
             ),
           ),
           const Spacer(),
@@ -166,7 +167,7 @@ class TransactionSuccessScreen extends ConsumerWidget {
                 child: ModernButton.outline(
                   onPressed: () {
                     // Navigate to transaction detail (placeholder)
-                    context.go('/transactions/$transactionId');
+                    context.go(AppRoutes.transactionDetailPath(transactionId));
                   },
                   child: const Text('Lihat Struk'),
                 ),
@@ -177,7 +178,7 @@ class TransactionSuccessScreen extends ConsumerWidget {
                 child: ModernButton.primary(
                   onPressed: () {
                     // Navigate back to POS screen
-                    context.go('/pos');
+                    context.go(AppRoutes.pos);
                   },
                   child: const Text('Transaksi Baru'),
                 ),

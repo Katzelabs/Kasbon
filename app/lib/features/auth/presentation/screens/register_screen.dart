@@ -8,6 +8,7 @@ import '../../../../config/theme/app_text_styles.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Registration screen for new user accounts.
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -53,7 +54,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     if (success) {
       ModernToast.success(context, 'Pendaftaran berhasil! Selamat datang.');
-      context.go('/dashboard');
+      context.go(AppRoutes.dashboard);
     } else {
       final errorMessage = ref.read(authNotifierProvider).errorMessage;
       if (errorMessage != null) {
@@ -89,7 +90,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       alignment: Alignment.centerLeft,
                       child: ModernIconButton(
                         icon: Icons.arrow_back,
-                        onPressed: isLoading ? null : () => context.pop(),
+                        onPressed: isLoading
+                            ? null
+                            : () => context.go(AppRoutes.login),
                       ),
                     ),
                     const SizedBox(height: AppDimensions.spacing16),
@@ -155,7 +158,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     // Password
                     ModernTextField(
                       label: 'Password',
-                      hint: 'Minimal 8 karakter dengan huruf besar, kecil, dan angka',
+                      hint:
+                          'Minimal 8 karakter dengan huruf besar, kecil, dan angka',
                       controller: _passwordController,
                       leading: const Icon(Icons.lock_outlined),
                       obscureText: _obscurePassword,
@@ -199,9 +203,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           size: AppDimensions.iconMedium,
                         ),
                         onPressed: () {
-                          setState(() =>
-                              _obscureConfirmPassword =
-                                  !_obscureConfirmPassword);
+                          setState(() => _obscureConfirmPassword =
+                              !_obscureConfirmPassword);
                         },
                       ),
                     ),
@@ -228,7 +231,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           ),
                         ),
                         ModernButton.text(
-                          onPressed: isLoading ? null : () => context.pop(),
+                          onPressed: isLoading
+                              ? null
+                              : () => context.go(AppRoutes.login),
                           child: Text(
                             'Masuk',
                             style: AppTextStyles.bodyMedium.copyWith(

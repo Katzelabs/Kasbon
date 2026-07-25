@@ -10,6 +10,7 @@ import '../providers/profit_report_provider.dart';
 import '../widgets/date_range_selector.dart';
 import '../widgets/profit_summary_card.dart';
 import '../widgets/top_profitable_products_list.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Screen displaying profit reports
 class ProfitReportScreen extends ConsumerWidget {
@@ -83,7 +84,7 @@ class ProfitReportScreen extends ConsumerWidget {
                     child: ModernSectionHeader(
                       title: 'Produk Paling Menguntungkan',
                       actionLabel: 'Lihat Semua',
-                      onActionTap: () => context.push('/reports/products'),
+                      onActionTap: () => context.go(AppRoutes.reportsProducts),
                     ),
                   ),
 
@@ -98,7 +99,7 @@ class ProfitReportScreen extends ConsumerWidget {
                       data: (products) => TopProfitableProductsList(
                         products: products,
                         onProductTap: (productId) =>
-                            context.push('/products/$productId'),
+                            context.go(AppRoutes.productDetailPath(productId)),
                       ),
                       loading: () => const SizedBox(
                         height: 200,

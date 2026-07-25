@@ -69,7 +69,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
               right: AppDimensions.spacing16,
               bottom: fabBottomOffset,
               child: FloatingActionButton(
-                onPressed: () => context.push(AppRoutes.productAdd),
+                onPressed: () => context.go(AppRoutes.productAdd),
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.onPrimary,
                 child: const Icon(Icons.add),
@@ -164,7 +164,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                   title: 'Belum Ada Produk',
                   message: 'Tambahkan produk pertama Anda',
                   actionLabel: 'Tambah Produk',
-                  onAction: () => context.push(AppRoutes.productAdd),
+                  onAction: () => context.go(AppRoutes.productAdd),
                 ),
               );
             }
@@ -246,7 +246,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
               title: 'Belum Ada Produk',
               message: 'Tambahkan produk pertama Anda',
               actionLabel: 'Tambah Produk',
-              onAction: () => context.push(AppRoutes.productAdd),
+              onAction: () => context.go(AppRoutes.productAdd),
             ),
           );
         }
@@ -287,7 +287,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                       isSelected: isSelected,
                       onTap: hasSelection
                           ? () => _toggleSelection(ref, product.id, isSelected)
-                          : () => context.push('/products/${product.id}'),
+                          : () => context.go(AppRoutes.productDetailPath(product.id)),
                       onLongPress: () => _enterSelectionMode(ref, product.id),
                     );
                   },

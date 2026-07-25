@@ -11,7 +11,7 @@ import '../../../../config/theme/app_text_styles.dart';
 /// ModernSectionHeader(title: 'Menu Items', subtitle: '12 produk')
 /// ModernSectionHeader.withSeeAll(
 ///   title: 'Produk Terlaris',
-///   onSeeAll: () => context.push('/products'),
+///   onSeeAll: () => context.go('/products'),
 /// )
 /// ```
 class ModernSectionHeader extends StatelessWidget {

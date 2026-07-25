@@ -9,6 +9,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/modern/modern.dart';
 import '../providers/cart_provider.dart';
 import '../providers/payment_provider.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Debt payment dialog for recording hutang transactions
 ///
@@ -79,7 +80,7 @@ class _DebtPaymentDialogState extends ConsumerState<DebtPaymentDialog> {
       Navigator.pop(context, true);
 
       final transactionId = paymentState.completedTransaction!.id;
-      context.go('/pos/success/$transactionId');
+      context.go(AppRoutes.posSuccessPath(transactionId));
     } else if (paymentState.hasError && mounted) {
       ModernToast.error(context, paymentState.errorMessage!);
     }

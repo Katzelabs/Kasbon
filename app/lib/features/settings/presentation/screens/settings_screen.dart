@@ -10,6 +10,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_tile.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Main settings hub screen
 class SettingsScreen extends ConsumerWidget {
@@ -53,14 +54,14 @@ class SettingsScreen extends ConsumerWidget {
                       iconColor: AppColors.primary,
                       title: 'Profil Toko',
                       subtitle: settings.name,
-                      onTap: () => context.push('/settings/shop-profile'),
+                      onTap: () => context.go(AppRoutes.settingsShopProfile),
                     ),
                     SettingsTile.navigation(
                       icon: Icons.receipt_long_rounded,
                       iconColor: AppColors.info,
                       title: 'Pengaturan Struk',
                       subtitle: 'Header & footer struk',
-                      onTap: () => context.push('/settings/receipt'),
+                      onTap: () => context.go(AppRoutes.settingsReceipt),
                     ),
                   ],
                 ),
@@ -76,7 +77,7 @@ class SettingsScreen extends ConsumerWidget {
                       iconColor: AppColors.warning,
                       title: 'Pengaturan Aplikasi',
                       subtitle: 'Batas stok rendah: ${settings.lowStockThreshold}',
-                      onTap: () => context.push('/settings/app'),
+                      onTap: () => context.go(AppRoutes.settingsApp),
                     ),
                   ],
                 ),
@@ -92,14 +93,14 @@ class SettingsScreen extends ConsumerWidget {
                       iconColor: AppColors.success,
                       title: 'Backup & Restore',
                       subtitle: 'Cadangkan dan pulihkan data',
-                      onTap: () => context.push('/settings/backup'),
+                      onTap: () => context.go(AppRoutes.settingsBackup),
                     ),
                     SettingsTile.navigation(
                       icon: Icons.info_outline_rounded,
                       iconColor: AppColors.textSecondary,
                       title: 'Tentang Aplikasi',
                       subtitle: 'Versi & informasi',
-                      onTap: () => context.push('/settings/about'),
+                      onTap: () => context.go(AppRoutes.settingsAbout),
                     ),
                   ],
                 ),

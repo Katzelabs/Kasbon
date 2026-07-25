@@ -11,6 +11,7 @@ import '../../../../shared/modern/modern.dart';
 import '../providers/date_range_provider.dart';
 import '../providers/report_provider.dart';
 import '../widgets/date_range_selector.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Main reports hub screen with summary cards and navigation to detailed reports
 class ReportsHubScreen extends ConsumerWidget {
@@ -106,7 +107,7 @@ class ReportsHubScreen extends ConsumerWidget {
                           title: 'Laporan Penjualan',
                           subtitle: 'Grafik & detail penjualan harian',
                           color: AppColors.primary,
-                          onTap: () => context.push('/reports/sales'),
+                          onTap: () => context.go(AppRoutes.reportsSales),
                         ),
                         const SizedBox(height: AppDimensions.spacing12),
                         _buildReportMenuItem(
@@ -116,7 +117,7 @@ class ReportsHubScreen extends ConsumerWidget {
                           subtitle:
                               'Produk terlaris berdasarkan qty/pendapatan/laba',
                           color: AppColors.info,
-                          onTap: () => context.push('/reports/products'),
+                          onTap: () => context.go(AppRoutes.reportsProducts),
                         ),
                         const SizedBox(height: AppDimensions.spacing12),
                         _buildReportMenuItem(
@@ -125,7 +126,7 @@ class ReportsHubScreen extends ConsumerWidget {
                           title: 'Laporan Laba',
                           subtitle: 'Analisis keuntungan per produk',
                           color: AppColors.success,
-                          onTap: () => context.push('/reports/profit'),
+                          onTap: () => context.go(AppRoutes.reportsProfit),
                         ),
                       ],
                     ),

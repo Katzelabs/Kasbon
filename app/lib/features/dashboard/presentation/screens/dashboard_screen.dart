@@ -15,6 +15,7 @@ import '../widgets/category_grid_card.dart';
 import '../widgets/gradient_summary_card.dart';
 import '../widgets/low_stock_alert.dart';
 import '../widgets/sales_summary_card.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Main dashboard/home screen for the KASBON POS app
 ///
@@ -99,7 +100,7 @@ class _MobileDashboard extends ConsumerWidget {
               children: [
                 SalesSummaryCard(
                   summary: summary,
-                  onTap: () => context.go('/transactions'),
+                  onTap: () => context.go(AppRoutes.transactions),
                 ),
                 // Low Stock Alert (only if there are low stock products)
                 if (summary.hasLowStock) ...[

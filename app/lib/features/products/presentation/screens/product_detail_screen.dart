@@ -13,6 +13,7 @@ import '../../domain/entities/product.dart';
 import '../providers/products_provider.dart';
 import '../widgets/product_image.dart';
 import '../widgets/stock_indicator.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Screen displaying detailed information about a product
 class ProductDetailScreen extends ConsumerWidget {
@@ -345,7 +346,7 @@ class ProductDetailScreen extends ConsumerWidget {
     final isTablet = context.isTabletOrDesktop;
 
     final editButton = ModernButton.secondary(
-      onPressed: () => context.push('/products/${product.id}/edit'),
+      onPressed: () => context.go(AppRoutes.productEditPath(product.id)),
       leadingIcon: Icons.edit_outlined,
       fullWidth: true,
       child: const Text('Edit Produk'),

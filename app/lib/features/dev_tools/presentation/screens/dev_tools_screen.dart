@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../shared/modern/modern.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Main Dev Tools screen with navigation to dev features.
 ///
@@ -54,7 +55,7 @@ class DevToolsScreen extends StatelessWidget {
               title: 'Seed Data',
               description: 'Seed sample products and transactions for testing',
               color: Colors.pink,
-              onTap: () => context.push('/dev/seed'),
+              onTap: () => context.go(AppRoutes.devSeed),
             ),
 
             const SizedBox(height: AppDimensions.spacing16),
@@ -64,7 +65,7 @@ class DevToolsScreen extends StatelessWidget {
               title: 'Design System',
               description: 'Preview all UI components and design tokens',
               color: Colors.purple,
-              onTap: () => context.push('/dev/design-system'),
+              onTap: () => context.go(AppRoutes.designSystem),
             ),
 
             const SizedBox(height: AppDimensions.spacing16),

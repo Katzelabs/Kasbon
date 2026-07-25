@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../config/routes/app_router.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
@@ -133,7 +134,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// ModernAppBar.backWithActions(
   ///   title: 'Detail Produk',
   ///   onBack: () => context.pop(),
-  ///   onProfileTap: () => context.push('/profile'),
+  ///   onProfileTap: () => context.go('/profile'),
   /// )
   /// ```
   factory ModernAppBar.backWithActions({
@@ -174,7 +175,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// ```dart
   /// ModernAppBar.withActions(
   ///   title: 'Produk',
-  ///   onProfileTap: () => context.push('/profile'),
+  ///   onProfileTap: () => context.go('/profile'),
   /// )
   /// ```
   factory ModernAppBar.withActions({
@@ -383,7 +384,7 @@ class _AccountMenu extends ConsumerWidget {
         tooltip: 'Akun',
         onSelected: (value) {
           if (value == 'settings') {
-            context.push('/settings');
+            context.go(AppRoutes.settings);
           } else if (value == 'logout') {
             _handleAppBarLogout(context, ref);
           }
@@ -409,8 +410,7 @@ class _AccountMenu extends ConsumerWidget {
             value: 'logout',
             child: Row(
               children: [
-                Icon(Icons.logout_rounded,
-                    color: AppColors.error, size: 20),
+                Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
                 SizedBox(width: AppDimensions.spacing8),
                 Text('Keluar', style: TextStyle(color: AppColors.error)),
               ],
@@ -446,4 +446,3 @@ Future<void> _handleAppBarLogout(BuildContext context, WidgetRef ref) async {
     ref.read(authNotifierProvider.notifier).logout();
   }
 }
-

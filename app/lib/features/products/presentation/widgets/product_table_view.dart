@@ -75,7 +75,7 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
         }
       },
       onRowTap: (product) {
-        context.push('${AppRoutes.products}/${product.id}');
+        context.go(AppRoutes.productDetailPath(product.id));
       },
       rowHeight: 64.0,
       headerHeight: 48.0,
@@ -108,7 +108,7 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
         }
       },
       onRowTap: (product) {
-        context.push('${AppRoutes.products}/${product.id}');
+        context.go(AppRoutes.productDetailPath(product.id));
       },
       rowHeight: 56.0, // Slightly smaller rows on mobile
       headerHeight: 44.0,
@@ -273,7 +273,7 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
         iconSize: AppDimensions.iconMedium,
         color: AppColors.textSecondary,
         onPressed: () {
-          context.push('${AppRoutes.products}/${product.id}/edit');
+          context.go(AppRoutes.productEditPath(product.id));
         },
         tooltip: 'Edit',
         constraints: const BoxConstraints(

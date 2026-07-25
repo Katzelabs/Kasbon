@@ -14,6 +14,7 @@ import '../../../receipt/presentation/providers/receipt_provider.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/transactions_provider.dart';
 import '../widgets/transaction_item_tile.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Screen displaying transaction details
 class TransactionDetailScreen extends ConsumerWidget {
@@ -37,7 +38,7 @@ class TransactionDetailScreen extends ConsumerWidget {
           if (context.canPop()) {
             context.pop();
           } else {
-            context.go('/transactions');
+            context.go(AppRoutes.transactions);
           }
         },
         onProfileTap: () {},
@@ -219,7 +220,7 @@ class TransactionDetailScreen extends ConsumerWidget {
       leadingIcon: Icons.receipt_outlined,
       onPressed: () {
         // Navigate to receipt screen
-        context.push('/receipt/${transaction.id}');
+        context.go(AppRoutes.receiptPath(transaction.id));
       },
       child: const Text('Lihat Struk'),
     );

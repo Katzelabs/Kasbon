@@ -12,6 +12,7 @@ import '../../domain/entities/product_report.dart';
 import '../providers/report_provider.dart';
 import '../widgets/date_range_selector.dart';
 import '../widgets/product_report_filter_card.dart';
+import '../../../../config/routes/app_router.dart';
 
 /// Screen displaying product sales report in a data table format
 class ProductReportScreen extends ConsumerStatefulWidget {
@@ -108,7 +109,7 @@ class _ProductReportScreenState extends ConsumerState<ProductReportScreen> {
     int rank,
   ) {
     return ModernCard.outlined(
-      onTap: () => context.push('/products/${product.productId}'),
+      onTap: () => context.go(AppRoutes.productDetailPath(product.productId)),
       padding: const EdgeInsets.all(AppDimensions.spacing12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
