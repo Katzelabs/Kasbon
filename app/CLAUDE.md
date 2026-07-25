@@ -10,19 +10,18 @@ KASBON POS Flutter frontend - cloud-based POS app for Indonesian UMKM powered by
 
 ```bash
 flutter pub get              # Install dependencies
-flutter run \
-  --dart-define=SUPABASE_URL=http://127.0.0.1:54321 \
-  --dart-define=SUPABASE_ANON_KEY=your-local-anon-key
+
+# One-time setup: copy env.example.json to env.json (and env.android.json for
+# the Android emulator, using SUPABASE_URL=http://10.0.2.2:54321). Gitignored.
+flutter run --dart-define-from-file=env.json
 flutter analyze              # Analyze code for issues
 flutter test                 # Run all tests
 flutter test test/path/      # Run specific test
 dart run build_runner build  # Generate code (freezed, riverpod, json)
 dart format lib/             # Format code
 
-# Production build
-flutter build apk \
-  --dart-define=SUPABASE_URL=https://xxx.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=your-anon-key
+# Production build (env.prod.json with production URL + publishable key)
+flutter build apk --dart-define-from-file=env.prod.json
 ```
 
 ## Architecture
@@ -39,7 +38,7 @@ lib/
 │   ├── usecase/                  # Base UseCase<T, Params> class
 │   └── utils/                    # Currency/date formatters, validators
 ├── config/
-│   ├── app_config.dart           # Supabase URL & anon key (from dart-define)
+│   ├── app_config.dart           # Supabase URL & publishable key (from dart-define)
 │   ├── di/injection.dart         # GetIt service locator setup
 │   ├── routes/app_router.dart    # GoRouter with auth redirect
 │   └── theme/                    # AppColors, AppTextStyles, AppTheme

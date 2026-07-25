@@ -1,8 +1,9 @@
 {
-  // Copy this file to launch.json and replace the anon-key placeholder with the
-  // value from `supabase status` (the publishable key). For a physical device,
-  // duplicate one of the loopback entries and replace the host with your
-  // machine's LAN IP, e.g. http://192.168.1.10:54321.
+  // Copy this file to launch.json. Supabase URL/key are NOT set here — they come
+  // from env files: copy app/env.example.json to app/env.json (loopback) and
+  // app/env.android.json (SUPABASE_URL=http://10.0.2.2:54321 for the emulator),
+  // filling in the publishable key from `supabase status`. For a physical
+  // device, use your machine's LAN IP, e.g. http://192.168.1.10:54321.
   "version": "0.2.0",
   "configurations": [
     {
@@ -13,10 +14,7 @@
       "program": "lib/main.dart",
       "deviceId": "chrome",
       "args": ["--web-port=5000"],
-      "toolArgs": [
-        "--dart-define=SUPABASE_URL=http://127.0.0.1:54321",
-        "--dart-define=SUPABASE_ANON_KEY=<your-local-publishable-key-from-supabase-status>"
-      ]
+      "toolArgs": ["--dart-define-from-file=env.json"]
     },
     {
       "name": "Kasbon — iOS Simulator (local Supabase)",
@@ -25,10 +23,7 @@
       "cwd": "${workspaceFolder}/app",
       "program": "lib/main.dart",
       "deviceId": "ios",
-      "toolArgs": [
-        "--dart-define=SUPABASE_URL=http://127.0.0.1:54321",
-        "--dart-define=SUPABASE_ANON_KEY=<your-local-publishable-key-from-supabase-status>"
-      ]
+      "toolArgs": ["--dart-define-from-file=env.json"]
     },
     {
       "name": "Kasbon — Android Emulator (local Supabase)",
@@ -36,10 +31,7 @@
       "type": "dart",
       "cwd": "${workspaceFolder}/app",
       "program": "lib/main.dart",
-      "toolArgs": [
-        "--dart-define=SUPABASE_URL=http://10.0.2.2:54321",
-        "--dart-define=SUPABASE_ANON_KEY=<your-local-publishable-key-from-supabase-status>"
-      ]
+      "toolArgs": ["--dart-define-from-file=env.android.json"]
     },
     {
       "name": "Kasbon — Android Emulator (profile)",
@@ -48,10 +40,7 @@
       "cwd": "${workspaceFolder}/app",
       "program": "lib/main.dart",
       "flutterMode": "profile",
-      "toolArgs": [
-        "--dart-define=SUPABASE_URL=http://10.0.2.2:54321",
-        "--dart-define=SUPABASE_ANON_KEY=<your-local-publishable-key-from-supabase-status>"
-      ]
+      "toolArgs": ["--dart-define-from-file=env.android.json"]
     },
     {
       "name": "Kasbon — macOS Desktop (local Supabase)",
@@ -60,10 +49,7 @@
       "cwd": "${workspaceFolder}/app",
       "program": "lib/main.dart",
       "deviceId": "macos",
-      "toolArgs": [
-        "--dart-define=SUPABASE_URL=http://127.0.0.1:54321",
-        "--dart-define=SUPABASE_ANON_KEY=<your-local-publishable-key-from-supabase-status>"
-      ]
+      "toolArgs": ["--dart-define-from-file=env.json"]
     }
   ]
 }

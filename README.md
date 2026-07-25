@@ -46,16 +46,17 @@ cd Kasbon
 
 # Start local Supabase (from project root)
 supabase start
-# Note the API URL and anon key printed by this command
+# Note the API URL and publishable key printed by this command
 
 # Install Flutter dependencies
 cd app
 flutter pub get
 
+# One-time setup: create your env file with the values from `supabase start`
+cp env.example.json env.json   # then fill in SUPABASE_PUBLISHABLE_KEY
+
 # Run the app against local Supabase
-flutter run \
-  --dart-define=SUPABASE_URL=http://127.0.0.1:54321 \
-  --dart-define=SUPABASE_ANON_KEY=<anon-key-from-supabase-start>
+flutter run --dart-define-from-file=env.json
 ```
 
 Local test user (from seed data): `test@kasbon.id` / `password123`

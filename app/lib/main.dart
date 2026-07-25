@@ -36,10 +36,11 @@ void main() async {
 
   // Initialize Supabase
   assert(AppConfig.isConfigValid,
-      'SUPABASE_URL and SUPABASE_ANON_KEY must be provided via --dart-define');
+      'SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be provided, e.g. '
+      'flutter run --dart-define-from-file=env.json');
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
-    anonKey: AppConfig.supabaseAnonKey,
+    anonKey: AppConfig.supabaseKey,
   );
 
   // Configure dependency injection

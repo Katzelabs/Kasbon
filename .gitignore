@@ -1,6 +1,11 @@
 # VSCode launch config holds Supabase keys; only the .example is committed.
 .vscode/launch.json
 
+# Env files for --dart-define-from-file; only env.example.json is committed.
+app/env.json
+app/env.*.json
+!app/env.example.json
+
 # Claude Code: personal permission overrides stay local; settings.json is shared.
 .claude/settings.local.json
 
