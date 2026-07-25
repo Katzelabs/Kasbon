@@ -23,9 +23,10 @@ A cloud-based POS (Point of Sale) application for Indonesian small businesses (U
 Kasbon/
 ├── kasbon-frontend/    # Flutter mobile app
 ├── supabase/           # Supabase config, migrations, seed data
-├── DOCS/               # Project documentation
-└── TASKS/              # Development tasks & progress tracker
+└── DOCS/               # Project documentation
 ```
+
+Development tasks and progress are tracked in [ClickUp (Kasbon space)](https://app.clickup.com/90182053080/v/b/s/901812129010).
 
 ## Development
 
@@ -71,7 +72,7 @@ supabase db reset              # Reset local DB (applies migrations + seed)
 ## Documentation
 
 - `CLAUDE.md` — Current architecture, commands, and conventions (kept up to date)
-- `TASKS/PROGRESS.md` — Development progress tracker
+- [ClickUp Kasbon space](https://app.clickup.com/90182053080/v/b/s/901812129010) — Development tasks & progress tracker
 - `supabase/migrations/` — Database schema source of truth
 - `DOCS/` — Original planning documents (historical; early sections describe a
   since-abandoned SQLite offline-first design)

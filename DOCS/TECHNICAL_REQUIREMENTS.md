@@ -7,7 +7,7 @@
 > architecture. Current sources of truth:
 > - Database schema & RPC functions: `supabase/migrations/`
 > - Architecture & conventions: root `CLAUDE.md` and `kasbon-frontend/CLAUDE.md`
-> - Current state: `DOCS/CURRENT_STATE.md`, progress: `TASKS/PROGRESS.md`
+> - Current state: `DOCS/CURRENT_STATE.md`, progress: the ClickUp Kasbon space (see root `CLAUDE.md`)
 
 **Version:** 1.0  
 **Last Updated:** November 2024  

@@ -24,9 +24,12 @@ Kasbon/
 │   ├── PROJECT_BRIEF.md           # Business vision (tech sections outdated)
 │   ├── TECHNICAL_REQUIREMENTS.md  # OUTDATED - describes old SQLite design
 │   └── FEATURE_PRIORITY_AND_PHASES.md  # Feature priorities (sync refs outdated)
-└── TASKS/              # Development tasks (TASK_001-021)
-    └── PROGRESS.md     # Current progress tracker
 ```
+
+Development tasks and progress are tracked in ClickUp (Katzelabs workspace, Kasbon space):
+https://app.clickup.com/90182053080/v/b/s/901812129010 — the former `TASKS/` folder
+(TASK_001-021 + PROGRESS.md) was migrated there in July 2026; original task specs
+remain available in git history.
 
 ## Sources of Truth
 
@@ -37,7 +40,7 @@ The project migrated from offline-first SQLite to **Supabase-only** (Feb–Mar 2
 | Database schema | `supabase/migrations/` (NOT `DOCS/TECHNICAL_REQUIREMENTS.md`) |
 | RPC functions | `supabase/migrations/20260316000001_create_rpc_functions.sql` |
 | Seed / test data | `supabase/seed.sql` (test user: `test@kasbon.id` / `password123`) |
-| Development progress | `TASKS/PROGRESS.md` |
+| Development progress | ClickUp Kasbon space (link above) |
 | Frontend conventions | `kasbon-frontend/CLAUDE.md` |
 | Business vision | `DOCS/PROJECT_BRIEF.md` (business sections still valid) |
 

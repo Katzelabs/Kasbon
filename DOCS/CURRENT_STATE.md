@@ -3,7 +3,7 @@
 **Last Updated:** July 2026
 **Status:** MVP complete, Supabase migration complete — preparing for deployment
 
-> This document is a snapshot. For live progress see [TASKS/PROGRESS.md](../TASKS/PROGRESS.md).
+> This document is a snapshot. For live progress see the [ClickUp Kasbon space](https://app.clickup.com/90182053080/v/b/s/901812129010).
 > For current architecture and conventions see the root [CLAUDE.md](../CLAUDE.md).
 
 ---
@@ -59,6 +59,6 @@ All MVP features (TASK_001–015) plus authentication (TASK_017) are complete:
 |-------|---------------|
 | Database schema | `supabase/migrations/` (NOT the docs in this folder) |
 | RPC functions | `supabase/migrations/20260316000001_create_rpc_functions.sql` |
-| Progress | `TASKS/PROGRESS.md` |
+| Progress | [ClickUp Kasbon space](https://app.clickup.com/90182053080/v/b/s/901812129010) |
 | Architecture & conventions | Root `CLAUDE.md` and `kasbon-frontend/CLAUDE.md` |
 | Business vision & roadmap | `DOCS/PROJECT_BRIEF.md`, `DOCS/FEATURE_PRIORITY_AND_PHASES.md` (still valid for business context) |
