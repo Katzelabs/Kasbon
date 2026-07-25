@@ -9,7 +9,7 @@
       "name": "Kasbon — Web (Chrome, local Supabase)",
       "request": "launch",
       "type": "dart",
-      "cwd": "${workspaceFolder}/kasbon-frontend",
+      "cwd": "${workspaceFolder}/app",
       "program": "lib/main.dart",
       "deviceId": "chrome",
       "args": ["--web-port=5000"],
@@ -22,7 +22,7 @@
       "name": "Kasbon — iOS Simulator (local Supabase)",
       "request": "launch",
       "type": "dart",
-      "cwd": "${workspaceFolder}/kasbon-frontend",
+      "cwd": "${workspaceFolder}/app",
       "program": "lib/main.dart",
       "deviceId": "ios",
       "toolArgs": [
@@ -34,7 +34,7 @@
       "name": "Kasbon — Android Emulator (local Supabase)",
       "request": "launch",
       "type": "dart",
-      "cwd": "${workspaceFolder}/kasbon-frontend",
+      "cwd": "${workspaceFolder}/app",
       "program": "lib/main.dart",
       "toolArgs": [
         "--dart-define=SUPABASE_URL=http://10.0.2.2:54321",
@@ -45,7 +45,7 @@
       "name": "Kasbon — Android Emulator (profile)",
       "request": "launch",
       "type": "dart",
-      "cwd": "${workspaceFolder}/kasbon-frontend",
+      "cwd": "${workspaceFolder}/app",
       "program": "lib/main.dart",
       "flutterMode": "profile",
       "toolArgs": [
@@ -57,7 +57,7 @@
       "name": "Kasbon — macOS Desktop (local Supabase)",
       "request": "launch",
       "type": "dart",
-      "cwd": "${workspaceFolder}/kasbon-frontend",
+      "cwd": "${workspaceFolder}/app",
       "program": "lib/main.dart",
       "deviceId": "macos",
       "toolArgs": [

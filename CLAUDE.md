@@ -17,9 +17,9 @@ KASBON (Kasir Bisnis Online) is a cloud-based POS application for Indonesian sma
 
 ```
 Kasbon/
-├── kasbon-frontend/    # Flutter mobile app (has its own CLAUDE.md)
+├── app/                # Flutter mobile app (has its own CLAUDE.md)
 ├── supabase/           # Supabase config, migrations, seed data
-├── DOCS/               # HISTORICAL planning docs (see warning below)
+├── docs/               # HISTORICAL planning docs (see warning below)
 │   ├── CURRENT_STATE.md           # Snapshot of project state
 │   ├── PROJECT_BRIEF.md           # Business vision (tech sections outdated)
 │   ├── TECHNICAL_REQUIREMENTS.md  # OUTDATED - describes old SQLite design
@@ -33,16 +33,16 @@ remain available in git history.
 
 ## Sources of Truth
 
-The project migrated from offline-first SQLite to **Supabase-only** (Feb–Mar 2026). The planning docs in `DOCS/` predate that migration — treat them as historical context only.
+The project migrated from offline-first SQLite to **Supabase-only** (Feb–Mar 2026). The planning docs in `docs/` predate that migration — treat them as historical context only.
 
 | Topic | Authoritative source |
 |-------|---------------------|
-| Database schema | `supabase/migrations/` (NOT `DOCS/TECHNICAL_REQUIREMENTS.md`) |
+| Database schema | `supabase/migrations/` (NOT `docs/TECHNICAL_REQUIREMENTS.md`) |
 | RPC functions | `supabase/migrations/20260316000001_create_rpc_functions.sql` |
 | Seed / test data | `supabase/seed.sql` (test user: `test@kasbon.id` / `password123`) |
 | Development progress | ClickUp Kasbon space (link above) |
-| Frontend conventions | `kasbon-frontend/CLAUDE.md` |
-| Business vision | `DOCS/PROJECT_BRIEF.md` (business sections still valid) |
+| Frontend conventions | `app/CLAUDE.md` |
+| Business vision | `docs/PROJECT_BRIEF.md` (business sections still valid) |
 
 ## Claude Code Setup (Required Plugins)
 
@@ -67,7 +67,7 @@ any plugin.
 
 ## Development Commands
 
-### Flutter (run from kasbon-frontend/)
+### Flutter (run from app/)
 ```bash
 flutter pub get              # Install dependencies
 flutter run \
@@ -211,7 +211,7 @@ provider.requireUserId;   // String (throws if not authenticated)
 
 **Import:**
 ```dart
-import 'package:kasbon_frontend/shared/modern/modern.dart';
+import 'package:kasbon_pos/shared/modern/modern.dart';
 ```
 
 **Available Components:**
@@ -249,7 +249,7 @@ import 'package:kasbon_frontend/shared/modern/modern.dart';
 - Always handle empty states and loading states
 - Prefer `Either<Failure, T>` from dartz for repository returns
 - Use freezed for immutable data classes
-- ALWAYS import Modern widgets: `import 'package:kasbon_frontend/shared/modern/modern.dart';`
+- ALWAYS import Modern widgets: `import 'package:kasbon_pos/shared/modern/modern.dart';`
 - NEVER use deprecated widgets from `lib/shared/widgets/`
 
 ## Performance Targets

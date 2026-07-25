@@ -47,7 +47,7 @@ All MVP features (TASK_001–015) plus authentication (TASK_017) are complete:
 
 ## Architecture Summary
 
-- **Frontend:** Flutter, Clean Architecture, feature modules under `kasbon-frontend/lib/features/` (auth, products, categories, pos, transactions, dashboard, reports, debt, receipt, backup, settings, dev_tools)
+- **Frontend:** Flutter, Clean Architecture, feature modules under `app/lib/features/` (auth, products, categories, pos, transactions, dashboard, reports, debt, receipt, backup, settings, dev_tools)
 - **State:** Riverpod; **DI:** GetIt; **Navigation:** GoRouter with auth redirect
 - **Backend:** Supabase — schema in `supabase/migrations/`, seed in `supabase/seed.sql`
 - **UI:** Modern Widget Library (`lib/shared/modern/`) is REQUIRED; `lib/shared/widgets/` is deprecated
@@ -60,5 +60,5 @@ All MVP features (TASK_001–015) plus authentication (TASK_017) are complete:
 | Database schema | `supabase/migrations/` (NOT the docs in this folder) |
 | RPC functions | `supabase/migrations/20260316000001_create_rpc_functions.sql` |
 | Progress | [ClickUp Kasbon space](https://app.clickup.com/90182053080/v/b/s/901812129010) |
-| Architecture & conventions | Root `CLAUDE.md` and `kasbon-frontend/CLAUDE.md` |
-| Business vision & roadmap | `DOCS/PROJECT_BRIEF.md`, `DOCS/FEATURE_PRIORITY_AND_PHASES.md` (still valid for business context) |
+| Architecture & conventions | Root `CLAUDE.md` and `app/CLAUDE.md` |
+| Business vision & roadmap | `docs/PROJECT_BRIEF.md`, `docs/FEATURE_PRIORITY_AND_PHASES.md` (still valid for business context) |

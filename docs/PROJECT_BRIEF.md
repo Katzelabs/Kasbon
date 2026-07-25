@@ -4,7 +4,7 @@
 > ⚠️ **HISTORICAL DOCUMENT (planning-phase).** Business vision and market context
 > remain valid, but technical sections mentioning SQLite/offline-first are outdated —
 > the project migrated to a **Supabase-only** cloud architecture in Feb–Mar 2026.
-> Current architecture: root `CLAUDE.md`. Current state: `DOCS/CURRENT_STATE.md`.
+> Current architecture: root `CLAUDE.md`. Current state: `docs/CURRENT_STATE.md`.
 
 ---
 

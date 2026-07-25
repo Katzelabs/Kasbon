@@ -5,7 +5,7 @@
 ///
 /// Usage:
 /// ```dart
-/// import 'package:kasbon_frontend/shared/modern/modern.dart';
+/// import 'package:kasbon_pos/shared/modern/modern.dart';
 /// ```
 library;
 

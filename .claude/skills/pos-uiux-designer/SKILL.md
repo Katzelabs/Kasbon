@@ -237,7 +237,7 @@ AppTextStyles.caption     // 11sp, regular, height: 1.4, textTertiary
 
 **Import:**
 ```dart
-import 'package:kasbon_frontend/shared/modern/modern.dart';
+import 'package:kasbon_pos/shared/modern/modern.dart';
 ```
 
 ### Buttons
@@ -732,8 +732,8 @@ final state = ref.watch(screenControllerProvider);
 **Always prefer Modern widgets over raw Flutter widgets:**
 
 ```dart
-import 'package:kasbon_frontend/shared/modern/modern.dart';
-import 'package:kasbon_frontend/config/theme/theme.dart';
+import 'package:kasbon_pos/shared/modern/modern.dart';
+import 'package:kasbon_pos/config/theme/theme.dart';
 
 // Buttons - Use ModernButton instead of ElevatedButton/OutlinedButton
 ModernButton.primary(child: Text('Bayar'), onPressed: onPay)      // Primary action
@@ -856,7 +856,7 @@ DateFormat('HH:mm', 'id_ID').format(time)
 ### Empty State - Use ModernEmptyState
 
 ```dart
-import 'package:kasbon_frontend/shared/modern/modern.dart';
+import 'package:kasbon_pos/shared/modern/modern.dart';
 
 // Use the Modern widget
 ModernEmptyState(
@@ -928,7 +928,7 @@ When reviewing or implementing UI:
 - [ ] Safe area handling (notches, navigation bar)
 
 ### Components - Use Modern Widgets (REQUIRED)
-- [ ] Import: `import 'package:kasbon_frontend/shared/modern/modern.dart';`
+- [ ] Import: `import 'package:kasbon_pos/shared/modern/modern.dart';`
 - [ ] Touch targets >= AppDimensions.minTouchTarget (48dp)
 - [ ] Use `ModernButton.*` for buttons (not ElevatedButton)
 - [ ] Use `ModernTextField`/`ModernCurrencyField` for inputs
@@ -1014,13 +1014,13 @@ I can see the design has:
 
 ```dart
 // Theme tokens
-import 'package:kasbon_frontend/config/theme/theme.dart';
+import 'package:kasbon_pos/config/theme/theme.dart';
 
 // Modern widgets (USE THIS)
-import 'package:kasbon_frontend/shared/modern/modern.dart';
+import 'package:kasbon_pos/shared/modern/modern.dart';
 
 // Responsive utilities
-import 'package:kasbon_frontend/core/utils/responsive_utils.dart';
+import 'package:kasbon_pos/core/utils/responsive_utils.dart';
 ```
 
 ### Widget Replacement Table
