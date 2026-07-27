@@ -17,6 +17,9 @@ import '../../features/products/presentation/screens/product_detail_screen.dart'
 import '../../features/products/presentation/screens/product_form_screen.dart';
 import '../../features/products/presentation/screens/product_list_screen.dart';
 import '../../features/receipt/presentation/screens/receipt_screen.dart';
+import '../../features/reports/presentation/screens/analytics_report_screen.dart';
+import '../../features/reports/presentation/screens/customer_report_screen.dart';
+import '../../features/reports/presentation/screens/inventory_movement_screen.dart';
 import '../../features/reports/presentation/screens/product_report_screen.dart';
 import '../../features/reports/presentation/screens/profit_report_screen.dart';
 import '../../features/reports/presentation/screens/reports_hub_screen.dart';
@@ -51,6 +54,9 @@ class AppRoutes {
   static const String reportsSales = '/reports/sales';
   static const String reportsProducts = '/reports/products';
   static const String reportsProfit = '/reports/profit';
+  static const String reportsAnalytics = '/reports/analytics';
+  static const String reportsCustomers = '/reports/customers';
+  static const String reportsInventory = '/reports/inventory';
   static const String debts = '/debts';
   static const String settings = '/settings';
   static const String settingsShopProfile = '/settings/shop-profile';
@@ -314,6 +320,30 @@ class AppRouter {
                 pageBuilder: (context, state) => _slidePage(
                   state: state,
                   child: const ProfitReportScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'analytics',
+                name: 'reports-analytics',
+                pageBuilder: (context, state) => _slidePage(
+                  state: state,
+                  child: const AnalyticsReportScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'customers',
+                name: 'reports-customers',
+                pageBuilder: (context, state) => _slidePage(
+                  state: state,
+                  child: const CustomerReportScreen(),
+                ),
+              ),
+              GoRoute(
+                path: 'inventory',
+                name: 'reports-inventory',
+                pageBuilder: (context, state) => _slidePage(
+                  state: state,
+                  child: const InventoryMovementScreen(),
                 ),
               ),
             ],

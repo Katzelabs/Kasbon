@@ -11,6 +11,7 @@ import '../../../../shared/modern/modern.dart';
 import '../providers/date_range_provider.dart';
 import '../providers/report_provider.dart';
 import '../widgets/date_range_selector.dart';
+import '../widgets/export_bottom_sheet.dart';
 import '../../../../config/routes/app_router.dart';
 
 /// Main reports hub screen with summary cards and navigation to detailed reports
@@ -26,6 +27,13 @@ class ReportsHubScreen extends ConsumerWidget {
       appBar: ModernAppBar.withActions(
         title: 'Laporan',
         onProfileTap: () {},
+        additionalActions: [
+          IconButton(
+            icon: const Icon(Icons.ios_share_rounded),
+            tooltip: 'Ekspor Laporan',
+            onPressed: () => ExportBottomSheet.show(context),
+          ),
+        ],
       ),
       body: Builder(
         builder: (context) {
@@ -127,6 +135,34 @@ class ReportsHubScreen extends ConsumerWidget {
                           subtitle: 'Analisis keuntungan per produk',
                           color: AppColors.success,
                           onTap: () => context.go(AppRoutes.reportsProfit),
+                        ),
+                        const SizedBox(height: AppDimensions.spacing12),
+                        _buildReportMenuItem(
+                          context: context,
+                          icon: Icons.insights_rounded,
+                          title: 'Analitik Lanjutan',
+                          subtitle:
+                              'Tren, distribusi kategori & pola jam ramai',
+                          color: AppColors.accentCyan,
+                          onTap: () => context.go(AppRoutes.reportsAnalytics),
+                        ),
+                        const SizedBox(height: AppDimensions.spacing12),
+                        _buildReportMenuItem(
+                          context: context,
+                          icon: Icons.people_alt_rounded,
+                          title: 'Laporan Pelanggan',
+                          subtitle: 'Pelanggan teratas & nilai seumur hidup',
+                          color: AppColors.accentPink,
+                          onTap: () => context.go(AppRoutes.reportsCustomers),
+                        ),
+                        const SizedBox(height: AppDimensions.spacing12),
+                        _buildReportMenuItem(
+                          context: context,
+                          icon: Icons.swap_vert_rounded,
+                          title: 'Pergerakan Stok',
+                          subtitle: 'Perputaran & produk yang kurang laku',
+                          color: AppColors.warning,
+                          onTap: () => context.go(AppRoutes.reportsInventory),
                         ),
                       ],
                     ),
