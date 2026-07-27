@@ -7,6 +7,7 @@ import '../../../../config/routes/app_router.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/platform/app_platform.dart';
 import '../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../providers/providers.dart';
 import '../../utils/modern_variants.dart';
@@ -289,7 +290,13 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
   ///
   /// Primary variant has dark background, needs light (white) icons.
   /// All other variants have light backgrounds, need dark icons.
-  SystemUiOverlayStyle get _effectiveSystemOverlayStyle {
+  ///
+  /// Null on web and desktop, where there is no system status bar to style.
+  /// `AppBar` pushes this to `SystemChrome` on every build, so returning a
+  /// style there would be a platform call per frame that changes nothing.
+  SystemUiOverlayStyle? get _effectiveSystemOverlayStyle {
+    if (!AppPlatform.usesSystemOverlayStyle) return null;
+
     if (systemOverlayStyle != null) return systemOverlayStyle!;
 
     final brightness = variant == ModernAppBarVariant.primary

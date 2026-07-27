@@ -2,7 +2,14 @@ import 'package:equatable/equatable.dart';
 
 /// Represents metadata about a backup file
 class BackupMetadata extends Equatable {
-  final String filePath;
+  /// Where the backup was written, or null if the platform does not say.
+  ///
+  /// Null on web: an export is a browser download, and the app is never told
+  /// where the file landed. Anything that shows a location or builds a share
+  /// intent must check [hasFilePath] first - passing a null path to
+  /// `Share.shareXFiles` throws.
+  final String? filePath;
+
   final String fileName;
   final DateTime backupDate;
   final String appVersion;
@@ -11,14 +18,17 @@ class BackupMetadata extends Equatable {
   final int fileSizeBytes;
 
   const BackupMetadata({
-    required this.filePath,
     required this.fileName,
+    this.filePath,
     required this.backupDate,
     required this.appVersion,
     required this.deviceInfo,
     required this.counts,
     required this.fileSizeBytes,
   });
+
+  /// Whether there is a filesystem location to show or share.
+  bool get hasFilePath => filePath != null;
 
   /// Formats file size for display (KB, MB)
   String get formattedFileSize {

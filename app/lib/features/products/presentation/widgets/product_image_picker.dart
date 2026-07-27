@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,6 +6,7 @@ import '../../../../config/di/injection.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/platform/app_platform.dart';
 import '../../../../core/services/image_storage/image_storage_service.dart';
 import '../../../../shared/modern/modern.dart';
 import 'product_image.dart';
@@ -171,8 +170,14 @@ class _ProductImagePickerState extends State<ProductImagePicker> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      // Check and request permission
-      if (source == ImageSource.camera) {
+      // Check and request permission.
+      //
+      // Only native platforms have a runtime prompt to show. A browser grants
+      // camera access through its own UI in response to the picker call, so
+      // permission_handler has nothing to ask for and reports a status that
+      // would wrongly block the user here.
+      if (source == ImageSource.camera &&
+          AppPlatform.needsRuntimePermissions) {
         final status = await Permission.camera.request();
         if (!status.isGranted) {
           if (mounted) {
@@ -203,9 +208,16 @@ class _ProductImagePickerState extends State<ProductImagePicker> {
         }
       }
 
-      // Save and compress the new image
+      // Save and compress the new image.
+      //
+      // readAsBytes rather than XFile.path: on web the path is a `blob:` URL
+      // that no file API can open, while readAsBytes behaves identically on
+      // both platforms.
       final savedPath = await _imageService.saveImage(
-        File(pickedFile.path),
+        PickedImage(
+          bytes: await pickedFile.readAsBytes(),
+          name: pickedFile.name,
+        ),
         widget.productId,
       );
 

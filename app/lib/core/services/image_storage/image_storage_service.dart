@@ -1,14 +1,27 @@
-import 'dart:io';
+import 'picked_image.dart';
+
+export 'picked_image.dart';
 
 /// Abstract interface for image storage operations.
 /// Allows for different implementations (local, cloud) for future flexibility.
+///
+/// Deliberately free of `dart:io`. The previous signature took a `File`, which
+/// forced that import onto every caller and is the single reason the product
+/// feature could not build for web. [PickedImage] carries bytes instead, which
+/// the picker produces identically on native and in a browser.
+///
+/// The implementation is local-filesystem today; RESP_02 swaps it for Supabase
+/// Storage, at which point [saveImage] returns an https URL and product images
+/// finally sync across devices.
 abstract class ImageStorageService {
-  /// Save an image file and return the storage path.
+  /// Save an image and return the reference stored in `products.image_url`.
   ///
-  /// [imageFile] - The image file to save
+  /// [image] - The picked image data
   /// [productId] - The product ID to associate with the image
-  /// Returns the path where the image was saved
-  Future<String> saveImage(File imageFile, String productId);
+  ///
+  /// Returns a device path today, an https URL after RESP_02. Callers must
+  /// treat the result as opaque and never parse it.
+  Future<String> saveImage(PickedImage image, String productId);
 
   /// Delete an image from storage.
   ///

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -24,19 +23,13 @@ class ProductListScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductListScreenState extends ConsumerState<ProductListScreen> {
-  late final KeyboardVisibilityController _keyboardVisibilityController;
-  bool _isKeyboardVisible = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _keyboardVisibilityController = KeyboardVisibilityController();
-    _keyboardVisibilityController.onChange.listen((bool visible) {
-      setState(() {
-        _isKeyboardVisible = visible;
-      });
-    });
-  }
+  /// Whether the soft keyboard is covering part of the screen.
+  ///
+  /// Derived from the same `viewInsets` the layout below already does
+  /// arithmetic on, rather than a parallel stream. The previous
+  /// `KeyboardVisibilityController` subscription duplicated this and was never
+  /// cancelled.
+  bool get _isKeyboardVisible => MediaQuery.viewInsetsOf(context).bottom > 0;
 
   @override
   Widget build(BuildContext context) {

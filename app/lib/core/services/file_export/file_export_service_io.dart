@@ -5,15 +5,23 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 
-import '../errors/exceptions.dart';
+import '../../errors/exceptions.dart';
+import 'file_export_types.dart';
 
-/// Static utility class for file operations related to backup/restore
-class FileService {
-  FileService._();
+/// Native file export: writes to the device filesystem.
+///
+/// Behaviourally identical to the `FileService` this replaced. The only API
+/// change is that nothing `dart:io`-typed escapes - `findLastBackup` returns a
+/// [BackupFileRef] where it used to return a `File`.
+class FileExportService {
+  FileExportService._();
 
   static const String _backupFolderName = 'backups';
   static const String _backupPrefix = 'kasbon_backup_';
   static const String _backupExtension = '.json';
+
+  /// Whether saved files have a path worth showing the user.
+  static bool get hasAddressableFiles => true;
 
   /// Returns/creates the backup directory path
   /// Saves to external storage on Android for easy access via file manager
@@ -64,9 +72,10 @@ class FileService {
     }
   }
 
-  /// Writes JSON content to a file and returns the file path
-  /// If [directory] is provided, saves to that directory instead of the default
-  static Future<String> saveBackupFile(
+  /// Writes JSON content to a file.
+  ///
+  /// If [directory] is provided, saves there instead of the default.
+  static Future<SavedFile> saveText(
     String content,
     String filename, {
     String? directory,
@@ -83,11 +92,9 @@ class FileService {
       }
 
       final filePath = path.join(backupDir, filename);
-      final file = File(filePath);
+      await File(filePath).writeAsString(content);
 
-      await file.writeAsString(content);
-
-      return filePath;
+      return SavedFile(path: filePath, fileName: filename);
     } catch (e) {
       if (e is FileException) rethrow;
       throw FileException(
@@ -97,15 +104,15 @@ class FileService {
     }
   }
 
-  /// Writes binary content to a file and returns the file path.
+  /// Writes binary content to a file.
   ///
-  /// The string-based [saveBackupFile] cannot be reused for exports: .xlsx and
-  /// .pdf are binary formats, and round-tripping their bytes through a Dart
-  /// String would corrupt them.
+  /// The string-based [saveText] cannot be reused for exports: .xlsx and .pdf
+  /// are binary formats, and round-tripping their bytes through a Dart String
+  /// would corrupt them.
   ///
   /// Saves alongside the backups by default so exports land somewhere the user
   /// can find with a file manager.
-  static Future<String> saveBytesFile(
+  static Future<SavedFile> saveBytes(
     Uint8List bytes,
     String filename, {
     String? directory,
@@ -123,7 +130,7 @@ class FileService {
       final filePath = path.join(targetDir, filename);
       await File(filePath).writeAsBytes(bytes, flush: true);
 
-      return filePath;
+      return SavedFile(path: filePath, fileName: filename);
     } catch (e) {
       if (e is FileException) rethrow;
       throw FileException(
@@ -163,8 +170,8 @@ class FileService {
     return '$_backupPrefix${formatter.format(now)}$_backupExtension';
   }
 
-  /// Returns the most recent backup file, or null if no backups exist
-  static Future<File?> getLastBackupFile() async {
+  /// Returns the most recent backup file, or null if no backups exist.
+  static Future<BackupFileRef?> findLastBackup() async {
     try {
       final backupDir = await getBackupDirectory();
       final directory = Directory(backupDir);
@@ -193,7 +200,15 @@ class FileService {
         return bStat.modified.compareTo(aStat.modified);
       });
 
-      return files.first;
+      final newest = files.first;
+      final stat = newest.statSync();
+
+      return BackupFileRef(
+        path: newest.path,
+        fileName: path.basename(newest.path),
+        sizeInBytes: stat.size,
+        modified: stat.modified,
+      );
     } catch (e) {
       // If we can't get the last backup, just return null
       return null;

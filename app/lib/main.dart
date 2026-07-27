@@ -7,29 +7,39 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'config/app_config.dart';
 import 'config/di/injection.dart';
 import 'config/routes/app_router.dart';
+import 'config/routes/url_strategy.dart';
 import 'config/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'core/platform/app_platform.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Allow all orientations for tablet support
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
+  // Serve real paths instead of go_router's default hash URLs. No-op off web.
+  configureUrlStrategy();
 
-  // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.white,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
-  );
+  // The browser owns rotation and the status bar, so these are wasted calls
+  // there - setPreferredOrientations in particular is not merely ignored but
+  // unsupported on web.
+  if (AppPlatform.usesSystemOverlayStyle) {
+    // Allow all orientations for tablet support
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+
+    // Set system UI overlay style
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+  }
 
   // Initialize Indonesian locale data for date formatting
   await initializeDateFormatting('id_ID', null);

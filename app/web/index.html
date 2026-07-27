@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -18,21 +18,98 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <!-- Without this, mobile browsers assume a desktop viewport and scale the
+       whole app down, which makes every responsive breakpoint meaningless. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="KASBON - aplikasi kasir digital untuk UMKM Indonesia. Catat penjualan, pantau laba, dan kelola hutang pelanggan.">
+  <meta name="theme-color" content="#2563EB">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="kasbon_app">
+  <meta name="apple-mobile-web-app-title" content="KASBON">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>kasbon_app</title>
+  <title>KASBON — Kasir Digital</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Cold-start splash.
+     *
+     * A Flutter web bundle takes a noticeable moment to download and boot, and
+     * until it does the page is a blank white rectangle. On the mobile data
+     * this app is built for, that reads as a broken site. Plain CSS with no
+     * external requests, so it paints on the first frame.
+     *
+     * #loading is removed by flutter_bootstrap.js once the app takes over.
+     */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #F8FAFC;
+    }
+
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #2563EB;
+    }
+
+    #loading .brand {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    #loading .tagline {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #64748B;
+    }
+
+    #loading .spinner {
+      margin-top: 1.75rem;
+      width: 2rem;
+      height: 2rem;
+      border: 3px solid #DBEAFE;
+      border-top-color: #2563EB;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Respect a reduced-motion preference: keep the indicator, drop the spin. */
+    @media (prefers-reduced-motion: reduce) {
+      #loading .spinner { animation: none; }
+    }
+  </style>
 </head>
 <body>
+  <div id="loading">
+    <div class="brand">KASBON</div>
+    <div class="tagline">Kasir Bisnis Online</div>
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    // Remove the splash as soon as Flutter has painted its first frame.
+    window.addEventListener('flutter-first-frame', function () {
+      var loading = document.getElementById('loading');
+      if (loading) loading.remove();
+    });
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

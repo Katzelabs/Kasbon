@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
+import '../../../../core/platform/app_platform.dart';
 import '../../utils/modern_variants.dart';
 
 /// Icon button variant for ModernIconButton
@@ -185,7 +186,7 @@ class ModernIconButton extends StatelessWidget {
   }
 
   void _handleTap() {
-    if (hapticFeedback) {
+    if (hapticFeedback && AppPlatform.supportsHaptics) {
       HapticFeedback.lightImpact();
     }
     onPressed?.call();

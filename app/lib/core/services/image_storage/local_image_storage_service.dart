@@ -32,31 +32,34 @@ class LocalImageStorageService implements ImageStorageService {
   }
 
   @override
-  Future<String> saveImage(File imageFile, String productId) async {
+  Future<String> saveImage(PickedImage image, String productId) async {
     try {
       final imageDir = await _getImageDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final filename = 'prod_${productId}_$timestamp.jpg';
       final targetPath = p.join(imageDir.path, filename);
 
-      // Compress and save the image
-      final compressedFile = await FlutterImageCompress.compressAndGetFile(
-        imageFile.absolute.path,
-        targetPath,
+      // compressWithList rather than compressAndGetFile: the interface now
+      // carries bytes, and the file-path variant would mean writing the
+      // original to disk purely to give the compressor something to open.
+      final compressedBytes = await FlutterImageCompress.compressWithList(
+        image.bytes,
         quality: _quality,
         minWidth: _maxDimension,
         minHeight: _maxDimension,
         format: CompressFormat.jpeg,
       );
 
-      if (compressedFile == null) {
+      if (compressedBytes.isEmpty) {
         throw const ImageStorageException(
           message: 'Gagal mengompres gambar',
           code: 'COMPRESSION_FAILED',
         );
       }
 
-      return compressedFile.path;
+      await File(targetPath).writeAsBytes(compressedBytes, flush: true);
+
+      return targetPath;
     } catch (e) {
       if (e is ImageStorageException) rethrow;
 

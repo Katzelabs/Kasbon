@@ -7,7 +7,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/services/export/export_result.dart';
-import '../../../../core/services/file_service.dart';
+import '../../../../core/services/file_export/file_export_service.dart';
 import '../../../../shared/modern/modern.dart';
 import '../providers/date_range_provider.dart';
 import '../providers/export_provider.dart';
@@ -33,7 +33,7 @@ class ExportBottomSheet extends ConsumerWidget {
     BuildContext context,
     ExportResult result,
   ) async {
-    final savedPath = await FileService.saveBytesFile(
+    final saved = await FileExportService.saveBytes(
       result.bytes,
       result.fileName,
     );
@@ -44,9 +44,12 @@ class ExportBottomSheet extends ConsumerWidget {
       // Printing's sheet adds a print/preview option, which a PDF report wants
       // and a spreadsheet does not.
       await Printing.sharePdf(bytes: result.bytes, filename: result.fileName);
-    } else {
+    } else if (saved.hasPath) {
+      // Sharing a spreadsheet needs a file on disk. Where the platform gives
+      // no path back the file has already gone to the user's downloads, so
+      // there is nothing left to hand to a share sheet.
       await Share.shareXFiles(
-        [XFile(savedPath, mimeType: result.mimeType, name: result.fileName)],
+        [XFile(saved.path!, mimeType: result.mimeType, name: result.fileName)],
         subject: result.fileName,
       );
     }
@@ -60,10 +63,7 @@ class ExportBottomSheet extends ConsumerWidget {
         'Persempit rentang tanggal untuk data lengkap.',
       );
     } else {
-      ModernToast.success(
-        context,
-        'Tersimpan: ${FileService.getFileName(savedPath)}',
-      );
+      ModernToast.success(context, 'Tersimpan: ${saved.fileName}');
     }
   }
 

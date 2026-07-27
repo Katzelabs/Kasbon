@@ -1,12 +1,13 @@
 {
-    "name": "kasbon_app",
-    "short_name": "kasbon_app",
-    "start_url": ".",
+    "name": "KASBON — Kasir Digital",
+    "short_name": "KASBON",
+    "start_url": "/",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#F8FAFC",
+    "theme_color": "#2563EB",
+    "description": "Aplikasi kasir digital untuk UMKM Indonesia. Catat penjualan, pantau laba, dan kelola hutang pelanggan.",
+    "orientation": "any",
+    "lang": "id",
     "prefer_related_applications": false,
     "icons": [
         {

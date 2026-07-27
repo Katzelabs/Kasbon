@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/theme/app_colors.dart';
@@ -40,9 +39,15 @@ class PosScreen extends ConsumerStatefulWidget {
 class _PosScreenState extends ConsumerState<PosScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  late final KeyboardVisibilityController _keyboardVisibilityController;
   bool _isCartExpanded = true;
-  bool _isKeyboardVisible = false;
+
+  /// Whether the soft keyboard is covering part of the screen.
+  ///
+  /// Reading `viewInsets` is reactive - the dependency it registers rebuilds
+  /// this widget when the keyboard opens or closes, which is what the previous
+  /// `KeyboardVisibilityController.onChange.listen` did by hand, minus the
+  /// subscription that was never cancelled.
+  bool get _isKeyboardVisible => MediaQuery.viewInsetsOf(context).bottom > 0;
 
   /// Threshold for triggering load more (pixels from bottom)
   static const double _loadMoreThreshold = 200.0;
@@ -50,12 +55,6 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   @override
   void initState() {
     super.initState();
-    _keyboardVisibilityController = KeyboardVisibilityController();
-    _keyboardVisibilityController.onChange.listen((bool visible) {
-      setState(() {
-        _isKeyboardVisible = visible;
-      });
-    });
 
     // Add scroll listener for infinite scroll
     _scrollController.addListener(_onScroll);

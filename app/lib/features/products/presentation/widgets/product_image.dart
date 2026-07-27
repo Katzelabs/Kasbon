@@ -1,9 +1,8 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
+import '../../../../core/widgets/adaptive_local_image.dart';
 import '../../../../shared/modern/modern.dart';
 
 /// Widget for displaying product images.
@@ -88,12 +87,10 @@ class ProductImage extends StatelessWidget {
   }
 
   Widget _buildLocalImage(double iconSize) {
-    final file = File(imagePath!.replaceFirst('file://', ''));
-
-    return Image.file(
-      file,
+    return AdaptiveLocalImage(
+      path: imagePath!,
       fit: fit,
-      errorBuilder: (_, __, ___) => _buildPlaceholder(iconSize),
+      fallback: (_) => _buildPlaceholder(iconSize),
     );
   }
 

@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/widgets/adaptive_local_image.dart';
 import '../../../../shared/modern/components/card/modern_card.dart';
 import '../../domain/entities/product.dart';
 import 'stock_indicator.dart';
@@ -181,13 +180,13 @@ class ProductGridItem extends StatelessWidget {
         imagePath.startsWith('/') || imagePath.startsWith('file://');
 
     if (isLocalFile) {
-      final file = File(imagePath.replaceFirst('file://', ''));
-      return Image.file(
-        file,
-        fit: BoxFit.cover,
+      return SizedBox(
         width: double.infinity,
         height: double.infinity,
-        errorBuilder: (_, __, ___) => _buildPlaceholderIcon(),
+        child: AdaptiveLocalImage(
+          path: imagePath,
+          fallback: (_) => _buildPlaceholderIcon(),
+        ),
       );
     }
 

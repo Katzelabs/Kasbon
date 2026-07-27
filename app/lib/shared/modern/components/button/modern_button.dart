@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/platform/app_platform.dart';
 import '../../utils/modern_variants.dart';
 import '../feedback/modern_loading.dart';
 
@@ -258,7 +259,7 @@ class ModernButton extends StatelessWidget {
   }
 
   void _handleTap() {
-    if (hapticFeedback) {
+    if (hapticFeedback && AppPlatform.supportsHaptics) {
       HapticFeedback.lightImpact();
     }
     onPressed?.call();

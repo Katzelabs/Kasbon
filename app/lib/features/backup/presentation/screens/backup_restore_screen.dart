@@ -113,10 +113,13 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
         builder: (context) => BackupSuccessDialog(metadata: metadata),
       );
 
-      if (shouldShare == true && mounted) {
+      // Sharing needs a real file on disk. On web the backup is a browser
+      // download with no path, and XFile(null) throws - the file is already in
+      // the user's downloads, so there is nothing to share anyway.
+      if (shouldShare == true && mounted && metadata.hasFilePath) {
         // Share the backup file
         await Share.shareXFiles(
-          [XFile(metadata.filePath)],
+          [XFile(metadata.filePath!)],
           subject: 'Backup KASBON - ${metadata.fileName}',
         );
       }

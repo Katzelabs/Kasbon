@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/platform/app_platform.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../utils/modern_variants.dart';
 
@@ -98,7 +99,9 @@ class ModernPaginationControls extends StatelessWidget {
   }
 
   void _triggerHaptic() {
-    if (hapticFeedback) HapticFeedback.lightImpact();
+    if (hapticFeedback && AppPlatform.supportsHaptics) {
+      HapticFeedback.lightImpact();
+    }
   }
 
   void _handlePrevious() {
