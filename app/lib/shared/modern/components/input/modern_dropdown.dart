@@ -155,7 +155,7 @@ class ModernDropdown<T> extends StatelessWidget {
     // Using value parameter for controlled component pattern where parent manages state
     // ignore: deprecated_member_use
     return DropdownButtonFormField<T>(
-      value: value,
+      initialValue: value,
       items: items,
       onChanged: enabled ? onChanged : null,
       decoration: _decoration,

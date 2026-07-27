@@ -15,8 +15,12 @@ class AppDimensions {
   static const double spacing48 = 48.0;
 
   // Responsive Breakpoints
+  //
+  // `ResponsiveUtils` reads breakpointMobile and breakpointDesktop to classify
+  // three device types. breakpointTablet is read by nothing - do not mistake
+  // breakpointDesktop for dead code alongside it.
   static const double breakpointMobile = 900.0;
-  static const double breakpointTablet = 1100.0;
+  static const double breakpointTablet = 1100.0; // unused
   static const double breakpointDesktop = 1300.0;
 
   // Border Radius (modern rounded design)

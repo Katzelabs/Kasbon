@@ -28,7 +28,7 @@ final currentSessionProvider = Provider<Session?>((ref) {
 
 /// Provides the [AuthNotifier] for performing auth mutations.
 final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AuthState_>((ref) {
+    StateNotifierProvider<AuthNotifier, AuthUiState>((ref) {
   return AuthNotifier(
     signIn: getIt<SignIn>(),
     signUp: getIt<SignUp>(),
@@ -41,23 +41,26 @@ final authNotifierProvider =
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
 /// State held by [AuthNotifier].
-class AuthState_ {
+///
+/// Named `AuthUiState` rather than `AuthState` because supabase_flutter
+/// exports its own `AuthState`, used by [authStateProvider] above.
+class AuthUiState {
   final AuthStatus status;
   final UserProfile? user;
   final String? errorMessage;
 
-  const AuthState_({
+  const AuthUiState({
     this.status = AuthStatus.initial,
     this.user,
     this.errorMessage,
   });
 
-  AuthState_ copyWith({
+  AuthUiState copyWith({
     AuthStatus? status,
     UserProfile? user,
     String? errorMessage,
   }) {
-    return AuthState_(
+    return AuthUiState(
       status: status ?? this.status,
       user: user ?? this.user,
       errorMessage: errorMessage,
@@ -66,7 +69,7 @@ class AuthState_ {
 }
 
 /// Handles authentication actions (sign in, sign up, sign out, fetch profile).
-class AuthNotifier extends StateNotifier<AuthState_> {
+class AuthNotifier extends StateNotifier<AuthUiState> {
   final SignIn _signIn;
   final SignUp _signUp;
   final SignOut _signOut;
@@ -81,7 +84,7 @@ class AuthNotifier extends StateNotifier<AuthState_> {
         _signUp = signUp,
         _signOut = signOut,
         _getCurrentUser = getCurrentUser,
-        super(const AuthState_());
+        super(const AuthUiState());
 
   /// Attempt to sign in with email and password.
   Future<bool> login({
@@ -161,7 +164,7 @@ class AuthNotifier extends StateNotifier<AuthState_> {
         );
       },
       (_) {
-        state = const AuthState_(status: AuthStatus.unauthenticated);
+        state = const AuthUiState(status: AuthStatus.unauthenticated);
       },
     );
   }
@@ -186,7 +189,7 @@ class AuthNotifier extends StateNotifier<AuthState_> {
             user: user,
           );
         } else {
-          state = const AuthState_(status: AuthStatus.unauthenticated);
+          state = const AuthUiState(status: AuthStatus.unauthenticated);
         }
       },
     );

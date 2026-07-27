@@ -108,9 +108,9 @@ void main() {
         var pressed = false;
 
         await tester.pumpWidget(createTestableWidget(
-          child: ModernButton.primary(
-            child: const Text('Disabled'),
+          child: const ModernButton.primary(
             onPressed: null,
+            child: Text('Disabled'),
           ),
         ));
 
@@ -126,9 +126,9 @@ void main() {
           (tester) async {
         await tester.pumpWidget(createTestableWidget(
           child: ModernButton.primary(
-            child: const Text('Loading'),
             onPressed: () {},
             isLoading: true,
+            child: const Text('Loading'),
           ),
         ));
 
@@ -140,9 +140,9 @@ void main() {
 
         await tester.pumpWidget(createTestableWidget(
           child: ModernButton.primary(
-            child: const Text('Loading'),
             onPressed: () => pressed = true,
             isLoading: true,
+            child: const Text('Loading'),
           ),
         ));
 
@@ -157,9 +157,9 @@ void main() {
       testWidgets('displays leading icon', (tester) async {
         await tester.pumpWidget(createTestableWidget(
           child: ModernButton.primary(
-            child: const Text('With Icon'),
             onPressed: () {},
             leadingIcon: Icons.add,
+            child: const Text('With Icon'),
           ),
         ));
 
@@ -169,9 +169,9 @@ void main() {
       testWidgets('displays trailing icon', (tester) async {
         await tester.pumpWidget(createTestableWidget(
           child: ModernButton.primary(
-            child: const Text('With Icon'),
             onPressed: () {},
             trailingIcon: Icons.arrow_forward,
+            child: const Text('With Icon'),
           ),
         ));
 
@@ -181,10 +181,10 @@ void main() {
       testWidgets('hides leading icon when loading', (tester) async {
         await tester.pumpWidget(createTestableWidget(
           child: ModernButton.primary(
-            child: const Text('Loading'),
             onPressed: () {},
             leadingIcon: Icons.add,
             isLoading: true,
+            child: const Text('Loading'),
           ),
         ));
 
@@ -197,9 +197,9 @@ void main() {
       testWidgets('takes full width when fullWidth is true', (tester) async {
         await tester.pumpWidget(createTestableWidget(
           child: ModernButton.primary(
-            child: const Text('Full Width'),
             onPressed: () {},
             fullWidth: true,
+            child: const Text('Full Width'),
           ),
         ));
 

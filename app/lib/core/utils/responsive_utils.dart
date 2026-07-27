@@ -17,22 +17,25 @@ class ResponsiveUtils {
     return DeviceType.desktop;
   }
 
-  /// Check if current device is mobile (< 600dp)
+  /// Check if current device is mobile (< 900dp)
+  ///
+  /// Note the threshold is 900, not the 600 a Material breakpoint would use.
+  /// An iPad in portrait (834dp) therefore counts as mobile here.
   static bool isMobile(BuildContext context) =>
       MediaQuery.of(context).size.width < AppDimensions.breakpointMobile;
 
-  /// Check if current device is tablet (>= 600dp and < 1200dp)
+  /// Check if current device is tablet (>= 900dp and < 1300dp)
   static bool isTablet(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     return width >= AppDimensions.breakpointMobile &&
         width < AppDimensions.breakpointDesktop;
   }
 
-  /// Check if current device is desktop (>= 1200dp)
+  /// Check if current device is desktop (>= 1300dp)
   static bool isDesktop(BuildContext context) =>
       MediaQuery.of(context).size.width >= AppDimensions.breakpointDesktop;
 
-  /// Check if current device is tablet or desktop (>= 600dp)
+  /// Check if current device is tablet or desktop (>= 900dp)
   static bool isTabletOrDesktop(BuildContext context) =>
       MediaQuery.of(context).size.width >= AppDimensions.breakpointMobile;
 

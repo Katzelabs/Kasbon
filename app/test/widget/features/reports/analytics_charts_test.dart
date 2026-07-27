@@ -13,6 +13,8 @@ import 'package:kasbon_pos/features/reports/presentation/widgets/peak_hours_card
 import 'package:kasbon_pos/features/reports/presentation/widgets/period_comparison_card.dart';
 import 'package:kasbon_pos/features/reports/presentation/widgets/sales_trend_line_chart.dart';
 
+import '../../../helpers/responsive_helpers.dart';
+
 /// Wrap a widget in the minimum scaffolding needed to pump it.
 ///
 /// Charts size themselves to their parent, so an unbounded parent would throw
@@ -354,5 +356,65 @@ void main() {
       expect(find.byIcon(Icons.arrow_downward_rounded), findsWidgets);
       expect(find.text('25.0%'), findsWidgets);
     });
+  });
+
+  // Every test above pins a chart at a single fixed 400dp width. These pin the
+  // other axis: that each chart survives the full 375-1600dp range it will be
+  // asked to render across once the responsive overhaul lands.
+  //
+  // This is a floor, not a ceiling. It catches "throws when wide", not "looks
+  // right when wide" - RESP_09b is where these charts get real layout
+  // decisions (legend beside the pie, capped bar widths, pane-derived heatmap
+  // cells). Until then, this is the regression net for that work.
+  group('renders across every breakpoint tier', () {
+    const heatmap = HourlyHeatmap([
+      HeatmapCell(
+        dayOfWeek: 5,
+        hourOfDay: 14,
+        transactionCount: 4,
+        revenue: 268500,
+      ),
+      HeatmapCell(
+        dayOfWeek: 1,
+        hourOfDay: 9,
+        transactionCount: 2,
+        revenue: 80000,
+      ),
+    ]);
+
+    final charts = <String, Widget>{
+      'SalesTrendLineChart': SalesTrendLineChart(
+        points: [
+          for (var day = 1; day <= 31; day++)
+            _point(day, (day * 1000).toDouble()),
+        ],
+      ),
+      'DistributionPieChart': const DistributionPieChart(
+        slices: [
+          PieSliceData(label: 'Makanan', value: 682500, color: Colors.orange),
+          PieSliceData(label: 'Minuman', value: 279500, color: Colors.blue),
+        ],
+      ),
+      'HourlySalesHeatmap': const HourlySalesHeatmap(heatmap: heatmap),
+      'DayOfWeekBarChart': const DayOfWeekBarChart(heatmap: heatmap),
+      'PeakHoursCard': const PeakHoursCard(heatmap: heatmap),
+    };
+
+    for (final entry in charts.entries) {
+      for (final width in ResponsiveWidths.all) {
+        testWidgets(
+          '${entry.key} at ${ResponsiveWidths.label(width)}',
+          (tester) async {
+            await pumpAtWidth(
+              tester,
+              width,
+              SingleChildScrollView(child: entry.value),
+            );
+
+            expect(tester.takeException(), isNull);
+          },
+        );
+      }
+    }
   });
 }

@@ -76,7 +76,7 @@ class CartBottomSheet extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Keranjang',
                 style: AppTextStyles.h4,
               ),
@@ -152,7 +152,7 @@ class CartBottomSheet extends ConsumerWidget {
             color: AppColors.warningLight,
             child: Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.warning_amber_rounded,
                   size: AppDimensions.iconMedium,
                   color: AppColors.warning,
@@ -196,7 +196,7 @@ class CartBottomSheet extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.shopping_cart_outlined,
             size: 64,
             color: AppColors.textTertiary,

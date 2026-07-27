@@ -142,7 +142,7 @@ lib/
     │   ├── modern.dart           # Main export
     │   ├── components/           # Buttons, cards, inputs, layout, feedback
     │   └── utils/                # Variants and enums
-    └── widgets/                  # DEPRECATED: Legacy widgets (do not use)
+    └── providers/                # Shared Riverpod providers
 ```
 
 **Key Libraries:**
@@ -249,7 +249,6 @@ import 'package:kasbon_pos/shared/modern/modern.dart';
 - Prefer `Either<Failure, T>` from dartz for repository returns
 - Use freezed for immutable data classes
 - ALWAYS import Modern widgets: `import 'package:kasbon_pos/shared/modern/modern.dart';`
-- NEVER use deprecated widgets from `lib/shared/widgets/`
 
 ## Performance Targets
 

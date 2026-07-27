@@ -4,8 +4,6 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../shared/modern/modern.dart';
-import '../../../pos/presentation/widgets/cart_item_row.dart';
-import '../../../products/presentation/widgets/product_card.dart';
 import '../../../transactions/presentation/widgets/order_card.dart';
 
 /// Design system showcase screen for previewing all reusable widgets
@@ -490,14 +488,7 @@ class _BadgesSectionState extends State<_BadgesSection> {
 // CARDS SECTION
 // ===========================================================================
 
-class _CardsSection extends StatefulWidget {
-  @override
-  State<_CardsSection> createState() => _CardsSectionState();
-}
-
-class _CardsSectionState extends State<_CardsSection> {
-  int _productQty = 0;
-
+class _CardsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -515,35 +506,6 @@ class _CardsSectionState extends State<_CardsSection> {
         const SizedBox(height: AppDimensions.spacing12),
         const ModernCard.filled(
           child: Text('Filled Card'),
-        ),
-        const SizedBox(height: AppDimensions.spacing24),
-        const ModernSectionHeader(title: 'Product Cards'),
-        const SizedBox(height: AppDimensions.spacing12),
-        SizedBox(
-          height: 280,
-          child: Row(
-            children: [
-              Expanded(
-                child: ProductCard(
-                  productName: 'Nasi Goreng Spesial',
-                  productPrice: 'Rp 25.000',
-                  stockCount: 50,
-                  quantity: _productQty,
-                  onAddToCart: () => setState(() => _productQty = 1),
-                  onQuantityChanged: (v) => setState(() => _productQty = v),
-                ),
-              ),
-              const SizedBox(width: AppDimensions.spacing12),
-              Expanded(
-                child: ProductCard(
-                  productName: 'Es Teh Manis',
-                  productPrice: 'Rp 5.000',
-                  stockCount: 100,
-                  onAddToCart: () {},
-                ),
-              ),
-            ],
-          ),
         ),
         const SizedBox(height: AppDimensions.spacing24),
         const ModernSectionHeader(title: 'Order Cards'),
@@ -568,21 +530,6 @@ class _CardsSectionState extends State<_CardsSection> {
               ),
             ),
           ],
-        ),
-        const SizedBox(height: AppDimensions.spacing24),
-        const ModernSectionHeader(title: 'Cart Item Rows'),
-        const SizedBox(height: AppDimensions.spacing12),
-        const CartItemRow(
-          productName: 'Nasi Goreng Spesial',
-          productPrice: 'Rp 25.000',
-          quantity: 2,
-          onRemove: null,
-        ),
-        const CartItemRow(
-          productName: 'Es Teh Manis',
-          productPrice: 'Rp 5.000',
-          quantity: 3,
-          onRemove: null,
         ),
       ],
     );

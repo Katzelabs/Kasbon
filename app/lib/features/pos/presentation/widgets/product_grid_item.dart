@@ -172,9 +172,9 @@ class ProductGridItem extends StatelessWidget {
 
   Widget _buildStockBadge() {
     if (product.isOutOfStock) {
-      return ModernBadge.error(label: 'Habis');
+      return const ModernBadge.error(label: 'Habis');
     } else if (product.isLowStock) {
-      return ModernBadge.warning(label: 'Stok Rendah');
+      return const ModernBadge.warning(label: 'Stok Rendah');
     }
     return const SizedBox.shrink();
   }

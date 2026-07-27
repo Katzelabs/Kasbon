@@ -115,7 +115,7 @@ class CartItemTile extends StatelessWidget {
             const SizedBox(height: AppDimensions.spacing8),
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.warning_amber_rounded,
                   size: AppDimensions.iconSmall,
                   color: AppColors.warning,

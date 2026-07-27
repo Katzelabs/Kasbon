@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kasbon_pos/features/pos/domain/entities/cart_item.dart';
 
 import '../../../../../fixtures/mock_data.dart';
 

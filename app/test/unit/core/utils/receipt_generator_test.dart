@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:kasbon_pos/core/utils/receipt_generator.dart';
 import 'package:kasbon_pos/features/transactions/domain/entities/transaction.dart';
-import 'package:kasbon_pos/features/transactions/domain/entities/transaction_item.dart';
 import 'package:kasbon_pos/features/receipt/domain/entities/shop_settings.dart';
 
 import '../../../fixtures/mock_data.dart';

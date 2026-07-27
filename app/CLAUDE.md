@@ -60,7 +60,7 @@ lib/
     │   ├── modern.dart           # Main export (use this import)
     │   ├── components/           # Buttons, cards, inputs, layout, feedback
     │   └── utils/                # Variants (ModernSize, etc.)
-    └── widgets/                  # DEPRECATED: Legacy widgets (do not use)
+    └── providers/                # Shared Riverpod providers
 ```
 
 ## Key Patterns
@@ -161,19 +161,23 @@ ModernDropdown<String>(label: 'Kategori', value: sel, items: items, onChanged: o
 
 ### Layout
 ```dart
-ModernAppBar.simple(title: 'Produk')
-ModernAppBar.withBack(title: 'Detail', context: context)
-ModernAppBar.withSearch(title: 'Produk', onSearch: onSearch)
-ModernSectionHeader(title: 'Terlaris', actionLabel: 'Lihat Semua', onAction: onViewAll)
+ModernAppBar.withActions(title: 'Produk')
+ModernAppBar.back(title: 'Detail')
+ModernAppBar.backWithActions(title: 'Detail')
+ModernAppBar.search(title: 'Produk', onSearch: onSearch)
+ModernSectionHeader(title: 'Terlaris', actionLabel: 'Lihat Semua', onActionTap: onViewAll)
+ModernSectionHeader.withSeeAll(title: 'Terlaris', onSeeAll: onViewAll)
 ```
 
 ### Feedback
 ```dart
 ModernLoading()
-ModernEmptyState(icon: Icons.inventory_2_outlined, title: 'Belum Ada Produk', actionLabel: 'Tambah', onAction: onAdd)
+// ModernEmptyState requires `message`; `title` and `icon` are optional
+ModernEmptyState(icon: Icons.inventory_2_outlined, title: 'Belum Ada Produk', message: 'Tambah produk pertama Anda', actionLabel: 'Tambah', onAction: onAdd)
 ModernErrorState(message: 'Gagal memuat', onRetry: onRetry)
 ModernDialog.confirm(context, title: 'Hapus?', message: 'Permanen', confirmLabel: 'Hapus', onConfirm: onDel)
-ModernToast.success(context: context, message: 'Berhasil')
+// context and message are POSITIONAL, not named
+ModernToast.success(context, 'Berhasil')
 ```
 
 ### Data Display
