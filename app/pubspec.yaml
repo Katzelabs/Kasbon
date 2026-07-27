@@ -55,6 +55,14 @@ dependencies:
   # File Picker (for backup restore)
   file_picker: ^8.0.0
 
+  # Report export (Excel / PDF)
+  # NOTE: TASK_019 specified excel ^3.0.0, but 3.0.0's Sheet.delete/rename call
+  # removeWhere on archive's file list, which archive >=3.6.0 exposes as an
+  # UnmodifiableListView - it throws at runtime. 4.x targets archive ^3.6.1.
+  excel: ^4.0.6
+  pdf: ^3.10.7
+  printing: ^5.11.1
+
   # Image handling
   image_picker: ^1.0.7
   flutter_image_compress: ^2.1.0

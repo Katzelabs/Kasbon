@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -27,7 +28,8 @@ class FileService {
           // Go up to Android folder level and create KASBON_Backup in root
           // externalDir is typically /storage/emulated/0/Android/data/com.app/files
           final rootPath = externalDir.path.split('Android').first;
-          final downloadsPath = path.join(rootPath, 'Download', 'KASBON_Backup');
+          final downloadsPath =
+              path.join(rootPath, 'Download', 'KASBON_Backup');
           backupDir = Directory(downloadsPath);
         }
       }
@@ -47,7 +49,8 @@ class FileService {
       // If external storage fails, use internal storage
       try {
         final appDocDir = await getApplicationDocumentsDirectory();
-        final internalBackupDir = Directory(path.join(appDocDir.path, _backupFolderName));
+        final internalBackupDir =
+            Directory(path.join(appDocDir.path, _backupFolderName));
         if (!await internalBackupDir.exists()) {
           await internalBackupDir.create(recursive: true);
         }
@@ -89,6 +92,42 @@ class FileService {
       if (e is FileException) rethrow;
       throw FileException(
         message: 'Gagal menyimpan file backup',
+        originalError: e,
+      );
+    }
+  }
+
+  /// Writes binary content to a file and returns the file path.
+  ///
+  /// The string-based [saveBackupFile] cannot be reused for exports: .xlsx and
+  /// .pdf are binary formats, and round-tripping their bytes through a Dart
+  /// String would corrupt them.
+  ///
+  /// Saves alongside the backups by default so exports land somewhere the user
+  /// can find with a file manager.
+  static Future<String> saveBytesFile(
+    Uint8List bytes,
+    String filename, {
+    String? directory,
+  }) async {
+    try {
+      final targetDir = directory ?? await getBackupDirectory();
+
+      if (directory != null) {
+        final dir = Directory(targetDir);
+        if (!await dir.exists()) {
+          await dir.create(recursive: true);
+        }
+      }
+
+      final filePath = path.join(targetDir, filename);
+      await File(filePath).writeAsBytes(bytes, flush: true);
+
+      return filePath;
+    } catch (e) {
+      if (e is FileException) rethrow;
+      throw FileException(
+        message: 'Gagal menyimpan file ekspor',
         originalError: e,
       );
     }
