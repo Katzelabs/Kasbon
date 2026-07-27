@@ -3,7 +3,9 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/usecase/usecase.dart';
+import '../../../../core/utils/business_time.dart';
 import '../entities/product_report.dart';
+import '../entities/report_filter.dart';
 import '../repositories/report_repository.dart';
 
 /// Use case to get top selling products for a date range
@@ -20,6 +22,7 @@ class GetTopProducts extends UseCase<List<ProductReport>, TopProductsParams> {
       to: params.to,
       sortBy: params.sortBy,
       limit: params.limit,
+      filter: params.filter,
     );
   }
 }
@@ -31,11 +34,15 @@ class TopProductsParams extends Equatable {
   final ProductReportSortType sortBy;
   final int limit;
 
+  /// Optional category and/or payment method narrowing.
+  final ReportFilter filter;
+
   const TopProductsParams({
     required this.from,
     required this.to,
     required this.sortBy,
     this.limit = 10,
+    this.filter = ReportFilter.none,
   });
 
   /// Factory for today with default sort by quantity
@@ -43,12 +50,10 @@ class TopProductsParams extends Equatable {
     ProductReportSortType sortBy = ProductReportSortType.quantity,
     int limit = 10,
   }) {
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    final startOfDay = BusinessTime.startOfDay();
     return TopProductsParams(
       from: startOfDay,
-      to: endOfDay,
+      to: DateTime(startOfDay.year, startOfDay.month, startOfDay.day + 1),
       sortBy: sortBy,
       limit: limit,
     );
@@ -59,14 +64,10 @@ class TopProductsParams extends Equatable {
     ProductReportSortType sortBy = ProductReportSortType.quantity,
     int limit = 10,
   }) {
-    final now = DateTime.now();
-    final dayOfWeek = now.weekday;
-    final startOfWeek =
-        DateTime(now.year, now.month, now.day - dayOfWeek + 1);
-    final endOfWeek = startOfWeek.add(const Duration(days: 7));
+    final startOfWeek = BusinessTime.startOfWeek();
     return TopProductsParams(
       from: startOfWeek,
-      to: endOfWeek,
+      to: DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day + 7),
       sortBy: sortBy,
       limit: limit,
     );
@@ -77,17 +78,15 @@ class TopProductsParams extends Equatable {
     ProductReportSortType sortBy = ProductReportSortType.quantity,
     int limit = 10,
   }) {
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final endOfMonth = DateTime(now.year, now.month + 1, 1);
+    final startOfMonth = BusinessTime.startOfMonth();
     return TopProductsParams(
       from: startOfMonth,
-      to: endOfMonth,
+      to: DateTime(startOfMonth.year, startOfMonth.month + 1),
       sortBy: sortBy,
       limit: limit,
     );
   }
 
   @override
-  List<Object?> get props => [from, to, sortBy, limit];
+  List<Object?> get props => [from, to, sortBy, limit, filter];
 }

@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/usecase/usecase.dart';
+import '../../../../core/utils/business_time.dart';
 import '../entities/profit_summary.dart';
 import '../repositories/profit_report_repository.dart';
 
@@ -32,28 +33,34 @@ class DateRangeParams extends Equatable {
   });
 
   /// Factory for today
+  ///
+  /// Boundaries are business wall-clock (see [BusinessTime]), not device-local:
+  /// on a device set to another zone, `DateTime.now()` can name a different day
+  /// than the shop is actually trading in.
   factory DateRangeParams.today() {
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
-    return DateRangeParams(from: startOfDay, to: endOfDay);
+    final startOfDay = BusinessTime.startOfDay();
+    return DateRangeParams(
+      from: startOfDay,
+      to: DateTime(startOfDay.year, startOfDay.month, startOfDay.day + 1),
+    );
   }
 
   /// Factory for this month
   factory DateRangeParams.thisMonth() {
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final endOfMonth = DateTime(now.year, now.month + 1, 1);
-    return DateRangeParams(from: startOfMonth, to: endOfMonth);
+    final startOfMonth = BusinessTime.startOfMonth();
+    return DateRangeParams(
+      from: startOfMonth,
+      to: DateTime(startOfMonth.year, startOfMonth.month + 1),
+    );
   }
 
   /// Factory for this week (starting Monday)
   factory DateRangeParams.thisWeek() {
-    final now = DateTime.now();
-    final dayOfWeek = now.weekday;
-    final startOfWeek = DateTime(now.year, now.month, now.day - dayOfWeek + 1);
-    final endOfWeek = startOfWeek.add(const Duration(days: 7));
-    return DateRangeParams(from: startOfWeek, to: endOfWeek);
+    final startOfWeek = BusinessTime.startOfWeek();
+    return DateRangeParams(
+      from: startOfWeek,
+      to: DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day + 7),
+    );
   }
 
   @override

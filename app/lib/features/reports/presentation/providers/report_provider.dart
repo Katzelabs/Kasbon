@@ -17,7 +17,9 @@ final salesSummaryProvider =
     FutureProvider.autoDispose<SalesSummary>((ref) async {
   final dateRange = ref.watch(dateRangeProvider);
   final useCase = getIt<GetSalesSummary>();
-  final result = await useCase(dateRange.toParams());
+  final result = await useCase(
+    SalesSummaryParams.fromDateRange(dateRange.toParams()),
+  );
   return result.fold(
     (failure) => throw Exception(failure.message),
     (summary) => summary,

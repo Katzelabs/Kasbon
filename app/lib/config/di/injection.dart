@@ -44,18 +44,28 @@ import '../../features/receipt/data/repositories/shop_settings_repository_impl.d
 import '../../features/receipt/domain/repositories/shop_settings_repository.dart';
 import '../../features/receipt/domain/usecases/get_shop_settings.dart';
 import '../../features/settings/domain/usecases/update_shop_settings.dart';
+import '../../features/reports/data/datasources/analytics_remote_datasource.dart';
 import '../../features/reports/data/datasources/profit_remote_datasource.dart';
 import '../../features/reports/data/datasources/report_remote_datasource.dart';
+import '../../features/reports/data/repositories/analytics_repository_impl.dart';
 import '../../features/reports/data/repositories/profit_report_repository_impl.dart';
 import '../../features/reports/data/repositories/report_repository_impl.dart';
+import '../../features/reports/domain/repositories/analytics_repository.dart';
 import '../../features/reports/domain/repositories/profit_report_repository.dart';
 import '../../features/reports/domain/repositories/report_repository.dart';
 import '../../features/debt/domain/usecases/get_unpaid_debts.dart';
 import '../../features/debt/domain/usecases/mark_debt_paid.dart';
+import '../../features/reports/domain/usecases/compare_periods.dart';
+import '../../features/reports/domain/usecases/get_category_distribution.dart';
 import '../../features/reports/domain/usecases/get_daily_sales.dart';
+import '../../features/reports/domain/usecases/get_hourly_heatmap.dart';
+import '../../features/reports/domain/usecases/get_payment_distribution.dart';
+import '../../features/reports/domain/usecases/get_product_movement.dart';
 import '../../features/reports/domain/usecases/get_product_profitability.dart';
 import '../../features/reports/domain/usecases/get_profit_summary.dart';
 import '../../features/reports/domain/usecases/get_sales_summary.dart';
+import '../../features/reports/domain/usecases/get_sales_trend.dart';
+import '../../features/reports/domain/usecases/get_top_customers.dart';
 import '../../features/reports/domain/usecases/get_top_products.dart';
 import '../../features/reports/domain/usecases/get_top_profitable_products.dart';
 import '../../features/transactions/data/datasources/transaction_remote_datasource.dart';
@@ -157,8 +167,8 @@ Future<void> configureDependencies() async {
 
   getIt.registerLazySingleton(
       () => GetAllCategories(getIt<CategoryRepository>()));
-  getIt.registerLazySingleton(
-      () => CreateCategory(getIt<CategoryRepository>()));
+  getIt
+      .registerLazySingleton(() => CreateCategory(getIt<CategoryRepository>()));
 
   // ===========================================
   // TRANSACTIONS FEATURE
@@ -233,12 +243,18 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<ReportRemoteDataSource>(
     () => ReportRemoteDataSourceImpl(getIt<SupabaseClientProvider>()),
   );
+  getIt.registerLazySingleton<AnalyticsRemoteDataSource>(
+    () => AnalyticsRemoteDataSourceImpl(getIt<SupabaseClientProvider>()),
+  );
 
   getIt.registerLazySingleton<ProfitReportRepository>(
     () => ProfitReportRepositoryImpl(getIt<ProfitRemoteDataSource>()),
   );
   getIt.registerLazySingleton<ReportRepository>(
     () => ReportRepositoryImpl(getIt<ReportRemoteDataSource>()),
+  );
+  getIt.registerLazySingleton<AnalyticsRepository>(
+    () => AnalyticsRepositoryImpl(getIt<AnalyticsRemoteDataSource>()),
   );
 
   getIt.registerLazySingleton(
@@ -259,6 +275,35 @@ Future<void> configureDependencies() async {
   );
   getIt.registerLazySingleton(
     () => GetDailySales(getIt<ReportRepository>()),
+  );
+
+  // Period comparison reuses the sales summary RPC rather than its own, so it
+  // depends on ReportRepository like the free-tier reports do.
+  getIt.registerLazySingleton(
+    () => ComparePeriods(getIt<ReportRepository>()),
+  );
+
+  // ===========================================
+  // ADVANCED ANALYTICS (TASK_019)
+  // ===========================================
+
+  getIt.registerLazySingleton(
+    () => GetSalesTrend(getIt<AnalyticsRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => GetCategoryDistribution(getIt<AnalyticsRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => GetPaymentDistribution(getIt<AnalyticsRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => GetHourlyHeatmap(getIt<AnalyticsRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => GetTopCustomers(getIt<AnalyticsRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => GetProductMovement(getIt<AnalyticsRepository>()),
   );
 
   // ===========================================

@@ -1,4 +1,5 @@
 import '../../../../core/errors/exceptions.dart';
+import '../../../../core/utils/business_time.dart';
 import '../../../../core/services/supabase_client_provider.dart';
 import '../models/product_profitability_model.dart';
 import '../models/profit_summary_model.dart';
@@ -30,8 +31,8 @@ class ProfitRemoteDataSourceImpl implements ProfitRemoteDataSource {
   }) async {
     try {
       final result = await _provider.client.rpc('get_profit_summary', params: {
-        'p_from': from.toIso8601String(),
-        'p_to': to.toIso8601String(),
+        'p_from': BusinessTime.toRpcArgument(from),
+        'p_to': BusinessTime.toRpcArgument(to),
       });
 
       final data = result as Map<String, dynamic>;
