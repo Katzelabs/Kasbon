@@ -111,8 +111,10 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   }
 
   Widget _buildMobileLayout() {
-    // Bottom nav height + some padding
-    const bottomNavHeight = 80.0;
+    // Was a local `const bottomNavHeight = 80.0`, duplicating
+    // AppDimensions.bottomNavHeight where the two could drift apart
+    // independently.
+    final shellBottomInset = context.shellBottomInset;
 
     return Stack(
       children: [
@@ -129,11 +131,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         ),
         // Floating cart summary bar - positioned above bottom nav, hidden when keyboard is visible
         if (!_isKeyboardVisible)
-          const Positioned(
-            bottom: bottomNavHeight,
+          Positioned(
+            bottom: shellBottomInset,
             left: 0,
             right: 0,
-            child: CartSummaryBar(),
+            child: const CartSummaryBar(),
           ),
       ],
     );

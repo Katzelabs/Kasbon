@@ -6,6 +6,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../providers/debt_provider.dart';
@@ -95,11 +96,15 @@ class DebtListScreen extends ConsumerWidget {
                   ),
                 ),
 
-                // Bottom spacing for mobile bottom nav
-                const SliverPadding(
+                // Bottom spacing to clear the shell's bottom nav.
+                //
+                // Previously unguarded, so it also reserved the bar's height
+                // on tablet, where there is no bar - 112px of dead space at
+                // the end of the list.
+                SliverPadding(
                   padding: EdgeInsets.only(
                     bottom:
-                        AppDimensions.bottomNavHeight + AppDimensions.spacing32,
+                        AppDimensions.spacing32 + context.shellBottomInset,
                   ),
                 ),
               ],

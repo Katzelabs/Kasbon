@@ -42,40 +42,40 @@ void main() {
     // Pins the harness widths to the tiers they are meant to represent. If a
     // breakpoint constant moves, this fails loudly here rather than quietly
     // reclassifying every responsive test in the suite.
-    late DeviceType observed;
+    late Breakpoint observed;
 
     Future<void> pumpAndClassify(WidgetTester tester, double width) {
       return pumpAtWidth(
         tester,
         width,
         Builder(builder: (context) {
-          observed = ResponsiveUtils.getDeviceType(context);
+          observed = context.breakpoint;
           return const SizedBox.shrink();
         }),
       );
     }
 
-    testWidgets('375 is mobile', (tester) async {
+    testWidgets('375 is compact', (tester) async {
       await pumpAndClassify(tester, ResponsiveWidths.compact);
-      expect(observed, DeviceType.mobile);
+      expect(observed, Breakpoint.compact);
     });
 
-    testWidgets('700 is mobile today (becomes its own tier in RESP_03)',
-        (tester) async {
-      // Documents the bug the overhaul exists to fix: 700dp - a small tablet -
-      // currently gets the phone build, because breakpointMobile is 900.
+    testWidgets('700 is medium', (tester) async {
+      // The band the epic exists for. Under the legacy three-tier getters this
+      // width reports "mobile", because breakpointMobile is 900 - so a small
+      // tablet gets the phone build. The four-tier API can finally name it.
       await pumpAndClassify(tester, ResponsiveWidths.medium);
-      expect(observed, DeviceType.mobile);
+      expect(observed, Breakpoint.medium);
     });
 
-    testWidgets('1100 is tablet', (tester) async {
+    testWidgets('1100 is expanded', (tester) async {
       await pumpAndClassify(tester, ResponsiveWidths.expanded);
-      expect(observed, DeviceType.tablet);
+      expect(observed, Breakpoint.expanded);
     });
 
-    testWidgets('1600 is desktop', (tester) async {
+    testWidgets('1600 is large', (tester) async {
       await pumpAndClassify(tester, ResponsiveWidths.large);
-      expect(observed, DeviceType.desktop);
+      expect(observed, Breakpoint.large);
     });
   });
 

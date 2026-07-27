@@ -5,6 +5,7 @@ import '../../../../config/di/injection.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/components/button/modern_button.dart';
 import '../../../../shared/modern/components/card/modern_card.dart';
 import '../../../../shared/modern/components/data_display/modern_list_tile.dart';
@@ -36,8 +37,8 @@ class _ProductBulkActionsBarState extends ConsumerState<ProductBulkActionsBar> {
 
     if (selectionCount == 0) return const SizedBox.shrink();
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
+    // Measures the bar's own width, not the window.
+    final isMobile = context.isCompact;
 
     return ModernCard.outlined(
       margin: const EdgeInsets.only(bottom: AppDimensions.spacing16),

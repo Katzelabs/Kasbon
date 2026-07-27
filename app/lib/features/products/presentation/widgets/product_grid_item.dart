@@ -4,6 +4,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/adaptive_local_image.dart';
 import '../../../../shared/modern/components/card/modern_card.dart';
 import '../../domain/entities/product.dart';
@@ -36,8 +37,9 @@ class ProductGridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Detect tablet mode for responsive styling
-    final isTablet = MediaQuery.of(context).size.width >= 900;
+    // Measures the grid this card sits in, not the window - the same card is
+    // used in a narrow master pane from RESP_07 onward.
+    final isTablet = context.isAtLeast(Breakpoint.expanded);
 
     return GestureDetector(
       onLongPress: onLongPress,

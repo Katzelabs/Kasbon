@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/components/card/modern_card.dart';
 import '../../../../shared/modern/components/feedback/modern_loading.dart';
 import '../../../../shared/modern/components/input/modern_search_field.dart';
@@ -36,8 +37,8 @@ class _ProductFilterCardState extends ConsumerState<ProductFilterCard> {
     final categoriesAsync = ref.watch(categoriesProvider);
     final filter = ref.watch(productFilterProvider);
     final viewMode = ref.watch(productViewModeProvider);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
+    // Measures the card's own width, not the window.
+    final isMobile = context.isCompact;
 
     return ModernCard.outlined(
       padding: const EdgeInsets.all(AppDimensions.spacing16),

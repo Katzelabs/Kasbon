@@ -16,11 +16,17 @@ class AppDimensions {
 
   // Responsive Breakpoints
   //
-  // `ResponsiveUtils` reads breakpointMobile and breakpointDesktop to classify
-  // three device types. breakpointTablet is read by nothing - do not mistake
-  // breakpointDesktop for dead code alongside it.
+  // DEPRECATED as a set. New code uses `Breakpoint` / `AppBreakpoints` from
+  // core/responsive, which has four tiers instead of three and can express the
+  // 600-899dp band an iPad portrait lands in.
+  //
+  // These two remain only because the deprecated ResponsiveUtils forwarders
+  // read them, and those forwarders are what keep RESP_03 a zero-visual-change
+  // commit. Both go in RESP_10.
+  //
+  // `breakpointTablet = 1100` was deleted in RESP_03: declared, never read by
+  // anything, and actively misleading next to two constants that are.
   static const double breakpointMobile = 900.0;
-  static const double breakpointTablet = 1100.0; // unused
   static const double breakpointDesktop = 1300.0;
 
   // Border Radius (modern rounded design)

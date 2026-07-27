@@ -30,9 +30,8 @@ class ProfitReportScreen extends ConsumerWidget {
       body: Builder(
         builder: (context) {
           // Calculate bottom padding based on device type to account for bottom nav
-          final bottomPadding = context.isMobile
-              ? AppDimensions.bottomNavHeight + AppDimensions.spacing16
-              : AppDimensions.spacing16;
+          final bottomPadding =
+              AppDimensions.spacing16 + context.shellBottomInset;
 
           return RefreshIndicator(
             onRefresh: () async {

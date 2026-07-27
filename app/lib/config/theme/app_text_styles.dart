@@ -178,4 +178,21 @@ class AppTextStyles {
     color: AppColors.textTertiary,
     height: 1.4,
   );
+
+  /// Label under a navigation destination icon.
+  ///
+  /// Smaller than [labelSmall] because a bottom bar fits four to seven labels
+  /// across a phone and Indonesian destination names are long - "Transaksi",
+  /// "Pengaturan". This replaces the only raw `fontSize` left in the widget
+  /// library.
+  ///
+  /// Callers vary weight and colour by selection state, so those are defaults
+  /// rather than fixed. No `height` is set, deliberately: the raw style this
+  /// replaces had none, and adding one would shift the bar's label baseline.
+  static const TextStyle navLabel = TextStyle(
+    fontSize: 10,
+    fontWeight: FontWeight.w500,
+    fontFamily: fontFamily,
+    color: AppColors.textTertiary,
+  );
 }

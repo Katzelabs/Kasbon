@@ -11,6 +11,7 @@ import 'config/routes/url_strategy.dart';
 import 'config/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/platform/app_platform.dart';
+import 'core/responsive/modern_breakpoint_scope.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -101,7 +102,15 @@ class KasbonApp extends StatelessWidget {
               MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2),
             ),
           ),
-          child: child ?? const SizedBox.shrink(),
+          // Root breakpoint scope. Measures the whole window, and being
+          // outermost it also establishes windowBreakpoint for every scope
+          // nested inside it. Its real job is to guarantee that
+          // `context.breakpoint` is never a MediaQuery fallback, including on
+          // the routes that sit outside the app shell.
+          child: ModernBreakpointScope.fromLayout(
+            inheritWindow: false,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
     );

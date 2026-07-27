@@ -234,7 +234,7 @@ class _ModernAppShellState extends ConsumerState<ModernAppShell> {
       // grey so white cards read as surfaces resting on a page; on a white
       // scaffold they were invisible except for their shadow.
       extendBody: true,
-      body: widget.child,
+      body: ModernBreakpointScope.fromLayout(child: widget.child),
       bottomNavigationBar: _ModernMobileBottomNav(
         items: _mobileItems,
         currentIndex: currentIndex,
@@ -266,8 +266,16 @@ class _ModernAppShellState extends ConsumerState<ModernAppShell> {
               isExpanded: isSidebarExpanded,
               onToggleExpanded: _toggleSidebar,
             ),
-            // Main content area
-            Expanded(child: widget.child),
+            // Main content area.
+            //
+            // Scoped so screens measure the space left over after the rail,
+            // not the window. With the rail expanded to 280dp on a 1400dp
+            // window, content is 1120dp - `expanded`, not `large`. Reading the
+            // window here is what makes a screen lay out for room it does not
+            // have.
+            Expanded(
+              child: ModernBreakpointScope.fromLayout(child: widget.child),
+            ),
           ],
         ),
       ),
@@ -425,8 +433,7 @@ class _ModernMobileBottomNav extends StatelessWidget {
             const SizedBox(height: AppDimensions.spacing4),
             Text(
               item.label,
-              style: TextStyle(
-                fontSize: 10,
+              style: AppTextStyles.navLabel.copyWith(
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected ? AppColors.primary : AppColors.textTertiary,
               ),

@@ -27,9 +27,8 @@ class AnalyticsReportScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bottomPadding = context.isMobile
-        ? AppDimensions.bottomNavHeight + AppDimensions.spacing16
-        : AppDimensions.spacing16;
+    final bottomPadding =
+        AppDimensions.spacing16 + context.shellBottomInset;
 
     return Scaffold(
       appBar: ModernAppBar.backWithActions(

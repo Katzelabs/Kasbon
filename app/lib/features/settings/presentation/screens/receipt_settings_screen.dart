@@ -96,9 +96,8 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
     SettingsFormNotifier formNotifier,
   ) {
     // Calculate bottom padding based on device type to account for bottom nav
-    final bottomPadding = context.isMobile
-        ? AppDimensions.bottomNavHeight + AppDimensions.spacing16
-        : AppDimensions.spacing16;
+    final bottomPadding =
+        AppDimensions.spacing16 + context.shellBottomInset;
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(

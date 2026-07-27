@@ -7,6 +7,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/components/data_display/modern_badge.dart';
 import '../../../../shared/modern/components/data_display/modern_data_table.dart';
 import '../../../../shared/modern/components/data_display/modern_table_column.dart';
@@ -40,8 +41,9 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
   @override
   Widget build(BuildContext context) {
     final selectedIds = ref.watch(productSelectionProvider);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isMobile = screenWidth < 600;
+    // Measures the table's own column, not the window: this table sits
+    // inside a master pane from RESP_07 onward.
+    final isMobile = context.isCompact;
 
     // On mobile, use horizontal scrollable table
     if (isMobile) {

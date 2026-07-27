@@ -65,9 +65,11 @@ class _MobileDashboard extends ConsumerWidget {
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(
+      // The bottom inset was previously unguarded, so it also reserved the
+      // nav bar's height on tablet, where there is no bar.
+      padding: EdgeInsets.only(
         top: AppDimensions.spacing16,
-        bottom: AppDimensions.bottomNavHeight + AppDimensions.spacing24,
+        bottom: AppDimensions.spacing24 + context.shellBottomInset,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

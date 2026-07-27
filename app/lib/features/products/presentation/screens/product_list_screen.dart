@@ -37,9 +37,8 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     final hasSelection = ref.watch(productSelectionProvider).isNotEmpty;
 
     // On mobile, FAB needs to be above bottom nav; on tablet, standard position
-    final fabBottomOffset = context.isMobile
-        ? AppDimensions.bottomNavHeight + AppDimensions.spacing16
-        : AppDimensions.spacing16;
+    final fabBottomOffset =
+        AppDimensions.spacing16 + context.shellBottomInset;
 
     return Scaffold(
       appBar: ModernAppBar.withActions(
@@ -119,10 +118,9 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     // Get keyboard height to avoid content being covered
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
-    // Calculate bottom padding: bottom nav on mobile + spacing + keyboard
-    final bottomPadding = context.isMobile
-        ? AppDimensions.bottomNavHeight + AppDimensions.spacing16 + keyboardHeight
-        : AppDimensions.spacing16 + keyboardHeight;
+    // Calculate bottom padding: shell nav + spacing + keyboard
+    final bottomPadding =
+        AppDimensions.spacing16 + context.shellBottomInset + keyboardHeight;
 
     return CustomScrollView(
       slivers: [
@@ -250,10 +248,10 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
         final columns = _getGridColumns(context);
         final padding = context.horizontalPadding;
 
-        // Calculate bottom padding for bottom nav on mobile + spacing + keyboard
-        final bottomPadding = context.isMobile
-            ? AppDimensions.bottomNavHeight + AppDimensions.spacing16 + keyboardHeight
-            : AppDimensions.spacing16 + keyboardHeight;
+        // Calculate bottom padding for shell nav + spacing + keyboard
+        final bottomPadding = AppDimensions.spacing16 +
+            context.shellBottomInset +
+            keyboardHeight;
 
         // Aspect ratio for grid items (lower = taller cards)
         const aspectRatio = 0.65;
@@ -347,16 +345,17 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
     ref.read(productSelectionProvider.notifier).select(productId);
   }
 
-  /// Get responsive grid columns based on screen width
-  int _getGridColumns(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
-    if (width < 600) {
-      return 2; // Small mobile
-    } else if (width < 900) {
-      return 2; // Large mobile
-    } else {
-      return 5; // Tablet and above - 5 columns
-    }
-  }
+  /// Get responsive grid columns for the space the grid actually has.
+  ///
+  /// Reads the breakpoint scope rather than the window: this list becomes a
+  /// master pane in RESP_07, where asking the window would give a 400dp column
+  /// five products across.
+  ///
+  /// The tier values reproduce the thresholds this replaced - the old code
+  /// returned 2 below 600, 2 below 900, and 5 above.
+  int _getGridColumns(BuildContext context) => context.responsive<int>(
+        compact: 2,
+        medium: 2,
+        expanded: 5,
+      );
 }

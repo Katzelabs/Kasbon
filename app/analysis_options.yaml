@@ -9,6 +9,23 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  errors:
+    # TEMPORARY - remove in RESP_10, together with the forwarders it covers.
+    #
+    # RESP_03 introduced the 4-tier Breakpoint API and deprecated the 3-tier
+    # isMobile/isTablet/isDesktop getters it replaces. Migration is
+    # deliberately deprecate-and-forward rather than a hard cutover: repointing
+    # ~24 screens in one commit would change layouts, and RESP_03's acceptance
+    # criterion is zero visual change. Screens move over one at a time in
+    # RESP_04 onward.
+    #
+    # Left at its default this rule emits ~55 notices, which would make
+    # `flutter analyze` noisy enough to stop being a usable per-phase gate -
+    # exactly the problem RESP_00 fixed. Scoped narrowly: deprecations from
+    # *other* packages still surface normally.
+    deprecated_member_use_from_same_package: ignore
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

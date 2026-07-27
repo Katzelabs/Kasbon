@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../config/theme/app_dimensions.dart';
+import '../../../../core/platform/app_platform.dart';
+import '../../../../core/services/file_export/file_export_service.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../providers/backup_provider.dart';
@@ -38,9 +40,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       body: Builder(
         builder: (context) {
           // Calculate bottom padding based on device type to account for bottom nav
-          final bottomPadding = context.isMobile
-              ? AppDimensions.bottomNavHeight + AppDimensions.spacing16
-              : AppDimensions.spacing16;
+          final bottomPadding =
+              AppDimensions.spacing16 + context.shellBottomInset;
 
           return SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -59,12 +60,18 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                   onCreateBackup: _handleCreateBackup,
                 ),
 
-                const SizedBox(height: AppDimensions.spacing24),
-
                 // Restore Section
-                RestoreSection(
-                  onSelectFile: _handleSelectFile,
-                ),
+                //
+                // Hidden in a browser: restoring reads the file the user
+                // picks, and `file_picker` on web returns bytes with a null
+                // path - there is nothing for the restore path to open. The
+                // section would be a button that can only ever fail.
+                if (AppPlatform.hasFileSystem) ...[
+                  const SizedBox(height: AppDimensions.spacing24),
+                  RestoreSection(
+                    onSelectFile: _handleSelectFile,
+                  ),
+                ],
 
                 const SizedBox(height: AppDimensions.spacing24),
 
@@ -81,25 +88,31 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
   }
 
   Future<void> _handleCreateBackup() async {
-    // Ask user to select a directory
     String? selectedDirectory;
-    try {
-      selectedDirectory = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: 'Pilih Folder untuk Backup',
-      );
-    } catch (e) {
-      // Directory picker not supported, will use default
-    }
 
-    // If user cancelled the picker, ask if they want to use default
-    if (selectedDirectory == null && mounted) {
-      final useDefault = await _showUseDefaultDirectoryDialog();
-      if (useDefault != true) {
-        // User cancelled or dismissed the dialog
-        return;
+    // Choosing a folder only means something where the app writes to one. In a
+    // browser the download destination is the user's own setting, so asking
+    // would offer a choice the app cannot honour - and cancelling that dialog
+    // would abandon a backup the browser was perfectly able to save.
+    if (FileExportService.hasAddressableFiles) {
+      try {
+        selectedDirectory = await FilePicker.platform.getDirectoryPath(
+          dialogTitle: 'Pilih Folder untuk Backup',
+        );
+      } catch (e) {
+        // Directory picker not supported, will use default
       }
-      // useDefault == true means use default directory (selectedDirectory stays null)
-      // useDefault == false would be handled above (picker was cancelled)
+
+      // If user cancelled the picker, ask if they want to use default
+      if (selectedDirectory == null && mounted) {
+        final useDefault = await _showUseDefaultDirectoryDialog();
+        if (useDefault != true) {
+          // User cancelled or dismissed the dialog
+          return;
+        }
+        // useDefault == true means use default directory (selectedDirectory
+        // stays null); useDefault == false is handled above.
+      }
     }
 
     final notifier = ref.read(backupProvider.notifier);
