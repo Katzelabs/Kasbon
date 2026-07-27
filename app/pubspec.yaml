@@ -70,6 +70,14 @@ dependencies:
   image_picker: ^1.0.7
   flutter_image_compress: ^2.1.0
   permission_handler: ^11.3.0
+  # Pure-Dart decode/resize/encode. The browser has no compression plugin worth
+  # using, and image_picker_for_web ignores maxWidth/imageQuality entirely, so
+  # without this the web build uploads the camera's original file.
+  image: ^4.2.0
+
+  # Browser APIs (Blob, anchor download) for file export on web. Not used
+  # outside lib/**_web.dart - see core/services/file_export/.
+  web: ^1.0.0
 
 dev_dependencies:
   flutter_test:

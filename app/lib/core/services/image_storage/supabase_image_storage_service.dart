@@ -1,0 +1,149 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../errors/exceptions.dart';
+import '../supabase_client_provider.dart';
+import 'image_compression_settings.dart';
+import 'image_compressor.dart';
+import 'image_storage_service.dart';
+
+/// Product images in Supabase Storage.
+///
+/// The only implementation, on every platform. Its predecessor wrote to the
+/// device filesystem and stored the absolute path in `products.image_url`,
+/// which is why product images have never synced: the path was meaningful on
+/// exactly one phone, and meaningless in a browser.
+///
+/// Objects are laid out as `<user_id>/<product_id>/<timestamp>.jpg`. The
+/// leading user id is not decoration - the bucket's RLS policies read it with
+/// `storage.foldername(name)[1]` to decide who may write, the same way the
+/// public tables compare `user_id = auth.uid()`.
+///
+/// The timestamp makes each upload a new object rather than an overwrite, so a
+/// replaced photo cannot be served stale from a CDN or an `Image.network`
+/// cache keyed on the URL.
+class SupabaseImageStorageService implements ImageStorageService {
+  /// Bucket created by `20260727000001_create_product_images_bucket.sql`.
+  static const String bucketName = 'product-images';
+
+  /// The marker that separates a Supabase public URL from the object path
+  /// inside it: `<project>/storage/v1/object/public/<bucket>/<path>`.
+  static const String _publicUrlMarker = '/object/public/$bucketName/';
+
+  final SupabaseClientProvider _clientProvider;
+
+  SupabaseImageStorageService(this._clientProvider);
+
+  StorageFileApi get _bucket => _clientProvider.client.storage.from(bucketName);
+
+  @override
+  Future<String> saveImage(PickedImage image, String productId) async {
+    try {
+      final userId = _clientProvider.requireUserId;
+      final compressed = await compressImage(image.bytes);
+
+      final objectPath = '$userId/$productId/'
+          '${DateTime.now().millisecondsSinceEpoch}.'
+          '${ImageCompression.fileExtension}';
+
+      await _bucket.uploadBinary(
+        objectPath,
+        compressed,
+        fileOptions: const FileOptions(
+          contentType: ImageCompression.mimeType,
+          // Every upload has a fresh timestamp, so an existing object here
+          // would mean something is wrong. Failing is better than silently
+          // replacing a different product's photo.
+          upsert: false,
+        ),
+      );
+
+      return _bucket.getPublicUrl(objectPath);
+    } on ImageStorageException {
+      rethrow;
+    } on StorageException catch (e) {
+      throw ImageStorageException(
+        message: 'Gagal mengunggah gambar: ${e.message}',
+        code: 'UPLOAD_FAILED',
+        originalError: e,
+      );
+    } catch (e) {
+      throw ImageStorageException(
+        message: 'Gagal menyimpan gambar: ${e.toString()}',
+        code: 'SAVE_FAILED',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteImage(String imagePath) async {
+    // Legacy rows carry an absolute device path from the old local storage.
+    // There is no object to remove, and nothing to report: whatever that path
+    // pointed at is beyond this app's reach on every device but one.
+    final objectPath = objectPathFromUrl(imagePath);
+    if (objectPath == null) return;
+
+    try {
+      await _bucket.remove([objectPath]);
+    } on StorageException catch (e) {
+      throw ImageStorageException(
+        message: 'Gagal menghapus gambar: ${e.message}',
+        code: 'DELETE_FAILED',
+        originalError: e,
+      );
+    } catch (e) {
+      throw ImageStorageException(
+        message: 'Gagal menghapus gambar: ${e.toString()}',
+        code: 'DELETE_FAILED',
+        originalError: e,
+      );
+    }
+  }
+
+  /// Whether the object behind [imagePath] is still in the bucket.
+  ///
+  /// A legacy device path answers false. It may well exist on the phone that
+  /// created it, but this service cannot see a filesystem and must not claim
+  /// otherwise - and a caller asking this question is deciding whether to
+  /// fetch, which for a device path is never the right answer.
+  @override
+  Future<bool> imageExists(String imagePath) async {
+    final objectPath = objectPathFromUrl(imagePath);
+    if (objectPath == null) return false;
+
+    try {
+      final lastSlash = objectPath.lastIndexOf('/');
+      final directory = objectPath.substring(0, lastSlash);
+      final fileName = objectPath.substring(lastSlash + 1);
+
+      final entries = await _bucket.list(path: directory);
+
+      return entries.any((entry) => entry.name == fileName);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// The object path inside the bucket for a stored [reference], or null when
+  /// the reference is not one of ours.
+  ///
+  /// Null covers both legacy device paths and any other URL, which is the same
+  /// answer for callers: this service has nothing to do with it.
+  ///
+  /// Visible for testing - the round trip through `getPublicUrl` and back is
+  /// the one piece of string handling here that can silently rot if Supabase
+  /// ever changes its URL shape.
+  static String? objectPathFromUrl(String reference) {
+    final markerAt = reference.indexOf(_publicUrlMarker);
+    if (markerAt == -1) return null;
+
+    final path = reference.substring(markerAt + _publicUrlMarker.length);
+
+    // A trailing `?` query (cache busting, image transforms) is not part of
+    // the object name.
+    final queryAt = path.indexOf('?');
+    final objectPath = queryAt == -1 ? path : path.substring(0, queryAt);
+
+    return objectPath.isEmpty || !objectPath.contains('/') ? null : objectPath;
+  }
+}

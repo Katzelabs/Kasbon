@@ -4,10 +4,11 @@
 /// filesystem, `_web` hands bytes to the browser. Import this file, never the
 /// variants.
 ///
-/// The web variant is a stub until RESP_02, which implements the Blob download
-/// and makes backup and report export work in the browser. It throws a clear
-/// error rather than silently doing nothing, so an unfinished path cannot look
-/// like a successful export.
+/// The two are interchangeable for writing, and deliberately not for reading:
+/// on web a saved file has no path, so `SavedFile.path` is null and the
+/// read-back methods throw. Ask `hasAddressableFiles` before offering the user
+/// anything that implies a location - a folder picker, a "share this file", a
+/// path in a toast.
 library;
 
 export 'file_export_service_stub.dart'

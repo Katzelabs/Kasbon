@@ -2,8 +2,8 @@ import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
 
 import '../../core/services/backup_service.dart';
-import '../../core/services/image_storage/image_storage_factory.dart';
 import '../../core/services/image_storage/image_storage_service.dart';
+import '../../core/services/image_storage/supabase_image_storage_service.dart';
 import '../../core/services/supabase_client_provider.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -108,8 +108,10 @@ Future<void> configureDependencies() async {
   // ===========================================
   // IMAGE STORAGE SERVICE
   // ===========================================
+  // Named directly rather than through a platform factory: Supabase Storage
+  // serves every platform, so there is nothing left to choose between.
   getIt.registerLazySingleton<ImageStorageService>(
-    createImageStorageService,
+    () => SupabaseImageStorageService(getIt<SupabaseClientProvider>()),
   );
 
   // ===========================================

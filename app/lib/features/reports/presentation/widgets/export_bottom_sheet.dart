@@ -25,10 +25,16 @@ class ExportBottomSheet extends ConsumerWidget {
     );
   }
 
-  /// Save to disk, then hand the file to the system share sheet.
+  /// Save the file, then hand it to the system share sheet.
   ///
   /// Saving first means the export survives a cancelled share - the user still
   /// has the file, and the toast tells them where it went.
+  ///
+  /// In a browser the save *is* the delivery: the bytes go straight to the
+  /// downloads folder. Following it with a share would be a second copy of the
+  /// same file at best - `Printing.sharePdf` on web triggers its own download
+  /// or print dialog - so the share step is skipped where files have no
+  /// address to share.
   Future<void> _deliver(
     BuildContext context,
     ExportResult result,
@@ -40,18 +46,20 @@ class ExportBottomSheet extends ConsumerWidget {
 
     if (!context.mounted) return;
 
-    if (result.mimeType == ExportResult.pdfMimeType) {
-      // Printing's sheet adds a print/preview option, which a PDF report wants
-      // and a spreadsheet does not.
-      await Printing.sharePdf(bytes: result.bytes, filename: result.fileName);
-    } else if (saved.hasPath) {
-      // Sharing a spreadsheet needs a file on disk. Where the platform gives
-      // no path back the file has already gone to the user's downloads, so
-      // there is nothing left to hand to a share sheet.
-      await Share.shareXFiles(
-        [XFile(saved.path!, mimeType: result.mimeType, name: result.fileName)],
-        subject: result.fileName,
-      );
+    if (FileExportService.hasAddressableFiles) {
+      if (result.mimeType == ExportResult.pdfMimeType) {
+        // Printing's sheet adds a print/preview option, which a PDF report
+        // wants and a spreadsheet does not.
+        await Printing.sharePdf(bytes: result.bytes, filename: result.fileName);
+      } else if (saved.hasPath) {
+        // Sharing a spreadsheet needs a file on disk.
+        await Share.shareXFiles(
+          [
+            XFile(saved.path!, mimeType: result.mimeType, name: result.fileName)
+          ],
+          subject: result.fileName,
+        );
+      }
     }
 
     if (!context.mounted) return;
@@ -63,7 +71,12 @@ class ExportBottomSheet extends ConsumerWidget {
         'Persempit rentang tanggal untuk data lengkap.',
       );
     } else {
-      ModernToast.success(context, 'Tersimpan: ${saved.fileName}');
+      ModernToast.success(
+        context,
+        FileExportService.hasAddressableFiles
+            ? 'Tersimpan: ${saved.fileName}'
+            : 'Diunduh: ${saved.fileName}',
+      );
     }
   }
 

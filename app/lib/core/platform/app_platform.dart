@@ -54,6 +54,22 @@ class AppPlatform {
   /// a user gesture, so `permission_handler` has nothing to ask for.
   static bool get needsRuntimePermissions => isMobileOs;
 
+  /// Whether there is a camera worth offering as an image source.
+  ///
+  /// A desktop browser resolves `ImageSource.camera` to the same file dialog
+  /// as `ImageSource.gallery`, so offering both shows the user two buttons
+  /// that do the same thing. A mobile browser does honour it - the picker sets
+  /// the `capture` attribute and the phone opens its camera - which is why
+  /// this is not simply `isMobileOs`.
+  ///
+  /// `defaultTargetPlatform` reports the browser's underlying OS on web, which
+  /// is exactly the distinction needed here.
+  static bool get supportsCameraCapture =>
+      isMobileOs ||
+      (isWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS));
+
   /// Whether the primary input is a mouse or trackpad rather than a finger.
   ///
   /// Drives hover affordances, pointer cursors and keyboard shortcuts. Web is

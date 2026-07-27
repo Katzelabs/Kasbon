@@ -10,17 +10,17 @@ export 'picked_image.dart';
 /// feature could not build for web. [PickedImage] carries bytes instead, which
 /// the picker produces identically on native and in a browser.
 ///
-/// The implementation is local-filesystem today; RESP_02 swaps it for Supabase
-/// Storage, at which point [saveImage] returns an https URL and product images
-/// finally sync across devices.
+/// One implementation, [SupabaseImageStorageService], on every platform.
+/// Rows created before it landed still carry an absolute device path, so
+/// callers must cope with both shapes on read.
 abstract class ImageStorageService {
   /// Save an image and return the reference stored in `products.image_url`.
   ///
   /// [image] - The picked image data
   /// [productId] - The product ID to associate with the image
   ///
-  /// Returns a device path today, an https URL after RESP_02. Callers must
-  /// treat the result as opaque and never parse it.
+  /// Returns an https URL. Callers must treat the result as opaque and never
+  /// parse it.
   Future<String> saveImage(PickedImage image, String productId);
 
   /// Delete an image from storage.

@@ -11,6 +11,18 @@ import '../../../../core/services/image_storage/image_storage_service.dart';
 import '../../../../shared/modern/modern.dart';
 import 'product_image.dart';
 
+/// Where a product photo can come from.
+enum _ImageSourceAction {
+  camera('Kamera', Icons.camera_alt_outlined),
+  gallery('Galeri', Icons.photo_library_outlined),
+  remove('Hapus Foto', Icons.delete_outline);
+
+  const _ImageSourceAction(this.label, this.icon);
+
+  final String label;
+  final IconData icon;
+}
+
 /// Widget for picking and displaying product images.
 /// Handles camera/gallery selection, compression, and storage.
 class ProductImagePicker extends StatefulWidget {
@@ -61,111 +73,44 @@ class _ProductImagePickerState extends State<ProductImagePicker> {
     }
   }
 
+  /// The sources on offer, in order.
+  ///
+  /// Built per-open rather than fixed: the camera is absent where it would be
+  /// a duplicate of the gallery, and "Hapus Foto" only makes sense once there
+  /// is a photo. Whatever is in this list is what the sheet returns an index
+  /// into.
+  List<_ImageSourceAction> get _availableActions => [
+        if (AppPlatform.supportsCameraCapture) _ImageSourceAction.camera,
+        _ImageSourceAction.gallery,
+        if (_imagePath != null) _ImageSourceAction.remove,
+      ];
+
   Future<void> _showImageSourceSheet() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.radiusXLarge),
-        ),
-      ),
-      builder: (context) => _buildSourceSheet(),
-    );
-  }
+    final actions = _availableActions;
 
-  Widget _buildSourceSheet() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacing16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppDimensions.spacing16),
-            const Text(
-              'Pilih Sumber Foto',
-              style: AppTextStyles.h4,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppDimensions.spacing24),
-            _buildSourceOption(
-              icon: Icons.camera_alt_outlined,
-              label: 'Kamera',
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            const SizedBox(height: AppDimensions.spacing12),
-            _buildSourceOption(
-              icon: Icons.photo_library_outlined,
-              label: 'Galeri',
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-            if (_imagePath != null) ...[
-              const SizedBox(height: AppDimensions.spacing12),
-              _buildSourceOption(
-                icon: Icons.delete_outline,
-                label: 'Hapus Foto',
-                isDestructive: true,
-                onTap: () {
-                  Navigator.pop(context);
-                  _removeImage();
-                },
-              ),
-            ],
-            const SizedBox(height: AppDimensions.spacing8),
-          ],
-        ),
-      ),
+    final selected = await ModernBottomSheet.showActions(
+      context,
+      title: 'Pilih Sumber Foto',
+      actions: [
+        for (final action in actions)
+          ModernBottomSheetAction(
+            label: action.label,
+            icon: action.icon,
+            isDestructive: action == _ImageSourceAction.remove,
+          ),
+      ],
     );
-  }
 
-  Widget _buildSourceOption({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    bool isDestructive = false,
-  }) {
-    final color = isDestructive ? AppColors.error : AppColors.textPrimary;
+    if (selected == null || !mounted) return;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.spacing16,
-          vertical: AppDimensions.spacing12,
-        ),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(width: AppDimensions.spacing12),
-            Text(
-              label,
-              style: AppTextStyles.bodyMedium.copyWith(color: color),
-            ),
-          ],
-        ),
-      ),
-    );
+    switch (actions[selected]) {
+      case _ImageSourceAction.camera:
+        await _pickImage(ImageSource.camera);
+      case _ImageSourceAction.gallery:
+        await _pickImage(ImageSource.gallery);
+      case _ImageSourceAction.remove:
+        await _removeImage();
+    }
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -176,8 +121,7 @@ class _ProductImagePickerState extends State<ProductImagePicker> {
       // camera access through its own UI in response to the picker call, so
       // permission_handler has nothing to ask for and reports a status that
       // would wrongly block the user here.
-      if (source == ImageSource.camera &&
-          AppPlatform.needsRuntimePermissions) {
+      if (source == ImageSource.camera && AppPlatform.needsRuntimePermissions) {
         final status = await Permission.camera.request();
         if (!status.isGranted) {
           if (mounted) {

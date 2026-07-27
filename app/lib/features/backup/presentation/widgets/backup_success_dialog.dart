@@ -52,8 +52,13 @@ class BackupSuccessDialog extends StatelessWidget {
             const SizedBox(height: AppDimensions.spacing8),
 
             // Message
+            //
+            // A browser download has no path the app can name, so on web the
+            // wording points at the one place the user can actually look.
             Text(
-              'Data Anda telah disimpan ke file backup.',
+              metadata.hasFilePath
+                  ? 'Data Anda telah disimpan ke file backup.'
+                  : 'Berkas backup telah diunduh oleh browser Anda.',
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -92,24 +97,28 @@ class BackupSuccessDialog extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppDimensions.spacing8),
-                  // File size
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.data_usage_rounded,
-                        size: 20,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: AppDimensions.spacing8),
-                      Text(
-                        'Ukuran: ${metadata.formattedFileSize}',
-                        style: AppTextStyles.bodySmall.copyWith(
+                  // File size, where the platform can tell us one. A browser
+                  // download cannot be stat'ed, and "Ukuran: 0 B" reads as a
+                  // failed backup.
+                  if (metadata.fileSizeBytes > 0) ...[
+                    const SizedBox(height: AppDimensions.spacing8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.data_usage_rounded,
+                          size: 20,
                           color: AppColors.textSecondary,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: AppDimensions.spacing8),
+                        Text(
+                          'Ukuran: ${metadata.formattedFileSize}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -117,30 +126,44 @@ class BackupSuccessDialog extends StatelessWidget {
             const SizedBox(height: AppDimensions.spacing24),
 
             // Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: ModernButton.outline(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('Selesai'),
-                  ),
-                ),
-                const SizedBox(width: AppDimensions.spacing12),
-                Expanded(
-                  child: ModernButton.primary(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.share_rounded, size: 18),
-                        SizedBox(width: AppDimensions.spacing4),
-                        Text('Bagikan'),
-                      ],
+            //
+            // Sharing needs a file the system can hand to another app. Where
+            // the backup went to the browser's downloads there is no such
+            // handle, and the caller ignores a `true` result - so the button
+            // is left out rather than offered as a no-op.
+            if (metadata.hasFilePath)
+              Row(
+                children: [
+                  Expanded(
+                    child: ModernButton.outline(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Selesai'),
                     ),
                   ),
+                  const SizedBox(width: AppDimensions.spacing12),
+                  Expanded(
+                    child: ModernButton.primary(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.share_rounded, size: 18),
+                          SizedBox(width: AppDimensions.spacing4),
+                          Text('Bagikan'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: ModernButton.primary(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Selesai'),
                 ),
-              ],
-            ),
+              ),
           ],
         ),
       ),

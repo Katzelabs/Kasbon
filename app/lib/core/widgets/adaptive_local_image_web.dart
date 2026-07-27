@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 ///
 /// This is the correct outcome, not a degraded one. The path points at a file
 /// on somebody's phone; there is no version of the browser build that could
-/// display it. Showing the placeholder is honest, and once RESP_02 moves
-/// product images to Supabase Storage these rows carry https URLs that render
-/// everywhere - this widget stops being reached for new data.
+/// display it. Showing the placeholder is honest, and it only happens for
+/// legacy rows: images saved since the move to Supabase Storage are https URLs
+/// that render everywhere, and never reach this widget.
 class AdaptiveLocalImage extends StatelessWidget {
   final String path;
   final BoxFit fit;

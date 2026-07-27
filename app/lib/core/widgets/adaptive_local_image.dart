@@ -4,11 +4,12 @@
 /// to build an `Image.file`. That single import is what kept the product
 /// feature off web.
 ///
-/// These paths are legacy data. `LocalImageStorageService` wrote absolute
-/// device paths into `products.image_url`, so rows created before RESP_02
-/// moves images to Supabase Storage still carry them. They were never valid on
-/// another device and are never valid in a browser - the web implementation
-/// therefore renders the caller's placeholder rather than pretending.
+/// These paths are legacy data, and no new ones are created: product images
+/// now go to Supabase Storage and come back as https URLs. What remains is
+/// rows written by the old local storage, which put an absolute device path in
+/// `products.image_url`. Those were never valid on another device and are
+/// never valid in a browser - the web implementation therefore renders the
+/// caller's placeholder rather than pretending.
 library;
 
 export 'adaptive_local_image_stub.dart'
