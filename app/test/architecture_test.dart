@@ -183,6 +183,64 @@ void main() {
   });
 
   group('widget library', () {
+    test('modal sheets go through ModernBottomSheet', () {
+      // A raw showModalBottomSheet has no width cap, so on a desktop window it
+      // is a 1600dp strip with four rows in it, and no adaptive path to a side
+      // sheet. Three sites did this; ModernBottomSheet.showAdaptive replaces
+      // them.
+      final found = violations(
+        RegExp(r'\bshowModalBottomSheet\b'),
+        allow: (path) => path.endsWith('modern_bottom_sheet.dart'),
+      );
+
+      expect(
+        found,
+        isEmpty,
+        reason: 'Use ModernBottomSheet.showAdaptive:\n${found.join('\n')}',
+      );
+    });
+
+    test('haptics are guarded by AppPlatform.supportsHaptics', () {
+      // HapticFeedback is a silent no-op on web and desktop rather than a
+      // crash, which is exactly why an unguarded call survives review: it
+      // claims a buzz the platform will never produce.
+      final found = violations(
+        RegExp(r'\bHapticFeedback\.'),
+        allow: (path) => path.endsWith('app_platform.dart'),
+      );
+
+      // The guard is a separate statement from the call, so this checks the
+      // file rather than the line.
+
+      final unguarded = found.where((violation) {
+        final path = violation.split(':').first;
+        final source = dartFiles.firstWhere((f) => f.path == path).source;
+        return !source.contains('AppPlatform.supportsHaptics');
+      }).toList();
+
+      expect(
+        unguarded,
+        isEmpty,
+        reason: 'Guard with AppPlatform.supportsHaptics:\n'
+            '${unguarded.join('\n')}',
+      );
+    });
+
+    test('no raw CircularProgressIndicator outside ModernLoading', () {
+      // The library states this rule for feature code and then broke it in
+      // ModernDataTable's own loading state.
+      final found = violations(
+        RegExp(r'\bCircularProgressIndicator\b'),
+        allow: (path) => path.endsWith('modern_loading.dart'),
+      );
+
+      expect(
+        found,
+        isEmpty,
+        reason: 'Use ModernLoading:\n${found.join('\n')}',
+      );
+    });
+
     test('no raw fontSize in the Modern library', () {
       // Type scale belongs in AppTextStyles. navLabel was added in RESP_03 to
       // retire the last one of these.

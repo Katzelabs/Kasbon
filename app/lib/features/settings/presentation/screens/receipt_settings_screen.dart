@@ -96,8 +96,7 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
     SettingsFormNotifier formNotifier,
   ) {
     // Calculate bottom padding based on device type to account for bottom nav
-    final bottomPadding =
-        AppDimensions.spacing16 + context.shellBottomInset;
+    final bottomPadding = AppDimensions.spacing16 + context.shellBottomInset;
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(
@@ -136,31 +135,44 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppDimensions.spacing24),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left column: Form fields
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildFormCard(formNotifier),
-                const SizedBox(height: AppDimensions.spacing24),
-                ModernButton.primary(
-                  fullWidth: true,
-                  isLoading: formState.isSaving,
-                  onPressed: () => _saveSettings(context, formNotifier),
-                  child: const Text('Simpan'),
-                ),
-              ],
+      // The right column is a live preview with nothing focusable in it, so
+      // there is no interleaving to arrange - only a boundary to draw, so Tab
+      // runs the form to its Simpan button instead of wandering into the
+      // preview's tree on the way.
+      child: FocusTraversalGroup(
+        policy: OrderedTraversalPolicy(),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Left column: Form fields
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FocusTraversalOrder(
+                    order: const NumericFocusOrder(1),
+                    child: _buildFormCard(formNotifier),
+                  ),
+                  const SizedBox(height: AppDimensions.spacing24),
+                  FocusTraversalOrder(
+                    order: const NumericFocusOrder(2),
+                    child: ModernButton.primary(
+                      fullWidth: true,
+                      isLoading: formState.isSaving,
+                      onPressed: () => _saveSettings(context, formNotifier),
+                      child: const Text('Simpan'),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: AppDimensions.spacing24),
-          // Right column: Preview
-          Expanded(
-            child: _buildReceiptPreview(formState),
-          ),
-        ],
+            const SizedBox(width: AppDimensions.spacing24),
+            // Right column: Preview
+            Expanded(
+              child: _buildReceiptPreview(formState),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -105,7 +105,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _nameController.text = product.name;
     _descriptionController.text = product.description ?? '';
     _costPriceController.text = _formatCurrency(product.costPrice.toInt());
-    _sellingPriceController.text = _formatCurrency(product.sellingPrice.toInt());
+    _sellingPriceController.text =
+        _formatCurrency(product.sellingPrice.toInt());
     _stockController.text = product.stock.toString();
     _minStockController.text = product.minStock.toString();
     _barcodeController.text = product.barcode ?? '';
@@ -131,8 +132,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         categoryId = category.id;
       case NewCategoryName(:final name):
         final createCategory = getIt<CreateCategory>();
-        final result =
-            await createCategory(CreateCategoryParams(name: name));
+        final result = await createCategory(CreateCategoryParams(name: name));
         final resolved = result.fold(
           (failure) {
             if (mounted) {
@@ -247,7 +247,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             Text('Error: $error'),
             const SizedBox(height: AppDimensions.spacing16),
             ModernButton.primary(
-              onPressed: () => ref.invalidate(productProvider(widget.productId!)),
+              onPressed: () =>
+                  ref.invalidate(productProvider(widget.productId!)),
               child: const Text('Coba Lagi'),
             ),
           ],
@@ -295,38 +296,74 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       padding: const EdgeInsets.all(AppDimensions.spacing24),
       child: Form(
         key: _formKey,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left Column: Foto + Informasi Dasar + Stok
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildImageCard(),
-                  const SizedBox(height: AppDimensions.spacing16),
-                  _buildInfoCard(),
-                  const SizedBox(height: AppDimensions.spacing16),
-                  _buildStockCard(),
-                ],
+        // Tab order goes left-right by row, card by whole card.
+        //
+        // The default reading-order policy sorts focus nodes into horizontal
+        // bands, and the bands here depend on how tall each card happens to
+        // be. The two columns' cards do not line up, so Barcode - the only
+        // field in the right column's second card - lands in the middle of
+        // Nama / Deskripsi / Kategori. Worse, Deskripsi is multi-line and
+        // grows as it is typed into, so the tab order can shift while the user
+        // is filling the form in.
+        //
+        // An explicit order is the only way to make it stable. Note the
+        // consequence: row one is Foto | Harga, and Foto holds no tab stop, so
+        // the first Tab now lands on Harga Modal rather than Nama Produk.
+        child: FocusTraversalGroup(
+          policy: OrderedTraversalPolicy(),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left Column: Foto + Informasi Dasar + Stok
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FocusTraversalOrder(
+                      order: const NumericFocusOrder(1),
+                      child: _buildImageCard(),
+                    ),
+                    const SizedBox(height: AppDimensions.spacing16),
+                    FocusTraversalOrder(
+                      order: const NumericFocusOrder(3),
+                      child: _buildInfoCard(),
+                    ),
+                    const SizedBox(height: AppDimensions.spacing16),
+                    FocusTraversalOrder(
+                      order: const NumericFocusOrder(5),
+                      child: _buildStockCard(),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: AppDimensions.spacing16),
+              const SizedBox(width: AppDimensions.spacing16),
 
-            // Right Column: Harga + Lainnya + Buttons
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildPriceCard(),
-                  const SizedBox(height: AppDimensions.spacing16),
-                  _buildOtherCard(),
-                  const SizedBox(height: AppDimensions.spacing24),
-                  _buildTabletActionButtons(isLoading),
-                ],
+              // Right Column: Harga + Lainnya + Buttons
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FocusTraversalOrder(
+                      order: const NumericFocusOrder(2),
+                      child: _buildPriceCard(),
+                    ),
+                    const SizedBox(height: AppDimensions.spacing16),
+                    FocusTraversalOrder(
+                      order: const NumericFocusOrder(4),
+                      child: _buildOtherCard(),
+                    ),
+                    const SizedBox(height: AppDimensions.spacing24),
+                    // Last, whatever the rows above did: the save button is
+                    // where a form ends.
+                    FocusTraversalOrder(
+                      order: const NumericFocusOrder(6),
+                      child: _buildTabletActionButtons(isLoading),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

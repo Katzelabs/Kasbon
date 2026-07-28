@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../utils/modern_hover.dart';
 
 /// A Modern-styled list tile with consistent theming
 ///
@@ -189,72 +190,80 @@ class ModernListTile extends StatelessWidget {
           vertical: dense ? AppDimensions.spacing8 : AppDimensions.spacing12,
         );
 
-    Widget tile = Container(
-      decoration: BoxDecoration(
-        color: effectiveBackgroundColor,
-        borderRadius: effectiveBorderRadius,
-      ),
-      child: Padding(
-        padding: effectivePadding,
-        child: Row(
-          children: [
-            if (leading != null) ...[
-              leading!,
-              const SizedBox(width: AppDimensions.spacing16),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (title != null)
-                    DefaultTextStyle.merge(
-                      style: AppTextStyles.bodyLarge.copyWith(
-                        color: enabled
-                            ? (selected
-                                ? AppColors.primary
-                                : AppColors.textPrimary)
-                            : AppColors.textDisabled,
-                        fontWeight: selected ? FontWeight.w600 : null,
-                      ),
-                      child: title!,
-                    ),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: AppDimensions.spacing2),
-                    DefaultTextStyle.merge(
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: enabled
-                            ? AppColors.textSecondary
-                            : AppColors.textDisabled,
-                      ),
-                      child: subtitle!,
-                    ),
-                  ],
+    Widget buildTile(bool isHovered) => AnimatedContainer(
+          duration: ModernHoverBuilder.duration,
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            // Hover only tints a tile that is neither selected nor already
+            // carrying a caller-supplied background - in both of those cases the
+            // colour is saying something, and a hover tint would talk over it.
+            color: isHovered && !selected && backgroundColor == null
+                ? AppColors.surfaceVariant
+                : effectiveBackgroundColor,
+            borderRadius: effectiveBorderRadius,
+          ),
+          child: Padding(
+            padding: effectivePadding,
+            child: Row(
+              children: [
+                if (leading != null) ...[
+                  leading!,
+                  const SizedBox(width: AppDimensions.spacing16),
                 ],
-              ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (title != null)
+                        DefaultTextStyle.merge(
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            color: enabled
+                                ? (selected
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary)
+                                : AppColors.textDisabled,
+                            fontWeight: selected ? FontWeight.w600 : null,
+                          ),
+                          child: title!,
+                        ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: AppDimensions.spacing2),
+                        DefaultTextStyle.merge(
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: enabled
+                                ? AppColors.textSecondary
+                                : AppColors.textDisabled,
+                          ),
+                          child: subtitle!,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (trailing != null) ...[
+                  const SizedBox(width: AppDimensions.spacing12),
+                  trailing!,
+                ],
+              ],
             ),
-            if (trailing != null) ...[
-              const SizedBox(width: AppDimensions.spacing12),
-              trailing!,
-            ],
-          ],
-        ),
-      ),
-    );
+          ),
+        );
 
-    if (onTap != null || onLongPress != null) {
-      tile = Material(
+    if (onTap == null && onLongPress == null) return buildTile(false);
+
+    return ModernHoverBuilder(
+      enabled: enabled,
+      builder: (context, isHovered, _) => Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: enabled ? onTap : null,
           onLongPress: enabled ? onLongPress : null,
           borderRadius: effectiveBorderRadius,
-          child: tile,
+          child: buildTile(isHovered),
         ),
-      );
-    }
-
-    return tile;
+      ),
+    );
   }
 }
 

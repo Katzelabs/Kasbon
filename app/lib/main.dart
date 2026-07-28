@@ -11,6 +11,7 @@ import 'config/routes/url_strategy.dart';
 import 'config/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/platform/app_platform.dart';
+import 'core/platform/app_scroll_behavior.dart';
 import 'core/responsive/modern_breakpoint_scope.dart';
 
 void main() async {
@@ -46,7 +47,8 @@ void main() async {
   await initializeDateFormatting('id_ID', null);
 
   // Initialize Supabase
-  assert(AppConfig.isConfigValid,
+  assert(
+      AppConfig.isConfigValid,
       'SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be provided, e.g. '
       'flutter run --dart-define-from-file=env.json');
   await Supabase.initialize(
@@ -89,6 +91,11 @@ class KasbonApp extends StatelessWidget {
         Locale('en', 'US'), // English fallback
       ],
       locale: const Locale('id', 'ID'),
+
+      // Mouse and trackpad drag-scrolling, desktop scrollbars, and physics
+      // that stop bouncing off a phone. Set here so every scroll view in the
+      // app inherits it rather than each one specifying its own physics.
+      scrollBehavior: const AppScrollBehavior(),
 
       // Router
       routerConfig: AppRouter.router,

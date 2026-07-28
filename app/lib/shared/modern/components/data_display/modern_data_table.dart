@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/utils/responsive_utils.dart';
+import '../../utils/modern_hover.dart';
+import '../feedback/modern_loading.dart';
 import 'modern_table_column.dart';
 
 /// A Modern-styled data table with selection, scrolling, and bulk actions
@@ -25,6 +28,14 @@ import 'modern_table_column.dart';
 ///   onSelectAll: (selectAll) { ... },
 /// )
 /// ```
+///
+/// ## At compact width
+///
+/// A table needs horizontal room it does not have on a phone, and it will not
+/// get any inside a 320dp master pane either. Pass [narrowBuilder] and the
+/// table renders a list of cards there instead - same items, same selection,
+/// same row taps, without the horizontal scroll that hides half the columns
+/// behind a gesture nobody discovers.
 class ModernDataTable<T> extends StatelessWidget {
   const ModernDataTable({
     super.key,
@@ -44,6 +55,10 @@ class ModernDataTable<T> extends StatelessWidget {
     this.checkboxColumnWidth = 48.0,
     this.showHorizontalScrollbar = false,
     this.shrinkWrap = false,
+    this.narrowBuilder,
+    this.sortColumnId,
+    this.sortAscending = true,
+    this.onSort,
   });
 
   /// Column definitions
@@ -96,19 +111,52 @@ class ModernDataTable<T> extends StatelessWidget {
   /// Useful when the parent already provides a fixed height
   final bool shrinkWrap;
 
+  /// Card renderer used instead of the table at [Breakpoint.compact].
+  ///
+  /// Receives whether the item is selected so the card can show it; the table
+  /// still supplies the tap target and the hover state around it.
+  final Widget Function(BuildContext context, T item, bool isSelected)?
+      narrowBuilder;
+
+  /// Id of the column the data is currently sorted by, if any.
+  final String? sortColumnId;
+
+  /// Direction of the current sort.
+  final bool sortAscending;
+
+  /// Called when a sortable column header is activated.
+  ///
+  /// Receives the column id and the direction being asked for - tapping the
+  /// active column flips it, tapping another starts it ascending. Reordering
+  /// the items is the caller's job; this widget renders whatever list it is
+  /// given and never sorts behind the caller's back.
+  final void Function(String columnId, bool ascending)? onSort;
+
+  /// Whether the header should offer a sort control for [column].
+  bool _isSortable(ModernTableColumn<T> column) =>
+      column.sortable && onSort != null;
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
+      // Was a raw CircularProgressIndicator - the one rule the widget library
+      // states outright, broken inside the library itself.
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(AppDimensions.spacing32),
-          child: CircularProgressIndicator(),
+          child: ModernLoading(),
         ),
       );
     }
 
     if (items.isEmpty) {
       return emptyState ?? const SizedBox.shrink();
+    }
+
+    // Measures the space the table has, not the window: a table inside a
+    // master pane is narrow however wide the monitor is.
+    if (narrowBuilder != null && context.isCompact) {
+      return _buildNarrowList(context);
     }
 
     return LayoutBuilder(
@@ -126,24 +174,24 @@ class ModernDataTable<T> extends StatelessWidget {
 
         // Calculate exact data rows height when shrinkWrap is enabled
         // Height = (items * rowHeight) + ((items - 1) * separatorHeight)
-        final dataRowsHeight = shrinkWrap
-            ? (items.length * rowHeight) + (items.length - 1)
-            : null;
+        final dataRowsHeight =
+            shrinkWrap ? (items.length * rowHeight) + (items.length - 1) : null;
 
         Widget scrollContent = SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           controller: horizontalScrollController,
-          physics: const BouncingScrollPhysics(),
+          // Physics deliberately unset: AppScrollBehavior decides, so a table
+          // bounces on iOS and clamps in a browser rather than bouncing
+          // everywhere because it was written on a phone.
           child: SizedBox(
             width: tableWidth ?? availableWidth,
             child: Column(
               mainAxisSize: shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
               children: [
                 // Header
-                _buildHeader(columnWidths),
+                _buildHeader(context, columnWidths),
                 // Divider
-                const Divider(
-                    height: 1, thickness: 1, color: AppColors.border),
+                const Divider(height: 1, thickness: 1, color: AppColors.border),
                 // Data rows - use explicit height when shrinkWrap, Expanded otherwise
                 if (shrinkWrap)
                   SizedBox(
@@ -220,7 +268,7 @@ class ModernDataTable<T> extends StatelessWidget {
     return widths;
   }
 
-  Widget _buildHeader(Map<String, double> columnWidths) {
+  Widget _buildHeader(BuildContext context, Map<String, double> columnWidths) {
     return Container(
       height: headerHeight,
       color: AppColors.surfaceVariant,
@@ -252,25 +300,101 @@ class ModernDataTable<T> extends StatelessWidget {
             final width = columnWidths[column.id] ?? column.minWidth;
             return SizedBox(
               width: width,
-              child: Padding(
-                padding: column.padding ??
-                    const EdgeInsets.symmetric(
-                        horizontal: AppDimensions.spacing12),
-                child: Align(
-                  alignment: column.effectiveHeaderAlignment,
-                  child: DefaultTextStyle(
-                    style: AppTextStyles.labelMedium.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    child: column.header,
-                  ),
-                ),
-              ),
+              child: _buildHeaderCell(column),
             );
           }),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeaderCell(ModernTableColumn<T> column) {
+    final isActiveSort = sortColumnId == column.id;
+
+    Widget label = DefaultTextStyle(
+      style: AppTextStyles.labelMedium.copyWith(
+        color: isActiveSort ? AppColors.primary : AppColors.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
+      child: column.header,
+    );
+
+    if (!_isSortable(column)) {
+      return Padding(
+        padding: column.padding ??
+            const EdgeInsets.symmetric(horizontal: AppDimensions.spacing12),
+        child: Align(
+          alignment: column.effectiveHeaderAlignment,
+          child: label,
+        ),
+      );
+    }
+
+    // The arrow is always present on a sortable column, greyed until active.
+    // Showing it only on the sorted column hides the fact that the others can
+    // be sorted at all - the affordance has to exist before it is used.
+    final indicator = Icon(
+      isActiveSort
+          ? (sortAscending ? Icons.arrow_upward : Icons.arrow_downward)
+          : Icons.unfold_more,
+      size: AppDimensions.iconSmall,
+      color: isActiveSort ? AppColors.primary : AppColors.textTertiary,
+    );
+
+    return ModernHoverBuilder(
+      builder: (context, isHovered, _) => Material(
+        color: isHovered ? AppColors.borderLight : Colors.transparent,
+        child: InkWell(
+          // Tapping the active column flips it; any other column starts
+          // ascending, which is what a reader expects of a fresh sort.
+          onTap: () => onSort!(column.id, isActiveSort ? !sortAscending : true),
+          child: Padding(
+            padding: column.padding ??
+                const EdgeInsets.symmetric(horizontal: AppDimensions.spacing12),
+            child: Align(
+              alignment: column.effectiveHeaderAlignment,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(child: label),
+                  const SizedBox(width: AppDimensions.spacing4),
+                  indicator,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// The compact-tier form: [narrowBuilder] cards in place of the table.
+  Widget _buildNarrowList(BuildContext context) {
+    return ListView.separated(
+      itemCount: items.length,
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
+      separatorBuilder: (_, __) =>
+          const SizedBox(height: AppDimensions.spacing8),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final isSelected = selectedIds.contains(idGetter(item));
+        final card = narrowBuilder!(context, item, isSelected);
+
+        if (onRowTap == null) return card;
+
+        return ModernHoverBuilder(
+          child: card,
+          builder: (context, isHovered, child) => Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => onRowTap!(item),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+              child: child,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -307,58 +431,68 @@ class ModernDataTable<T> extends StatelessWidget {
     required bool isSelected,
     required Map<String, double> columnWidths,
   }) {
-    return Material(
-      color: isSelected ? AppColors.primaryContainer : AppColors.surface,
-      child: InkWell(
-        onTap: onRowTap != null ? () => onRowTap!(item) : null,
-        child: SizedBox(
-          height: rowHeight,
-          child: Row(
-            children: [
-              // Selection indicator (3px colored bar on left)
-              Container(
-                width: 3,
-                color: isSelected ? AppColors.primary : Colors.transparent,
-              ),
-              // Row checkbox (adjusted width to account for selection indicator)
-              if (showCheckboxColumn)
-                SizedBox(
-                  width: checkboxColumnWidth - 3, // Subtract selection indicator width
-                  child: Center(
-                    child: Checkbox(
-                      value: isSelected,
-                      onChanged: onSelectionChanged != null
-                          ? (value) =>
-                              onSelectionChanged!(itemId, value ?? false)
-                          : null,
-                      activeColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppDimensions.radiusSmall),
-                      ),
-                    ),
-                  ),
+    // Hover tint sits between the resting surface and the selected tint, so a
+    // hovered row reads as "under the pointer" without being mistaken for one
+    // that is already selected. A selected row does not change on hover - it
+    // has already made its point.
+    return ModernHoverBuilder(
+      enabled: onRowTap != null,
+      builder: (context, isHovered, _) => Material(
+        color: isSelected
+            ? AppColors.primaryContainer
+            : (isHovered ? AppColors.surfaceVariant : AppColors.surface),
+        child: InkWell(
+          onTap: onRowTap != null ? () => onRowTap!(item) : null,
+          child: SizedBox(
+            height: rowHeight,
+            child: Row(
+              children: [
+                // Selection indicator (3px colored bar on left)
+                Container(
+                  width: 3,
+                  color: isSelected ? AppColors.primary : Colors.transparent,
                 ),
-              // Cell contents
-              ...columns.map((column) {
-                final width = columnWidths[column.id] ?? column.minWidth;
-                return SizedBox(
-                  width: width,
-                  child: Padding(
-                    padding: column.padding ??
-                        const EdgeInsets.symmetric(
-                            horizontal: AppDimensions.spacing12),
-                    child: Align(
-                      alignment: column.alignment,
-                      child: DefaultTextStyle(
-                        style: AppTextStyles.bodyMedium,
-                        child: column.cellBuilder(item),
+                // Row checkbox (adjusted width to account for selection indicator)
+                if (showCheckboxColumn)
+                  SizedBox(
+                    width: checkboxColumnWidth -
+                        3, // Subtract selection indicator width
+                    child: Center(
+                      child: Checkbox(
+                        value: isSelected,
+                        onChanged: onSelectionChanged != null
+                            ? (value) =>
+                                onSelectionChanged!(itemId, value ?? false)
+                            : null,
+                        activeColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppDimensions.radiusSmall),
+                        ),
                       ),
                     ),
                   ),
-                );
-              }),
-            ],
+                // Cell contents
+                ...columns.map((column) {
+                  final width = columnWidths[column.id] ?? column.minWidth;
+                  return SizedBox(
+                    width: width,
+                    child: Padding(
+                      padding: column.padding ??
+                          const EdgeInsets.symmetric(
+                              horizontal: AppDimensions.spacing12),
+                      child: Align(
+                        alignment: column.alignment,
+                        child: DefaultTextStyle(
+                          style: AppTextStyles.bodyMedium,
+                          child: column.cellBuilder(item),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
           ),
         ),
       ),

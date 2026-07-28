@@ -23,6 +23,7 @@ class ModernTableColumn<T> {
     this.alignment = Alignment.centerLeft,
     this.headerAlignment,
     this.padding,
+    this.sortable = false,
   });
 
   /// Unique identifier for this column
@@ -54,6 +55,13 @@ class ModernTableColumn<T> {
 
   /// Custom padding for cells in this column
   final EdgeInsetsGeometry? padding;
+
+  /// Whether this column's header offers a sort control.
+  ///
+  /// Marking a column sortable does nothing on its own - the table also needs
+  /// an `onSort` callback, because sorting is the caller's data operation and
+  /// not something a presentation widget can do to a list it was handed.
+  final bool sortable;
 
   /// Get effective header alignment
   Alignment get effectiveHeaderAlignment => headerAlignment ?? alignment;

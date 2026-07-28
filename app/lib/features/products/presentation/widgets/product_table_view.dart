@@ -7,7 +7,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../core/utils/responsive_utils.dart';
+import '../../../../shared/modern/components/card/modern_card.dart';
 import '../../../../shared/modern/components/data_display/modern_badge.dart';
 import '../../../../shared/modern/components/data_display/modern_data_table.dart';
 import '../../../../shared/modern/components/data_display/modern_table_column.dart';
@@ -41,32 +41,25 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
   @override
   Widget build(BuildContext context) {
     final selectedIds = ref.watch(productSelectionProvider);
-    // Measures the table's own column, not the window: this table sits
-    // inside a master pane from RESP_07 onward.
-    final isMobile = context.isCompact;
 
-    // On mobile, use horizontal scrollable table
-    if (isMobile) {
-      return _buildMobileTable(selectedIds);
-    }
-
-    return _buildDesktopTable(selectedIds);
-  }
-
-  Widget _buildDesktopTable(Set<String> selectedIds) {
+    // One table, two shapes. The compact form used to be a second
+    // ModernDataTable with its own narrower columns and a horizontal scroll
+    // controller; ModernDataTable.narrowBuilder absorbs it, so the two can no
+    // longer drift apart - and the card list shows every field at once rather
+    // than hiding half of them behind a sideways drag.
     return ModernDataTable<Product>(
-      columns: _buildColumns(false),
+      columns: _buildColumns(),
       items: widget.products,
       idGetter: (product) => product.id,
       selectedIds: selectedIds,
       shrinkWrap: true, // Fit table to content, no vertical scrolling
-      onSelectionChanged: (id, selected) {
-        if (selected) {
-          ref.read(productSelectionProvider.notifier).select(id);
-        } else {
-          ref.read(productSelectionProvider.notifier).deselect(id);
-        }
-      },
+      horizontalScrollController: _scrollController,
+      narrowBuilder: (context, product, isSelected) => _ProductNarrowCard(
+        product: product,
+        isSelected: isSelected,
+        onSelectionChanged: (selected) => _setSelected(product.id, selected),
+      ),
+      onSelectionChanged: _setSelected,
       onSelectAll: (selectAll) {
         if (selectAll) {
           ref
@@ -84,48 +77,24 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
     );
   }
 
-  /// Build mobile-optimized table with horizontal scroll
-  Widget _buildMobileTable(Set<String> selectedIds) {
-    return ModernDataTable<Product>(
-      columns: _buildColumns(true),
-      items: widget.products,
-      idGetter: (product) => product.id,
-      selectedIds: selectedIds,
-      shrinkWrap: true, // Fit table to content, no vertical scrolling
-      horizontalScrollController: _scrollController,
-      onSelectionChanged: (id, selected) {
-        if (selected) {
-          ref.read(productSelectionProvider.notifier).select(id);
-        } else {
-          ref.read(productSelectionProvider.notifier).deselect(id);
-        }
-      },
-      onSelectAll: (selectAll) {
-        if (selectAll) {
-          ref
-              .read(productSelectionProvider.notifier)
-              .selectAll(widget.products.map((p) => p.id).toList());
-        } else {
-          ref.read(productSelectionProvider.notifier).clearSelection();
-        }
-      },
-      onRowTap: (product) {
-        context.go(AppRoutes.productDetailPath(product.id));
-      },
-      rowHeight: 56.0, // Slightly smaller rows on mobile
-      headerHeight: 44.0,
-    );
+  void _setSelected(String id, bool selected) {
+    final notifier = ref.read(productSelectionProvider.notifier);
+    if (selected) {
+      notifier.select(id);
+    } else {
+      notifier.deselect(id);
+    }
   }
 
-  List<ModernTableColumn<Product>> _buildColumns(bool isMobile) {
+  List<ModernTableColumn<Product>> _buildColumns() {
     return [
       // Image column
       ModernTableColumn<Product>(
         id: 'image',
         header: const SizedBox.shrink(),
-        width: isMobile ? 48 : 64,
+        width: 64,
         alignment: Alignment.center,
-        cellBuilder: (product) => _buildProductImage(product, isMobile),
+        cellBuilder: (product) => _buildProductImage(product),
       ),
       // Name column
       ModernTableColumn<Product>(
@@ -138,7 +107,7 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
           ),
         ),
         flex: 2,
-        minWidth: isMobile ? 120 : 150,
+        minWidth: 150,
         cellBuilder: (product) => Text(
           product.name,
           style: AppTextStyles.bodyMedium.copyWith(
@@ -148,26 +117,25 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
           overflow: TextOverflow.ellipsis,
         ),
       ),
-      // SKU column - hide on mobile
-      if (!isMobile)
-        ModernTableColumn<Product>(
-          id: 'sku',
-          header: Text(
-            'SKU',
-            style: AppTextStyles.labelMedium.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          width: 120,
-          cellBuilder: (product) => Text(
-            product.sku,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-              fontFeatures: AppTextStyles.tabularFigures,
-            ),
+      // SKU column
+      ModernTableColumn<Product>(
+        id: 'sku',
+        header: Text(
+          'SKU',
+          style: AppTextStyles.labelMedium.copyWith(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
           ),
         ),
+        width: 120,
+        cellBuilder: (product) => Text(
+          product.sku,
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.textSecondary,
+            fontFeatures: AppTextStyles.tabularFigures,
+          ),
+        ),
+      ),
       // Price column
       ModernTableColumn<Product>(
         id: 'price',
@@ -178,13 +146,12 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        width: isMobile ? 100 : 130,
+        width: 130,
         alignment: Alignment.centerRight,
         cellBuilder: (product) => Text(
           CurrencyFormatter.format(product.sellingPrice),
           style: AppTextStyles.priceSmall.copyWith(
             color: AppColors.primary,
-            fontSize: isMobile ? 12 : 14,
           ),
         ),
       ),
@@ -198,13 +165,13 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        width: isMobile ? 60 : 80,
+        width: 80,
         alignment: Alignment.center,
         cellBuilder: (product) => Text(
           '${product.stock}',
           style: AppTextStyles.bodyMedium.copyWith(
             fontWeight: FontWeight.w500,
-            color: _getStockColor(product),
+            color: _ProductTableViewColors.stock(product),
           ),
         ),
       ),
@@ -218,52 +185,28 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        width: isMobile ? 80 : 100,
+        width: 100,
         alignment: Alignment.center,
-        cellBuilder: (product) => _buildStatusBadge(product, isMobile),
+        cellBuilder: (product) => _ProductTableViewColors.badge(product),
       ),
       // Actions column
       ModernTableColumn<Product>(
         id: 'actions',
         header: const SizedBox.shrink(),
-        width: isMobile ? 40 : 56,
+        width: 56,
         alignment: Alignment.center,
         cellBuilder: (product) => _buildActionButtons(context, product),
       ),
     ];
   }
 
-  Widget _buildProductImage(Product product, bool isMobile) {
-    final size = isMobile ? 36.0 : 48.0;
+  Widget _buildProductImage(Product product) {
     return ProductImage(
       imagePath: product.imageUrl,
-      size: size,
+      size: 48,
       borderRadius: BorderRadius.circular(AppDimensions.radiusSmall),
-      placeholderIconSize: isMobile ? 18 : 24,
+      placeholderIconSize: 24,
     );
-  }
-
-  Color _getStockColor(Product product) {
-    if (product.isOutOfStock) {
-      return AppColors.error;
-    }
-    if (product.isLowStock) {
-      return AppColors.warning;
-    }
-    return AppColors.textPrimary;
-  }
-
-  Widget _buildStatusBadge(Product product, bool isMobile) {
-    if (!product.isActive) {
-      return ModernBadge.neutral(label: isMobile ? 'Off' : 'Nonaktif');
-    }
-    if (product.isOutOfStock) {
-      return ModernBadge.error(label: isMobile ? 'Habis' : 'Habis');
-    }
-    if (product.isLowStock) {
-      return ModernBadge.warning(label: isMobile ? 'Low' : 'Rendah');
-    }
-    return ModernBadge.success(label: isMobile ? 'Ok' : 'Aktif');
   }
 
   Widget _buildActionButtons(BuildContext context, Product product) {
@@ -285,5 +228,135 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
         padding: EdgeInsets.zero,
       ),
     );
+  }
+}
+
+/// The compact-tier row: everything the table columns show, stacked to fit a
+/// phone.
+///
+/// Replaces the horizontally-scrolling table this file used to render below
+/// 600dp, which fitted by dropping the SKU column and shortening every badge
+/// label to something like "Off" - and still needed a sideways drag to reach
+/// the edit button.
+class _ProductNarrowCard extends StatelessWidget {
+  const _ProductNarrowCard({
+    required this.product,
+    required this.isSelected,
+    required this.onSelectionChanged,
+  });
+
+  final Product product;
+  final bool isSelected;
+  final ValueChanged<bool> onSelectionChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return ModernCard.outlined(
+      padding: const EdgeInsets.all(AppDimensions.spacing12),
+      borderColor: isSelected ? AppColors.primary : AppColors.border,
+      color: isSelected ? AppColors.primaryContainer : null,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Checkbox(
+            value: isSelected,
+            onChanged: (value) => onSelectionChanged(value ?? false),
+            activeColor: AppColors.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusSmall),
+            ),
+          ),
+          ProductImage(
+            imagePath: product.imageUrl,
+            size: 48,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusSmall),
+            placeholderIconSize: 24,
+          ),
+          const SizedBox(width: AppDimensions.spacing12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppDimensions.spacing2),
+                Text(
+                  product.sku,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                    fontFeatures: AppTextStyles.tabularFigures,
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.spacing8),
+                Row(
+                  children: [
+                    Text(
+                      CurrencyFormatter.format(product.sellingPrice),
+                      style: AppTextStyles.priceSmall.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: AppDimensions.spacing12),
+                    Text(
+                      'Stok ${product.stock}',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: _ProductTableViewColors.stock(product),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppDimensions.spacing8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _ProductTableViewColors.badge(product),
+              const SizedBox(height: AppDimensions.spacing4),
+              SizedBox(
+                width: AppDimensions.minTouchTarget,
+                height: AppDimensions.minTouchTarget,
+                child: IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  iconSize: AppDimensions.iconMedium,
+                  color: AppColors.textSecondary,
+                  onPressed: () =>
+                      context.go(AppRoutes.productEditPath(product.id)),
+                  tooltip: 'Edit',
+                  padding: EdgeInsets.zero,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Presentation rules shared by the table cells and the compact card, so the
+/// two forms of the same row cannot disagree about what "low stock" looks like.
+class _ProductTableViewColors {
+  _ProductTableViewColors._();
+
+  static Color stock(Product product) {
+    if (product.isOutOfStock) return AppColors.error;
+    if (product.isLowStock) return AppColors.warning;
+    return AppColors.textPrimary;
+  }
+
+  static Widget badge(Product product) {
+    if (!product.isActive) return const ModernBadge.neutral(label: 'Nonaktif');
+    if (product.isOutOfStock) return const ModernBadge.error(label: 'Habis');
+    if (product.isLowStock) return const ModernBadge.warning(label: 'Rendah');
+    return const ModernBadge.success(label: 'Aktif');
   }
 }

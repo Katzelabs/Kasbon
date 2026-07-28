@@ -7,6 +7,8 @@ import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../button/modern_button.dart';
 import '../data_display/modern_chip.dart';
+import '../feedback/modern_bottom_sheet.dart';
+import '../feedback/modern_dialog.dart';
 import 'modern_calendar.dart';
 
 /// Quick preset options for date range selection
@@ -54,9 +56,17 @@ enum DateRangePreset {
 ///
 /// Features:
 /// - Quick preset options (7 days, 30 days, this month, last month)
-/// - Dual calendar view on tablet, tabbed view on mobile
+/// - Dual calendar view at `expanded` and above, tabbed view below
 /// - Range highlighting
 /// - Custom styling matching the app theme
+///
+/// ## Shape by tier
+///
+/// [show] opens a dialog at `expanded` and above and a bottom sheet below it.
+/// Every report screen reaches this through `DateRangeSelector`, so getting it
+/// wrong means every report screen on a desktop inherits a phone-shaped picker:
+/// a dialog pinned to 90% of the window height with two calendars tabbed behind
+/// each other, in a window with room for four.
 class ModernDateRangePicker extends StatefulWidget {
   /// The initially selected date range
   final DateTimeRange? initialRange;
@@ -74,29 +84,50 @@ class ModernDateRangePicker extends StatefulWidget {
     required this.lastDate,
   });
 
-  /// Shows the date range picker dialog and returns the selected range
+  /// Shows the date range picker and returns the selected range.
+  ///
+  /// A dialog on a wide window, a bottom sheet on a narrow one. Reads the
+  /// *window*: both forms are overlays anchored to it, not to whatever pane
+  /// the caller happens to be in.
   static Future<DateTimeRange?> show({
     required BuildContext context,
     DateTimeRange? initialRange,
     required DateTime firstDate,
     required DateTime lastDate,
   }) {
+    final picker = ModernDateRangePicker(
+      initialRange: initialRange,
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+
+    if (context.windowBreakpoint.below(Breakpoint.expanded)) {
+      return ModernBottomSheet.show<DateTimeRange>(
+        context,
+        // The picker draws its own header with a close button, and a sheet
+        // title on top of it would be the same words twice.
+        showDragHandle: true,
+        padding: EdgeInsets.zero,
+        child: picker,
+      );
+    }
+
     return showDialog<DateTimeRange>(
       context: context,
-      builder: (context) => Dialog(
+      builder: (context) => ModernDialogFrame(
         backgroundColor: Colors.transparent,
-        insetPadding: EdgeInsets.symmetric(
-          horizontal: context.isMobile ? AppDimensions.spacing16 : AppDimensions.spacing24,
-          vertical: AppDimensions.spacing24,
-        ),
-        child: ModernDateRangePicker(
-          initialRange: initialRange,
-          firstDate: firstDate,
-          lastDate: lastDate,
-        ),
+        maxWidth: _dialogWidth,
+        child: picker,
       ),
     );
   }
+
+  /// Width of the dialog form.
+  ///
+  /// Wider than [ContentLayout.dialogLarge] because this dialog genuinely has
+  /// two columns in it - two month grids side by side - which is the case the
+  /// tier ramp does not cover.
+  static const double _dialogWidth = 700;
 
   @override
   State<ModernDateRangePicker> createState() => _ModernDateRangePickerState();
@@ -109,7 +140,6 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
   late DateTime _startCalendarMonth;
   late DateTime _endCalendarMonth;
   late TabController _tabController;
-
 
   @override
   void initState() {
@@ -148,8 +178,9 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
         _endDate = null;
       }
     });
-    // On mobile, switch to end date tab
-    if (context.isMobile) {
+    // In the single-column form, picking a start date moves to the end tab;
+    // in the two-column form both calendars are already on screen.
+    if (_isSingleColumn(context)) {
       _tabController.animateTo(1);
     }
   }
@@ -168,7 +199,8 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
 
   void _onConfirm() {
     if (_startDate != null && _endDate != null) {
-      Navigator.of(context).pop(DateTimeRange(start: _startDate!, end: _endDate!));
+      Navigator.of(context)
+          .pop(DateTimeRange(start: _startDate!, end: _endDate!));
     }
   }
 
@@ -181,15 +213,19 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
     return DateFormat('dd MMM yyyy', 'id_ID').format(date);
   }
 
+  /// Whether there is room for one month grid or two.
+  ///
+  /// Measures the space the picker has, which inside a sheet is the sheet's
+  /// own clamped width rather than the window's - so a 640dp sheet on a 1600dp
+  /// monitor still gets the tabbed form it has room for.
+  bool _isSingleColumn(BuildContext context) =>
+      context.isBelow(Breakpoint.expanded);
+
   @override
   Widget build(BuildContext context) {
-    final isMobile = context.isMobile;
+    final isSingleColumn = _isSingleColumn(context);
 
     return Container(
-      constraints: BoxConstraints(
-        maxWidth: isMobile ? double.infinity : 700,
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
-      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
@@ -203,7 +239,9 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
           _buildPresetChips(),
           const Divider(height: 1, color: AppColors.divider),
           Flexible(
-            child: isMobile ? _buildMobileCalendars() : _buildTabletCalendars(),
+            child: isSingleColumn
+                ? _buildTabbedCalendars()
+                : _buildSideBySideCalendars(),
           ),
           const Divider(height: 1, color: AppColors.divider),
           _buildSelectedRange(),
@@ -262,14 +300,15 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
   bool _isPresetSelected(DateRangePreset preset) {
     if (_startDate == null || _endDate == null) return false;
     final range = preset.range;
-    return _isSameDay(_startDate!, range.start) && _isSameDay(_endDate!, range.end);
+    return _isSameDay(_startDate!, range.start) &&
+        _isSameDay(_endDate!, range.end);
   }
 
   bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  Widget _buildMobileCalendars() {
+  Widget _buildTabbedCalendars() {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -289,7 +328,8 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
                   children: [
                     const Icon(Icons.calendar_today, size: 16),
                     const SizedBox(width: 8),
-                    Text(_startDate != null ? _formatDate(_startDate) : 'Mulai'),
+                    Text(
+                        _startDate != null ? _formatDate(_startDate) : 'Mulai'),
                   ],
                 ),
               ),
@@ -315,7 +355,8 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
                 padding: const EdgeInsets.all(AppDimensions.spacing16),
                 child: ModernCalendar(
                   displayedMonth: _startCalendarMonth,
-                  onMonthChanged: (month) => setState(() => _startCalendarMonth = month),
+                  onMonthChanged: (month) =>
+                      setState(() => _startCalendarMonth = month),
                   selectedDate: _startDate,
                   onDateSelected: _onStartDateSelected,
                   rangeStart: _startDate,
@@ -329,7 +370,8 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
                 padding: const EdgeInsets.all(AppDimensions.spacing16),
                 child: ModernCalendar(
                   displayedMonth: _endCalendarMonth,
-                  onMonthChanged: (month) => setState(() => _endCalendarMonth = month),
+                  onMonthChanged: (month) =>
+                      setState(() => _endCalendarMonth = month),
                   selectedDate: _endDate,
                   onDateSelected: _onEndDateSelected,
                   rangeStart: _startDate,
@@ -346,7 +388,7 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
     );
   }
 
-  Widget _buildTabletCalendars() {
+  Widget _buildSideBySideCalendars() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppDimensions.spacing16),
       child: Row(
@@ -356,7 +398,8 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
           Expanded(
             child: ModernCalendar(
               displayedMonth: _startCalendarMonth,
-              onMonthChanged: (month) => setState(() => _startCalendarMonth = month),
+              onMonthChanged: (month) =>
+                  setState(() => _startCalendarMonth = month),
               selectedDate: _startDate,
               onDateSelected: _onStartDateSelected,
               rangeStart: _startDate,
@@ -371,7 +414,8 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
           Expanded(
             child: ModernCalendar(
               displayedMonth: _endCalendarMonth,
-              onMonthChanged: (month) => setState(() => _endCalendarMonth = month),
+              onMonthChanged: (month) =>
+                  setState(() => _endCalendarMonth = month),
               selectedDate: _endDate,
               onDateSelected: _onEndDateSelected,
               rangeStart: _startDate,
@@ -406,7 +450,9 @@ class _ModernDateRangePickerState extends State<ModernDateRangePicker>
             child: Text(
               rangeText,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: hasSelection ? AppColors.textPrimary : AppColors.textTertiary,
+                color: hasSelection
+                    ? AppColors.textPrimary
+                    : AppColors.textTertiary,
                 fontWeight: hasSelection ? FontWeight.w500 : null,
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -107,8 +108,24 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     final change = _cashReceived - total;
     final canPay = _cashReceived >= total && !paymentState.isProcessing;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 640),
+    // Enter confirms and Esc cancels, so a cashier can finish a sale without
+    // leaving the number pad. Both are no-ops while the payment is in flight -
+    // a double Enter must not submit twice.
+    //
+    // No width clamp here: ModernDialog.show applies the tier width now, which
+    // is what the hand-rolled 640 was standing in for.
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.enter): () {
+          if (canPay) _processCashPayment();
+        },
+        const SingleActivator(LogicalKeyboardKey.numpadEnter): () {
+          if (canPay) _processCashPayment();
+        },
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (!paymentState.isProcessing) Navigator.pop(context, false);
+        },
+      },
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(AppDimensions.spacing24),
         child: Column(
@@ -172,7 +189,8 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                     icon: Icons.payments_outlined,
                     label: 'Tunai',
                     isSelected: _selectedMethod == SelectedPaymentMethod.cash,
-                    onTap: () => _selectPaymentMethod(SelectedPaymentMethod.cash),
+                    onTap: () =>
+                        _selectPaymentMethod(SelectedPaymentMethod.cash),
                   ),
                 ),
                 const SizedBox(width: AppDimensions.spacing12),
@@ -181,7 +199,8 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                     icon: Icons.credit_card_off_outlined,
                     label: 'Hutang',
                     isSelected: _selectedMethod == SelectedPaymentMethod.debt,
-                    onTap: () => _selectPaymentMethod(SelectedPaymentMethod.debt),
+                    onTap: () =>
+                        _selectPaymentMethod(SelectedPaymentMethod.debt),
                     color: AppColors.warning,
                   ),
                 ),
@@ -195,10 +214,17 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
               label: 'Uang Diterima',
               variant: ModernInputVariant.filled,
               autofocus: true,
+              textInputAction: TextInputAction.done,
               onChanged: (value) {
                 setState(() {
                   _cashReceived = value.toDouble();
                 });
+              },
+              // The field owns Enter while it has focus - a text field consumes
+              // the key before the dialog's CallbackShortcuts ever sees it - so
+              // the fast path has to be wired here as well as there.
+              onSubmitted: (_) {
+                if (canPay) _processCashPayment();
               },
             ),
             const SizedBox(height: AppDimensions.spacing16),

@@ -10,6 +10,7 @@ import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../../shared/providers/navigation_sidebar_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
+import '../../../products/domain/entities/product.dart';
 import '../../domain/entities/cart_item.dart';
 import '../../domain/entities/cart_operation_result.dart';
 import '../providers/cart_provider.dart';
@@ -18,6 +19,7 @@ import '../providers/pos_search_provider.dart';
 import '../widgets/cart_item_tile.dart';
 import '../widgets/cart_summary_bar.dart';
 import '../widgets/payment_dialog.dart';
+import '../widgets/pos_shortcuts.dart';
 import '../widgets/product_grid_item.dart';
 
 /// Point of Sale (Kasir) screen
@@ -39,6 +41,7 @@ class PosScreen extends ConsumerStatefulWidget {
 class _PosScreenState extends ConsumerState<PosScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _searchFocusNode = FocusNode(debugLabel: 'pos-search');
   bool _isCartExpanded = true;
 
   /// Whether the soft keyboard is covering part of the screen.
@@ -76,7 +79,39 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  /// Move focus to the search field and select what is already in it, so the
+  /// next keystroke replaces the last query rather than appending to it.
+  void _focusSearch() {
+    _searchFocusNode.requestFocus();
+    _searchController.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _searchController.text.length,
+    );
+  }
+
+  /// The cashier fast path: type enough to narrow the grid to one product,
+  /// press Enter, and it is in the cart.
+  ///
+  /// Deliberately requires *exactly* one visible result. With two, guessing
+  /// which one was meant would put the wrong item on a receipt, and a cashier
+  /// who has to check what got added is slower than one who taps.
+  void _addSoleSearchResult() {
+    final products = ref.read(posPaginationProvider).products;
+    if (products.length != 1) return;
+
+    _addToCart(products.single);
+    _searchController.clear();
+    ref.read(posSearchQueryProvider.notifier).state = '';
+  }
+
+  /// Open the payment dialog, if there is anything to pay for.
+  Future<void> _checkout() async {
+    if (ref.read(cartProvider).isEmpty) return;
+    await PaymentDialog.show(context);
   }
 
   /// Show confirmation dialog before clearing cart
@@ -95,18 +130,58 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     }
   }
 
+  /// Back out of the current context: drop the search filter if there is one,
+  /// otherwise just give up focus so the grid is scrollable by keyboard again.
+  void _dismiss() {
+    if (_searchController.text.isNotEmpty) {
+      _searchController.clear();
+      ref.read(posSearchQueryProvider.notifier).state = '';
+      return;
+    }
+    FocusScope.of(context).unfocus();
+  }
+
+  /// Add [product] to the cart and report what happened.
+  ///
+  /// Shared by the grid tap and the Enter-in-search fast path, so a keyboard
+  /// sale and a tapped one cannot diverge on stock handling.
+  void _addToCart(Product product) {
+    final result = ref.read(cartProvider.notifier).addProduct(product);
+
+    if (result.isSuccess) {
+      ModernToast.success(
+        context,
+        '${product.name} ditambahkan ke keranjang',
+        duration: const Duration(seconds: 1),
+      );
+    } else if (result.result == CartOperationResult.outOfStock) {
+      ModernToast.error(context, '${product.name} habis');
+    } else if (result.result == CartOperationResult.exceedsStock) {
+      ModernToast.warning(
+        context,
+        'Stok tidak mencukupi. Tersisa ${result.availableStock} ${result.unit}',
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Prevent body resize when keyboard appears to keep cart summary bar positioned correctly
-      resizeToAvoidBottomInset: false,
-      appBar: ModernAppBar.withActions(
-        title: 'Kasir',
-        onProfileTap: () {
-          // TODO: Navigate to profile
-        },
+    return PosShortcuts(
+      onFocusSearch: _focusSearch,
+      onCheckout: _checkout,
+      onClearCart: _confirmClearCart,
+      onDismiss: _dismiss,
+      child: Scaffold(
+        // Prevent body resize when keyboard appears to keep cart summary bar positioned correctly
+        resizeToAvoidBottomInset: false,
+        appBar: ModernAppBar.withActions(
+          title: 'Kasir',
+          onProfileTap: () {
+            // TODO: Navigate to profile
+          },
+        ),
+        body: context.isMobile ? _buildMobileLayout() : _buildTabletLayout(),
       ),
-      body: context.isMobile ? _buildMobileLayout() : _buildTabletLayout(),
     );
   }
 
@@ -224,10 +299,14 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           // Search field
           ModernSearchField(
             controller: _searchController,
+            focusNode: _searchFocusNode,
             hint: 'Cari produk...',
             onChanged: (value) {
               ref.read(posSearchQueryProvider.notifier).state = value;
             },
+            // Enter on a search that has narrowed to a single product adds it
+            // straight to the cart - the scan-less equivalent of a barcode.
+            onSubmitted: (_) => _addSoleSearchResult(),
           ),
           const SizedBox(height: AppDimensions.spacing12),
           // Category chips - sized to the minimum touch target, since a
@@ -329,72 +408,56 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
     final products = paginatedState.products;
     // Add 1 extra item for loading indicator when loading more
-    final itemCount =
-        products.length + (paginatedState.isLoadingMore ? 1 : 0);
+    final itemCount = products.length + (paginatedState.isLoadingMore ? 1 : 0);
 
-    return GridView.builder(
-      controller: _scrollController,
-      padding: EdgeInsets.only(
-        left: AppDimensions.spacing16,
-        right: AppDimensions.spacing16,
-        top: AppDimensions.spacing16,
-        // Extra bottom padding for mobile to account for cart bar + bottom nav
-        bottom: context.isMobile
-            ? AppDimensions.spacing16 + 160 // cart bar (~64) + bottom nav (~80) + spacing
-            : AppDimensions.spacing16,
-      ),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: AppDimensions.spacing12,
-        mainAxisSpacing: AppDimensions.spacing12,
-        childAspectRatio: 0.75,
-      ),
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        // Show loading indicator for the last item when loading more
-        if (index >= products.length) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(AppDimensions.spacing16),
-              child: ModernLoading.small(),
-            ),
+    // Traversal group so Tab walks the product grid to its end before leaving
+    // for the cart. Without it, tab order follows the widget tree and a
+    // keyboard user lands in the cart part-way down the grid.
+    return FocusTraversalGroup(
+      policy: ReadingOrderTraversalPolicy(),
+      child: GridView.builder(
+        controller: _scrollController,
+        padding: EdgeInsets.only(
+          left: AppDimensions.spacing16,
+          right: AppDimensions.spacing16,
+          top: AppDimensions.spacing16,
+          // Extra bottom padding for mobile to account for cart bar + bottom nav
+          bottom: context.isMobile
+              ? AppDimensions.spacing16 +
+                  160 // cart bar (~64) + bottom nav (~80) + spacing
+              : AppDimensions.spacing16,
+        ),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: AppDimensions.spacing12,
+          mainAxisSpacing: AppDimensions.spacing12,
+          childAspectRatio: 0.75,
+        ),
+        itemCount: itemCount,
+        itemBuilder: (context, index) {
+          // Show loading indicator for the last item when loading more
+          if (index >= products.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppDimensions.spacing16),
+                child: ModernLoading.small(),
+              ),
+            );
+          }
+
+          final product = products[index];
+          // Find quantity in cart
+          final cartItem = cart.where((c) => c.product.id == product.id);
+          final quantityInCart =
+              cartItem.isNotEmpty ? cartItem.first.quantity : 0;
+
+          return ProductGridItem(
+            product: product,
+            quantityInCart: quantityInCart,
+            onTap: () => _addToCart(product),
           );
-        }
-
-        final product = products[index];
-        // Find quantity in cart
-        final cartItem = cart.where((c) => c.product.id == product.id);
-        final quantityInCart =
-            cartItem.isNotEmpty ? cartItem.first.quantity : 0;
-
-        return ProductGridItem(
-          product: product,
-          quantityInCart: quantityInCart,
-          onTap: () {
-            final result =
-                ref.read(cartProvider.notifier).addProduct(product);
-
-            // Show appropriate feedback based on result
-            if (result.isSuccess) {
-              ModernToast.success(
-                context,
-                '${product.name} ditambahkan ke keranjang',
-                duration: const Duration(seconds: 1),
-              );
-            } else if (result.result == CartOperationResult.outOfStock) {
-              ModernToast.error(
-                context,
-                '${product.name} habis',
-              );
-            } else if (result.result == CartOperationResult.exceedsStock) {
-              ModernToast.warning(
-                context,
-                'Stok tidak mencukupi. Tersisa ${result.availableStock} ${result.unit}',
-              );
-            }
-          },
-        );
-      },
+        },
+      ),
     );
   }
 

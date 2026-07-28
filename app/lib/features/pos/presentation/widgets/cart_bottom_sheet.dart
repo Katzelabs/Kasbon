@@ -24,27 +24,17 @@ class CartBottomSheet extends ConsumerWidget {
 
   final ScrollController? scrollController;
 
-  /// Show the cart bottom sheet
+  /// Show the cart
+  ///
+  /// A draggable bottom sheet on a phone, a right-edge side sheet on a desktop
+  /// window. `showAdaptiveDraggable` rather than `showAdaptive` because the
+  /// body below is a list with a pinned footer under it - an `Expanded` inside
+  /// a scroll view has no height to expand into.
   static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(AppDimensions.radiusXLarge),
-            ),
-          ),
-          child: CartBottomSheet(
-            scrollController: scrollController,
-          ),
-        ),
+    return ModernBottomSheet.showAdaptiveDraggable<void>(
+      context,
+      builder: (context, scrollController) => CartBottomSheet(
+        scrollController: scrollController,
       ),
     );
   }
@@ -58,18 +48,21 @@ class CartBottomSheet extends ConsumerWidget {
 
     return Column(
       children: [
-        // Handle bar
-        Center(
-          child: Container(
-            margin: const EdgeInsets.only(top: AppDimensions.spacing12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
+        // Handle bar. A drag affordance, so it appears only where there is a
+        // drag: the side-sheet form passes no scroll controller and does not
+        // move.
+        if (scrollController != null)
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: AppDimensions.spacing12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
-        ),
         // Header
         Padding(
           padding: const EdgeInsets.all(AppDimensions.spacing16),

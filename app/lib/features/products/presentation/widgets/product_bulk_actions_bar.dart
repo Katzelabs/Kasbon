@@ -9,6 +9,7 @@ import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/components/button/modern_button.dart';
 import '../../../../shared/modern/components/card/modern_card.dart';
 import '../../../../shared/modern/components/data_display/modern_list_tile.dart';
+import '../../../../shared/modern/components/feedback/modern_bottom_sheet.dart';
 import '../../../../shared/modern/components/feedback/modern_dialog.dart';
 import '../../../../shared/modern/components/feedback/modern_loading.dart';
 import '../../../../shared/modern/components/feedback/modern_toast.dart';
@@ -68,7 +69,9 @@ class _ProductBulkActionsBarState extends ConsumerState<ProductBulkActionsBar> {
           const SizedBox(width: AppDimensions.spacing4),
           Expanded(
             child: Text(
-              isMobile ? '$selectionCount dipilih' : '$selectionCount produk dipilih',
+              isMobile
+                  ? '$selectionCount dipilih'
+                  : '$selectionCount produk dipilih',
               style: AppTextStyles.labelMedium.copyWith(
                 color: AppColors.textPrimary,
               ),
@@ -136,16 +139,13 @@ class _ProductBulkActionsBarState extends ConsumerState<ProductBulkActionsBar> {
   Future<void> _handleUpdateStatus(BuildContext context) async {
     final selectedProducts = ref.read(selectedProductsProvider);
 
-    final result = await showModalBottomSheet<bool>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppDimensions.radiusLarge),
-        ),
-      ),
-      builder: (context) => _StatusSelectionSheet(
-        productCount: selectedProducts.length,
-      ),
+    // Adaptive: a sheet from the bottom on a phone, a right-edge side sheet on
+    // a desktop window. Was a raw showModalBottomSheet, which gave a desktop
+    // user a 1600dp-wide strip with two rows in it.
+    final result = await ModernBottomSheet.showAdaptive<bool>(
+      context,
+      title: 'Ubah Status ${selectedProducts.length} Produk',
+      child: const _StatusSelectionSheet(),
     );
 
     if (result != null && mounted) {
@@ -238,88 +238,62 @@ class _ProductBulkActionsBarState extends ConsumerState<ProductBulkActionsBar> {
 
 /// Bottom sheet for selecting status
 class _StatusSelectionSheet extends StatelessWidget {
-  const _StatusSelectionSheet({
-    required this.productCount,
-  });
-
-  final int productCount;
+  const _StatusSelectionSheet();
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacing16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: AppDimensions.spacing16),
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
+    // Just the options. The drag handle, the title and the safe-area inset all
+    // belong to the sheet container now, which is what lets the same widget
+    // render as a bottom sheet or a side sheet unchanged.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ModernCard.outlined(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              ModernListTile(
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.successLight,
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusMedium),
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: AppColors.success,
+                  ),
                 ),
+                title: const Text('Aktif (Tersedia)'),
+                subtitle: const Text('Produk dapat dijual'),
+                onTap: () => Navigator.pop(context, true),
               ),
-            ),
-            // Title
-            Text(
-              'Ubah Status $productCount Produk',
-              style: AppTextStyles.h4,
-            ),
-            const SizedBox(height: AppDimensions.spacing16),
-            // Options
-            ModernCard.outlined(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  ModernListTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.successLight,
-                        borderRadius:
-                            BorderRadius.circular(AppDimensions.radiusMedium),
-                      ),
-                      child: const Icon(
-                        Icons.check_circle,
-                        color: AppColors.success,
-                      ),
-                    ),
-                    title: const Text('Aktif (Tersedia)'),
-                    subtitle: const Text('Produk dapat dijual'),
-                    onTap: () => Navigator.pop(context, true),
+              const Divider(height: 1),
+              ModernListTile(
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.errorLight,
+                    borderRadius:
+                        BorderRadius.circular(AppDimensions.radiusMedium),
                   ),
-                  const Divider(height: 1),
-                  ModernListTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.errorLight,
-                        borderRadius:
-                            BorderRadius.circular(AppDimensions.radiusMedium),
-                      ),
-                      child: const Icon(
-                        Icons.cancel,
-                        color: AppColors.error,
-                      ),
-                    ),
-                    title: const Text('Nonaktif (Habis)'),
-                    subtitle: const Text('Produk tidak ditampilkan'),
-                    onTap: () => Navigator.pop(context, false),
+                  child: const Icon(
+                    Icons.cancel,
+                    color: AppColors.error,
                   ),
-                ],
+                ),
+                title: const Text('Nonaktif (Habis)'),
+                subtitle: const Text('Produk tidak ditampilkan'),
+                onTap: () => Navigator.pop(context, false),
               ),
-            ),
-            const SizedBox(height: AppDimensions.spacing16),
-          ],
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

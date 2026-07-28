@@ -267,8 +267,16 @@ class ModernButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Single line, ellipsised. The button has a fixed height, so a label that
+    // wraps overflows vertically and one that does not overflows horizontally -
+    // there is no third option, and "Batalkan Penghapusan" in a phone-width
+    // dialog reaches both. Ellipsis is the only one of the two that degrades
+    // rather than painting the yellow stripe.
     final effectiveChild = DefaultTextStyle.merge(
       style: _textStyle.copyWith(color: _foregroundColor),
+      maxLines: 1,
+      softWrap: false,
+      overflow: TextOverflow.ellipsis,
       child: child,
     );
 
@@ -283,7 +291,9 @@ class ModernButton extends StatelessWidget {
           Icon(leadingIcon, size: _iconSize, color: _foregroundColor),
           const SizedBox(width: AppDimensions.spacing8),
         ],
-        effectiveChild,
+        // Flexible so the label yields to the button's width rather than the
+        // other way round; the icons keep their intrinsic size.
+        Flexible(child: effectiveChild),
         if (trailingIcon != null && !isLoading) ...[
           const SizedBox(width: AppDimensions.spacing8),
           Icon(trailingIcon, size: _iconSize, color: _foregroundColor),

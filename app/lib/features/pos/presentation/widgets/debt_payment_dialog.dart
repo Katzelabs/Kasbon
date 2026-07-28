@@ -92,149 +92,148 @@ class _DebtPaymentDialogState extends ConsumerState<DebtPaymentDialog> {
     final paymentState = ref.watch(paymentProvider);
     final canSubmit = !paymentState.isProcessing;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 480),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.spacing24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    // No width clamp here: ModernDialog.show applies the tier width now, which
+    // is what the hand-rolled 480 was standing in for.
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppDimensions.spacing24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(
+                    Icons.credit_card_off_outlined,
+                    color: AppColors.warning,
+                    size: AppDimensions.iconLarge,
+                  ),
+                  SizedBox(width: AppDimensions.spacing8),
+                  Text(
+                    'Pembayaran Hutang',
+                    style: AppTextStyles.h3,
+                  ),
+                ],
+              ),
+              ModernIconButton(
+                icon: Icons.close,
+                onPressed: paymentState.isProcessing
+                    ? null
+                    : () => Navigator.pop(context, false),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.spacing24),
+
+          // Total display with warning color
+          ModernGradientCard.warning(
+            padding: const EdgeInsets.all(AppDimensions.spacing20),
+            child: Column(
               children: [
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.credit_card_off_outlined,
-                      color: AppColors.warning,
-                      size: AppDimensions.iconLarge,
-                    ),
-                    SizedBox(width: AppDimensions.spacing8),
-                    Text(
-                      'Pembayaran Hutang',
-                      style: AppTextStyles.h3,
-                    ),
-                  ],
+                Text(
+                  'Total Hutang',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
                 ),
-                ModernIconButton(
-                  icon: Icons.close,
+                const SizedBox(height: AppDimensions.spacing8),
+                Text(
+                  CurrencyFormatter.format(total),
+                  style: AppTextStyles.h1.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppDimensions.spacing24),
+
+          // Customer name input (required)
+          ModernTextField(
+            controller: _customerNameController,
+            label: 'Nama Pelanggan *',
+            hint: 'Masukkan nama pelanggan',
+            variant: ModernInputVariant.filled,
+            autofocus: true,
+            errorText: _customerNameError,
+            leading: const Icon(Icons.person_outline),
+            onChanged: (_) {
+              if (_customerNameError != null) {
+                setState(() {
+                  _customerNameError = null;
+                });
+              }
+            },
+          ),
+          const SizedBox(height: AppDimensions.spacing16),
+
+          // Notes input (optional)
+          ModernTextField(
+            controller: _notesController,
+            label: 'Catatan (Opsional)',
+            hint: 'Tambahkan catatan jika perlu',
+            variant: ModernInputVariant.filled,
+            leading: const Icon(Icons.notes_outlined),
+            maxLines: 2,
+          ),
+          const SizedBox(height: AppDimensions.spacing24),
+
+          // Warning message
+          Container(
+            padding: const EdgeInsets.all(AppDimensions.spacing12),
+            decoration: BoxDecoration(
+              color: AppColors.warningLight,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.info_outline,
+                  color: AppColors.warning,
+                  size: AppDimensions.iconMedium,
+                ),
+                const SizedBox(width: AppDimensions.spacing8),
+                Expanded(
+                  child: Text(
+                    'Transaksi akan dicatat sebagai hutang dan perlu dilunasi nanti.',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.warning,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppDimensions.spacing24),
+
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: ModernButton.outline(
                   onPressed: paymentState.isProcessing
                       ? null
                       : () => Navigator.pop(context, false),
+                  child: const Text('Batal'),
                 ),
-              ],
-            ),
-            const SizedBox(height: AppDimensions.spacing24),
-
-            // Total display with warning color
-            ModernGradientCard.warning(
-              padding: const EdgeInsets.all(AppDimensions.spacing20),
-              child: Column(
-                children: [
-                  Text(
-                    'Total Hutang',
-                    style: AppTextStyles.bodyMedium.copyWith(
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.spacing8),
-                  Text(
-                    CurrencyFormatter.format(total),
-                    style: AppTextStyles.h1.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
               ),
-            ),
-            const SizedBox(height: AppDimensions.spacing24),
-
-            // Customer name input (required)
-            ModernTextField(
-              controller: _customerNameController,
-              label: 'Nama Pelanggan *',
-              hint: 'Masukkan nama pelanggan',
-              variant: ModernInputVariant.filled,
-              autofocus: true,
-              errorText: _customerNameError,
-              leading: const Icon(Icons.person_outline),
-              onChanged: (_) {
-                if (_customerNameError != null) {
-                  setState(() {
-                    _customerNameError = null;
-                  });
-                }
-              },
-            ),
-            const SizedBox(height: AppDimensions.spacing16),
-
-            // Notes input (optional)
-            ModernTextField(
-              controller: _notesController,
-              label: 'Catatan (Opsional)',
-              hint: 'Tambahkan catatan jika perlu',
-              variant: ModernInputVariant.filled,
-              leading: const Icon(Icons.notes_outlined),
-              maxLines: 2,
-            ),
-            const SizedBox(height: AppDimensions.spacing24),
-
-            // Warning message
-            Container(
-              padding: const EdgeInsets.all(AppDimensions.spacing12),
-              decoration: BoxDecoration(
-                color: AppColors.warningLight,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.info_outline,
-                    color: AppColors.warning,
-                    size: AppDimensions.iconMedium,
-                  ),
-                  const SizedBox(width: AppDimensions.spacing8),
-                  Expanded(
-                    child: Text(
-                      'Transaksi akan dicatat sebagai hutang dan perlu dilunasi nanti.',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.warning,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: AppDimensions.spacing24),
-
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: ModernButton.outline(
-                    onPressed: paymentState.isProcessing
-                        ? null
-                        : () => Navigator.pop(context, false),
-                    child: const Text('Batal'),
-                  ),
+              const SizedBox(width: AppDimensions.spacing12),
+              Expanded(
+                flex: 2,
+                child: ModernButton.primary(
+                  onPressed: canSubmit ? _processDebtPayment : null,
+                  isLoading: paymentState.isProcessing,
+                  leadingIcon: Icons.save_outlined,
+                  child: const Text('Simpan Hutang'),
                 ),
-                const SizedBox(width: AppDimensions.spacing12),
-                Expanded(
-                  flex: 2,
-                  child: ModernButton.primary(
-                    onPressed: canSubmit ? _processDebtPayment : null,
-                    isLoading: paymentState.isProcessing,
-                    leadingIcon: Icons.save_outlined,
-                    child: const Text('Simpan Hutang'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

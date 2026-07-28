@@ -6,6 +6,7 @@ import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/platform/app_platform.dart';
 import '../../../../core/utils/responsive_utils.dart';
+import '../../utils/modern_hover.dart';
 import '../../utils/modern_variants.dart';
 
 /// Pagination controls widget with page number buttons and Previous/Next buttons.
@@ -125,10 +126,19 @@ class ModernPaginationControls extends StatelessWidget {
     }
   }
 
-  /// Get effective max visible pages based on screen size
+  /// Get effective max visible pages for the space the paginator has.
+  ///
+  /// Was `context.isMobile ? 3 : 5` - the window, and a two-way split at 900dp.
+  /// The paginator sits under a list that may be in a pane, so what matters is
+  /// its own width, and a desktop window has room for more than five.
   int _getEffectiveMaxVisiblePages(BuildContext context) {
     if (maxVisiblePages != null) return maxVisiblePages!;
-    return context.isMobile ? 3 : 5;
+    return context.responsive<int>(
+      compact: 3,
+      medium: 5,
+      expanded: 7,
+      large: 9,
+    );
   }
 
   /// Build list of page numbers to display with ellipsis
@@ -144,7 +154,8 @@ class ModernPaginationControls extends StatelessWidget {
     }
 
     final items = <_PageItem>[];
-    final halfVisible = (maxVisible - 2) ~/ 2; // Pages around current (excluding first/last)
+    final halfVisible =
+        (maxVisible - 2) ~/ 2; // Pages around current (excluding first/last)
 
     // Always add first page
     items.add(_PageItem.page(1));
@@ -252,7 +263,8 @@ class ModernPaginationControls extends StatelessWidget {
                     child: _PageNumberButton(
                       pageNumber: item.page!,
                       isSelected: item.page == currentPage,
-                      onPressed: canNavigate ? () => _handlePageTap(item.page!) : null,
+                      onPressed:
+                          canNavigate ? () => _handlePageTap(item.page!) : null,
                       size: _buttonSize,
                     ),
                   );
@@ -307,32 +319,39 @@ class _PaginationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget button = Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: _isDisabled ? Colors.transparent : AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-        border: Border.all(
-          color: AppColors.border,
-          width: AppDimensions.inputBorderWidth,
+    Widget button = ModernHoverBuilder(
+      enabled: !_isDisabled,
+      builder: (context, isHovered, _) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+          child: AnimatedContainer(
+            duration: ModernHoverBuilder.duration,
+            curve: Curves.easeOut,
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: _isDisabled
+                  ? Colors.transparent
+                  : (isHovered
+                      ? AppColors.primaryContainer
+                      : AppColors.surfaceVariant),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+              border: Border.all(
+                color: isHovered ? AppColors.primary : AppColors.border,
+                width: AppDimensions.inputBorderWidth,
+              ),
+            ),
+            child: Center(
+              child: Icon(
+                icon,
+                size: iconSize,
+                color: _isDisabled ? AppColors.textDisabled : AppColors.primary,
+              ),
+            ),
+          ),
         ),
-      ),
-      child: Center(
-        child: Icon(
-          icon,
-          size: iconSize,
-          color: _isDisabled ? AppColors.textDisabled : AppColors.primary,
-        ),
-      ),
-    );
-
-    button = Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-        child: button,
       ),
     );
 
@@ -365,36 +384,49 @@ class _PageNumberButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget button = Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: isSelected ? AppColors.primary : AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-        border: Border.all(
-          color: isSelected ? AppColors.primary : AppColors.border,
-          width: AppDimensions.inputBorderWidth,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          '$pageNumber',
-          style: AppTextStyles.labelMedium.copyWith(
-            fontWeight: FontWeight.w600,
-            color: isSelected
-                ? AppColors.onPrimary
-                : (_isDisabled ? AppColors.textDisabled : AppColors.primary),
+    // The current page is not hoverable: it is already where you are, and a
+    // highlight would suggest clicking it does something.
+    final button = ModernHoverBuilder(
+      enabled: !isSelected && !_isDisabled,
+      builder: (context, isHovered, _) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isSelected ? null : onPressed,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+          child: AnimatedContainer(
+            duration: ModernHoverBuilder.duration,
+            curve: Curves.easeOut,
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primary
+                  : (isHovered
+                      ? AppColors.primaryContainer
+                      : AppColors.surfaceVariant),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+              border: Border.all(
+                color: isSelected || isHovered
+                    ? AppColors.primary
+                    : AppColors.border,
+                width: AppDimensions.inputBorderWidth,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                '$pageNumber',
+                style: AppTextStyles.labelMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? AppColors.onPrimary
+                      : (_isDisabled
+                          ? AppColors.textDisabled
+                          : AppColors.primary),
+                ),
+              ),
+            ),
           ),
         ),
-      ),
-    );
-
-    button = Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: isSelected ? null : onPressed,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-        child: button,
       ),
     );
 

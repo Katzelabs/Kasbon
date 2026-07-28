@@ -41,137 +41,137 @@ class ProductGridItem extends StatelessWidget {
     // used in a narrow master pane from RESP_07 onward.
     final isTablet = context.isAtLeast(Breakpoint.expanded);
 
-    return GestureDetector(
+    // The long-press used to hang off a GestureDetector wrapped around the
+    // card. ModernCard takes it directly, and going through the card means the
+    // press shares one hit region with the tap - and picks up the hover lift
+    // and pointer cursor that a bare GestureDetector cannot provide.
+    return ModernCard.outlined(
+      onTap: onTap,
       onLongPress: onLongPress,
-      child: ModernCard.outlined(
-        onTap: onTap,
-        padding: EdgeInsets.zero,
-        borderColor: isSelected ? AppColors.primary : AppColors.border,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Product Image with selection checkbox overlay
-            AspectRatio(
-              aspectRatio: 1,
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(AppDimensions.radiusMedium),
-                      ),
+      padding: EdgeInsets.zero,
+      borderColor: isSelected ? AppColors.primary : AppColors.border,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Product Image with selection checkbox overlay
+          AspectRatio(
+            aspectRatio: 1,
+            child: Stack(
+              children: [
+                Container(
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(AppDimensions.radiusMedium),
                     ),
-                    child:
-                        product.imageUrl != null && product.imageUrl!.isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  top:
-                                      Radius.circular(AppDimensions.radiusMedium),
-                                ),
-                                child: _buildImage(),
-                              )
-                            : _buildPlaceholderIcon(),
                   ),
-                  // Selection checkbox overlay
-                  if (isSelectionMode)
-                    Positioned(
-                      top: AppDimensions.spacing8,
-                      right: AppDimensions.spacing8,
-                      child: Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.surface,
-                          borderRadius:
-                              BorderRadius.circular(AppDimensions.radiusSmall),
-                          border: Border.all(
-                            color:
-                                isSelected ? AppColors.primary : AppColors.border,
-                            width: 2,
+                  child: product.imageUrl != null &&
+                          product.imageUrl!.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(AppDimensions.radiusMedium),
                           ),
+                          child: _buildImage(),
+                        )
+                      : _buildPlaceholderIcon(),
+                ),
+                // Selection checkbox overlay
+                if (isSelectionMode)
+                  Positioned(
+                    top: AppDimensions.spacing8,
+                    right: AppDimensions.spacing8,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color:
+                            isSelected ? AppColors.primary : AppColors.surface,
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.radiusSmall),
+                        border: Border.all(
+                          color:
+                              isSelected ? AppColors.primary : AppColors.border,
+                          width: 2,
                         ),
-                        child: isSelected
-                            ? const Icon(
-                                Icons.check,
-                                size: 16,
-                                color: AppColors.onPrimary,
-                              )
-                            : null,
                       ),
+                      child: isSelected
+                          ? const Icon(
+                              Icons.check,
+                              size: 16,
+                              color: AppColors.onPrimary,
+                            )
+                          : null,
                     ),
+                  ),
+              ],
+            ),
+          ),
+          // Product Info - wrapped in Expanded to prevent overflow
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(AppDimensions.spacing8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                // Use compact layout on tablet, spaceBetween on mobile
+                mainAxisAlignment: isTablet
+                    ? MainAxisAlignment.start
+                    : MainAxisAlignment.spaceBetween,
+                children: [
+                  // Product Name - larger font on tablet
+                  Text(
+                    product.name,
+                    style: AppTextStyles.labelMedium.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: isTablet ? 14 : null,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // Small gap on tablet for compact layout
+                  if (isTablet) const SizedBox(height: 2),
+                  // SKU
+                  Text(
+                    product.sku,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textTertiary,
+                      fontSize: 10,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // Push price/stock to bottom on tablet
+                  if (isTablet) const Spacer(),
+                  // Price and Stock Row - larger font on tablet
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Price
+                      Flexible(
+                        child: Text(
+                          CurrencyFormatter.format(product.sellingPrice),
+                          style: AppTextStyles.priceSmall.copyWith(
+                            color: AppColors.primary,
+                            fontSize: isTablet ? 14 : 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: AppDimensions.spacing4),
+                      // Stock Indicator
+                      StockIndicator(
+                        stock: product.stock,
+                        minStock: product.minStock,
+                        compact: true,
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            // Product Info - wrapped in Expanded to prevent overflow
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(AppDimensions.spacing8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  // Use compact layout on tablet, spaceBetween on mobile
-                  mainAxisAlignment: isTablet
-                      ? MainAxisAlignment.start
-                      : MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Product Name - larger font on tablet
-                    Text(
-                      product.name,
-                      style: AppTextStyles.labelMedium.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: isTablet ? 14 : null,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    // Small gap on tablet for compact layout
-                    if (isTablet) const SizedBox(height: 2),
-                    // SKU
-                    Text(
-                      product.sku,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textTertiary,
-                        fontSize: 10,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    // Push price/stock to bottom on tablet
-                    if (isTablet) const Spacer(),
-                    // Price and Stock Row - larger font on tablet
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Price
-                        Flexible(
-                          child: Text(
-                            CurrencyFormatter.format(product.sellingPrice),
-                            style: AppTextStyles.priceSmall.copyWith(
-                              color: AppColors.primary,
-                              fontSize: isTablet ? 14 : 12,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: AppDimensions.spacing4),
-                        // Stock Indicator
-                        StockIndicator(
-                          stock: product.stock,
-                          minStock: product.minStock,
-                          compact: true,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

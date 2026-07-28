@@ -4,6 +4,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_gradients.dart';
 import '../../../../config/theme/app_shadows.dart';
+import '../../utils/modern_hover.dart';
 import '../../utils/modern_variants.dart';
 
 /// A Modern-styled card with consistent theming and multiple variants
@@ -145,14 +146,17 @@ class ModernCard extends StatelessWidget {
     }
   }
 
-  BoxBorder? get _border {
-    if (variant == ModernCardVariant.outlined) {
-      return Border.all(
-        color: borderColor ?? AppColors.border,
-        width: 1,
-      );
-    }
-    return null;
+  BoxBorder? _borderFor({required bool isHovered}) {
+    if (variant != ModernCardVariant.outlined) return null;
+
+    // A hovered outlined card darkens its own border rather than adopting the
+    // primary colour: an accent border is how this library says "selected",
+    // and a card that looks selected under the pointer is a lie.
+    return Border.all(
+      color: borderColor ??
+          (isHovered ? AppColors.textTertiary : AppColors.border),
+      width: 1,
+    );
   }
 
   /// Maps the numeric [elevation] onto the semantic shadow ramp.
@@ -160,9 +164,12 @@ class ModernCard extends StatelessWidget {
   /// The previous formula - `blurRadius: elevation * 2` at 10% black - gave a
   /// 4px-blur contact shadow with no ambient layer, which is what made cards
   /// look stamped onto the page rather than resting above it.
-  List<BoxShadow>? get _shadow {
+  List<BoxShadow>? _shadowFor({required bool isHovered}) {
     if (!variant.hasElevation) return null;
-    final e = _elevation;
+    // A hovered card lifts one step up the ramp. On a flat variant that is
+    // still nothing, which is correct - a filled card that grew a shadow under
+    // the pointer would be changing what kind of card it is.
+    final e = _elevation + (isHovered ? 2 : 0);
     if (e <= 0) return null;
     if (e <= 1) return AppShadows.xs;
     if (e <= 2) return AppShadows.sm;
@@ -182,33 +189,40 @@ class ModernCard extends StatelessWidget {
       content = Padding(padding: padding!, child: content);
     }
 
-    Widget card = Container(
-      width: width,
-      height: height,
-      margin: margin,
-      decoration: BoxDecoration(
-        color: _backgroundColor,
-        borderRadius: effectiveBorderRadius,
-        border: _border,
-        boxShadow: _shadow,
-      ),
-      clipBehavior: clipBehavior,
-      child: content,
-    );
+    final isInteractive = onTap != null || onLongPress != null;
 
-    if (onTap != null || onLongPress != null) {
-      card = Material(
+    Widget buildCard(bool isHovered) => AnimatedContainer(
+          duration: ModernHoverBuilder.duration,
+          curve: Curves.easeOut,
+          width: width,
+          height: height,
+          margin: margin,
+          decoration: BoxDecoration(
+            color: _backgroundColor,
+            borderRadius: effectiveBorderRadius,
+            border: _borderFor(isHovered: isHovered),
+            boxShadow: _shadowFor(isHovered: isHovered),
+          ),
+          clipBehavior: clipBehavior,
+          child: content,
+        );
+
+    if (!isInteractive) return buildCard(false);
+
+    // InkWell already sets a click cursor and paints a hover overlay. What it
+    // cannot do is change the card's own elevation or border, which is the
+    // part a desktop user actually reads at a glance across a grid.
+    return ModernHoverBuilder(
+      builder: (context, isHovered, _) => Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           onLongPress: onLongPress,
           borderRadius: effectiveBorderRadius,
-          child: card,
+          child: buildCard(isHovered),
         ),
-      );
-    }
-
-    return card;
+      ),
+    );
   }
 }
 

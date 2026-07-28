@@ -203,6 +203,49 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
+  /// Creates the header for a split-view pane.
+  ///
+  /// A pane is not a route, so it has nothing to go back to and no business
+  /// carrying the account menu - that belongs to the window, once, and a
+  /// two-pane layout showing it twice is the giveaway that a screen was
+  /// dropped into a pane without being told.
+  ///
+  /// [onClose] appears only where closing means something: a detail pane that
+  /// can be dismissed back to the list. A permanent pane passes nothing and
+  /// gets a title alone.
+  ///
+  /// For RESP_07. Nothing calls it yet, which is deliberate - a factory added
+  /// with the split views would have arrived alongside the screens that need
+  /// it and been designed around whichever came first.
+  factory ModernAppBar.pane({
+    Key? key,
+    required String title,
+    VoidCallback? onClose,
+    List<Widget>? actions,
+    Color? backgroundColor,
+    Color? foregroundColor,
+    ModernAppBarVariant variant = ModernAppBarVariant.flat,
+  }) {
+    return ModernAppBar(
+      key: key,
+      title: title,
+      automaticallyImplyLeading: false,
+      actions: [
+        if (actions != null) ...actions,
+        if (onClose != null)
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: onClose,
+            tooltip: 'Tutup',
+          ),
+      ],
+      centerTitle: false,
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      variant: variant,
+    );
+  }
+
   /// The title text to display
   final String? title;
 
