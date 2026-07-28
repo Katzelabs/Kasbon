@@ -149,12 +149,23 @@ class ModernCard extends StatelessWidget {
   BoxBorder? _borderFor({required bool isHovered}) {
     if (variant != ModernCardVariant.outlined) return null;
 
-    // A hovered outlined card darkens its own border rather than adopting the
-    // primary colour: an accent border is how this library says "selected",
-    // and a card that looks selected under the pointer is a lie.
+    final base = borderColor ?? AppColors.border;
+
+    // Deepen whatever border the card already has rather than replacing it.
+    //
+    // This was `borderColor ?? hoverTint`, which meant any caller supplying a
+    // border - both product grid items, order_card, the table's narrow card,
+    // all of them passing one unconditionally to show selection - silently got
+    // no hover at all. Darkening in HSL keeps a selected card's accent hue
+    // while still reacting to the pointer.
+    final hovered = HSLColor.fromColor(base);
+
     return Border.all(
-      color: borderColor ??
-          (isHovered ? AppColors.textTertiary : AppColors.border),
+      color: isHovered
+          ? hovered
+              .withLightness((hovered.lightness - 0.15).clamp(0.0, 1.0))
+              .toColor()
+          : base,
       width: 1,
     );
   }
@@ -165,11 +176,20 @@ class ModernCard extends StatelessWidget {
   /// 4px-blur contact shadow with no ambient layer, which is what made cards
   /// look stamped onto the page rather than resting above it.
   List<BoxShadow>? _shadowFor({required bool isHovered}) {
-    if (!variant.hasElevation) return null;
-    // A hovered card lifts one step up the ramp. On a flat variant that is
-    // still nothing, which is correct - a filled card that grew a shadow under
-    // the pointer would be changing what kind of card it is.
-    final e = _elevation + (isHovered ? 2 : 0);
+    // Resting elevation is unchanged: a flat variant still has no shadow until
+    // a pointer is on it.
+    final resting = variant.hasElevation ? _elevation : 0.0;
+
+    // The lift is what a card grid can actually show. The first attempt bumped
+    // the elevation *after* an `if (!variant.hasElevation) return null`, so
+    // outlined and filled cards - which is nearly every card in the app -
+    // never lifted, and their only hover cue was a 1px border going from
+    // #E5E7EB to a slightly darker grey. Invisible at arm's length, which is
+    // exactly how it was reported.
+    //
+    // Three steps rather than two so the outlined case clears the ramp's first
+    // rung and lands on a shadow you can see.
+    final e = resting + (isHovered ? 3 : 0);
     if (e <= 0) return null;
     if (e <= 1) return AppShadows.xs;
     if (e <= 2) return AppShadows.sm;

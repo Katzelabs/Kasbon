@@ -126,6 +126,8 @@ void main() {
     });
   });
 
+  _cardHoverTests();
+
   group('on a touch platform', () {
     testWidgets('installs no MouseRegion of its own', (tester) async {
       // Default test platform is Android. A stale highlight is a real bug on
@@ -145,6 +147,120 @@ void main() {
         ),
         findsNothing,
       );
+    });
+  });
+}
+
+/// Regression tests for the case that shipped broken: a desktop user moving the
+/// mouse across the product grid saw nothing at all.
+///
+/// Two separate causes, both in `ModernCard`:
+///
+/// 1. `outlined` is not an elevated variant, so the hover elevation bump was
+///    discarded before it reached the shadow ramp.
+/// 2. The hover border was written as `borderColor ?? hoverTint`, so any caller
+///    passing an explicit `borderColor` short-circuited it - and both product
+///    grid items, `order_card` and the table's narrow card all pass one
+///    unconditionally, to show selection.
+///
+/// Between them, every card in the app that a cashier actually points at had
+/// zero hover feedback.
+void _cardHoverTests() {
+  Future<void> asPointerFirst(Future<void> Function() body) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    try {
+      await body();
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  }
+
+  AnimatedContainer surfaceOf(WidgetTester tester) =>
+      tester.widget<AnimatedContainer>(
+        find
+            .descendant(
+              of: find.byType(ModernCard),
+              matching: find.byType(AnimatedContainer),
+            )
+            .first,
+      );
+
+  group('ModernCard hover is actually visible', () {
+    testWidgets('an outlined card with an explicit borderColor still responds',
+        (tester) async {
+      await asPointerFirst(() async {
+        await tester.pumpWidget(createTestableWidget(
+          child: Center(
+            child: ModernCard.outlined(
+              onTap: () {},
+              // Exactly what both product grid items do.
+              borderColor: const Color(0xFFE5E7EB),
+              child: const SizedBox(
+                width: 200,
+                height: 120,
+                child: Text('produk'),
+              ),
+            ),
+          ),
+        ));
+
+        final resting = surfaceOf(tester).decoration! as BoxDecoration;
+        await _hover(tester, find.text('produk'));
+        final hovered = surfaceOf(tester).decoration! as BoxDecoration;
+
+        expect(
+          hovered,
+          isNot(equals(resting)),
+          reason: 'an explicit borderColor swallowed the hover state',
+        );
+      });
+    });
+
+    testWidgets('an outlined card lifts, though outlined has no resting shadow',
+        (tester) async {
+      await asPointerFirst(() async {
+        await tester.pumpWidget(createTestableWidget(
+          child: Center(
+            child: ModernCard.outlined(
+              onTap: () {},
+              child: const SizedBox(
+                width: 200,
+                height: 120,
+                child: Text('produk'),
+              ),
+            ),
+          ),
+        ));
+
+        expect(
+            (surfaceOf(tester).decoration! as BoxDecoration).boxShadow, isNull);
+
+        await _hover(tester, find.text('produk'));
+
+        // A lift is the affordance a card grid can actually show - a 1px
+        // border tint at #E5E7EB is invisible at arm's length.
+        expect(
+          (surfaceOf(tester).decoration! as BoxDecoration).boxShadow,
+          isNotNull,
+        );
+      });
+    });
+
+    testWidgets('a non-interactive card gains nothing', (tester) async {
+      await asPointerFirst(() async {
+        await tester.pumpWidget(createTestableWidget(
+          child: const Center(
+            child: ModernCard.outlined(
+              child: SizedBox(width: 200, height: 120, child: Text('produk')),
+            ),
+          ),
+        ));
+
+        await _hover(tester, find.text('produk'));
+
+        expect(
+            (surfaceOf(tester).decoration! as BoxDecoration).boxShadow, isNull);
+      });
     });
   });
 }

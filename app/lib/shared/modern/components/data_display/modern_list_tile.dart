@@ -194,11 +194,16 @@ class ModernListTile extends StatelessWidget {
           duration: ModernHoverBuilder.duration,
           curve: Curves.easeOut,
           decoration: BoxDecoration(
-            // Hover only tints a tile that is neither selected nor already
-            // carrying a caller-supplied background - in both of those cases the
-            // colour is saying something, and a hover tint would talk over it.
-            color: isHovered && !selected && backgroundColor == null
-                ? AppColors.surfaceVariant
+            // A translucent overlay rather than a replacement colour, so a
+            // caller-supplied background darkens instead of being swapped for
+            // grey - and, unlike a `backgroundColor == null` guard, supplying
+            // one cannot silently cost the tile its hover state. That is the
+            // exact shape of the bug ModernCard shipped with.
+            //
+            // A selected tile is left alone: it has already made its point.
+            color: isHovered && !selected
+                ? Color.alphaBlend(
+                    const Color(0x14000000), effectiveBackgroundColor)
                 : effectiveBackgroundColor,
             borderRadius: effectiveBorderRadius,
           ),
