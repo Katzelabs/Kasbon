@@ -10,19 +10,88 @@ import '../../../../shared/modern/modern.dart';
 import '../providers/product_selection_provider.dart';
 import '../providers/products_provider.dart';
 import '../widgets/product_bulk_actions_bar.dart';
+import '../widgets/product_detail_panel.dart';
 import '../widgets/product_filter_card.dart';
 import '../widgets/product_grid_item.dart';
 import '../widgets/product_table_view.dart';
+import 'product_form_screen.dart';
 
-/// Screen displaying list of all products with search and filter functionality
-class ProductListScreen extends ConsumerStatefulWidget {
+/// Screen displaying list of all products with search and filter functionality.
+///
+/// ## One screen, one header, the split inside it
+///
+/// The screen owns the `Scaffold` and the app bar, and the body divides into
+/// the list and a docked detail panel - the arrangement `PosScreen` uses for
+/// its cart. Wrapping the *whole screen* in the split instead would put the
+/// header inside the left pane, so "Daftar Produk" would stop short of the
+/// panel and the panel would start at the very top of the content area, level
+/// with the header rather than under it.
+class ProductListScreen extends StatelessWidget {
   const ProductListScreen({super.key});
 
   @override
-  ConsumerState<ProductListScreen> createState() => _ProductListScreenState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: ModernAppBar.withActions(
+        title: 'Daftar Produk',
+        onProfileTap: () {
+          // TODO: Navigate to profile
+        },
+      ),
+      body: MasterDetailScaffold(
+        basePath: AppRoutes.products,
+        selectionParser: AppRoutes.selectedProductId,
+        // The panel gets purpose-built chrome, not the full detail screen: a
+        // Scaffold docked inside another screen's body meant a second app bar
+        // and actions that scrolled out of reach.
+        detailBuilder: (context, uri, id) =>
+            uri.pathSegments.length > 2 && uri.pathSegments[2] == 'edit'
+                // Keyed by id for the same reason the edit route is: switching
+                // selection with the form open must load the new record rather
+                // than keep editing the old one.
+                ? ProductFormScreen(key: ValueKey('form-$id'), productId: id)
+                : ProductDetailPanel(
+                    key: ValueKey('detail-$id'),
+                    productId: id,
+                    onClose: () => MasterDetailScaffold.closeDetail(
+                      context,
+                      AppRoutes.products,
+                    ),
+                  ),
+        placeholderBuilder: (context) => const _DetailPanePlaceholder(),
+        master: const ProductListPane(),
+      ),
+    );
+  }
 }
 
-class _ProductListScreenState extends ConsumerState<ProductListScreen> {
+/// What the detail panel shows before anything is selected.
+class _DetailPanePlaceholder extends StatelessWidget {
+  const _DetailPanePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ModernEmptyState(
+      icon: Icons.inventory_2_outlined,
+      title: 'Pilih Produk',
+      message: 'Pilih produk dari daftar untuk melihat detailnya',
+    );
+  }
+}
+
+/// The product list itself, filling whichever pane it is given.
+///
+/// Split out from [ProductListScreen] so that everything it reads - the view
+/// mode, the grid's column count, the filter card's layout - is measured
+/// against the *pane*, not against the content area the header spans.
+class ProductListPane extends ConsumerStatefulWidget {
+  const ProductListPane({super.key});
+
+  @override
+  ConsumerState<ProductListPane> createState() => _ProductListPaneState();
+}
+
+class _ProductListPaneState extends ConsumerState<ProductListPane> {
   /// Whether the soft keyboard is covering part of the screen.
   ///
   /// Derived from the same `viewInsets` the layout below already does
@@ -33,42 +102,44 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final viewMode = ref.watch(productViewModeProvider);
+    // A table needs columns this list does not have once the detail panel has
+    // squeezed it below 600dp - name, price and stock cannot share a row that
+    // narrow. The toggle that sets this is hidden there too, so the mode is
+    // not merely overridden behind the user's back.
+    //
+    // Both halves of the test matter. `isCompact` alone would catch a phone,
+    // which shows the table happily today; `isInPane` alone no longer means
+    // narrow, because the list is the side that keeps the room.
+    final viewMode = context.isInPane && context.isCompact
+        ? ProductViewMode.grid
+        : ref.watch(productViewModeProvider);
     final hasSelection = ref.watch(productSelectionProvider).isNotEmpty;
 
     // On mobile, FAB needs to be above bottom nav; on tablet, standard position
-    final fabBottomOffset =
-        AppDimensions.spacing16 + context.shellBottomInset;
+    final fabBottomOffset = AppDimensions.spacing16 + context.shellBottomInset;
 
-    return Scaffold(
-      appBar: ModernAppBar.withActions(
-        title: 'Daftar Produk',
-        onProfileTap: () {
-          // TODO: Navigate to profile
-        },
-      ),
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(paginatedProductsProvider);
-            },
-            child: _buildContent(context, ref, viewMode, hasSelection),
-          ),
-          // FAB positioned based on device type - hidden when keyboard is visible
-          if (!_isKeyboardVisible)
-            Positioned(
-              right: AppDimensions.spacing16,
-              bottom: fabBottomOffset,
-              child: FloatingActionButton(
-                onPressed: () => context.go(AppRoutes.productAdd),
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
-                child: const Icon(Icons.add),
-              ),
+    return Stack(
+      children: [
+        RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(paginatedProductsProvider);
+          },
+          child: _buildContent(context, ref, viewMode, hasSelection),
+        ),
+        // Inside the list pane, so it stays over the products rather than
+        // floating above the detail panel.
+        if (!_isKeyboardVisible)
+          Positioned(
+            right: AppDimensions.spacing16,
+            bottom: fabBottomOffset,
+            child: FloatingActionButton(
+              onPressed: () => context.go(AppRoutes.productAdd),
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
+              child: const Icon(Icons.add),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 

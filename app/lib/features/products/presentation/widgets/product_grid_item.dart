@@ -41,6 +41,10 @@ class ProductGridItem extends StatelessWidget {
     // used in a narrow master pane from RESP_07 onward.
     final isTablet = context.isAtLeast(Breakpoint.expanded);
 
+    // Whether this product is the one open in the detail pane beside the list.
+    // Null outside a split view, so a phone never lights a card up.
+    final isOpen = MasterSelectionScope.selectedIdOf(context) == product.id;
+
     // The long-press used to hang off a GestureDetector wrapped around the
     // card. ModernCard takes it directly, and going through the card means the
     // press shares one hit region with the tap - and picks up the hover lift
@@ -49,7 +53,11 @@ class ProductGridItem extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       padding: EdgeInsets.zero,
-      borderColor: isSelected ? AppColors.primary : AppColors.border,
+      // Tinted rather than merely outlined: at two cards across, a border
+      // colour alone is easy to miss against the card next to it.
+      color: isOpen ? AppColors.primaryContainer : null,
+      borderColor:
+          isSelected || isOpen ? AppColors.primary : AppColors.border,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

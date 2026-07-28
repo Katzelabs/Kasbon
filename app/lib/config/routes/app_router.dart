@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/utils/responsive_utils.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -80,6 +81,23 @@ class AppRoutes {
   // interpolating an id into a URL string by hand.
   static String productDetailPath(String id) => '/products/$id';
   static String productEditPath(String id) => '/products/$id/edit';
+
+  /// The product id a location addresses, or null if it addresses none.
+  ///
+  /// Given the *full* URI, so it covers `/products/:id` and
+  /// `/products/:id/edit` alike. `/products/add` is deliberately excluded: it
+  /// is a sibling route with no id, not a detail of anything, and reading
+  /// `add` as a product id would send the pane looking for a product by that
+  /// name.
+  ///
+  /// Lives here rather than in the split view because it is a statement about
+  /// the shape of these routes, and it belongs next to the patterns it decodes.
+  static String? selectedProductId(Uri uri) {
+    final segments = uri.pathSegments;
+    if (segments.length < 2 || segments.first != 'products') return null;
+    final id = segments[1];
+    return id == 'add' ? null : id;
+  }
   static String transactionDetailPath(String id) => '/transactions/$id';
   static String receiptPath(String transactionId) =>
       '/transactions/$transactionId/receipt';
@@ -210,6 +228,11 @@ class AppRouter {
           ),
 
           // Products with nested routes (list, detail, add, edit)
+          //
+          // The list screen splits its own body into a list and a docked detail
+          // panel when there is room; the detail's route then collapses to
+          // nothing. The nesting here is untouched - see the notes on
+          // MasterDetailScaffold for why a per-feature ShellRoute was rejected.
           GoRoute(
             path: AppRoutes.products,
             name: 'products',
@@ -231,7 +254,7 @@ class AppRouter {
                 name: 'product-detail',
                 pageBuilder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  return _slidePage(
+                  return _splitAwarePage(
                     state: state,
                     child: ProductDetailScreen(productId: id),
                   );
@@ -242,9 +265,16 @@ class AppRouter {
                     name: 'product-edit',
                     pageBuilder: (context, state) {
                       final id = state.pathParameters['id']!;
-                      return _slidePage(
+                      return _splitAwarePage(
                         state: state,
-                        child: ProductFormScreen(productId: id),
+                        // A mounted form must not keep editing the record it
+                        // was opened on. The key rebuilds the State when the
+                        // selection changes; the form also re-populates from
+                        // the id itself, so neither alone has to be trusted.
+                        child: ProductFormScreen(
+                          key: ValueKey('form-$id'),
+                          productId: id,
+                        ),
                       );
                     },
                   ),
@@ -493,6 +523,30 @@ class AppRouter {
       child: child,
       transitionDuration: _RouteMotion.pushDuration,
       reverseTransitionDuration: _RouteMotion.pushDuration,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return _SlideFadeTransition(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          child: child,
+        );
+      },
+    );
+  }
+
+  /// [_slidePage] for a detail that a [MasterDetailScaffold] may already be
+  /// showing in a pane.
+  ///
+  /// A [SplitDetailPage] rather than a [CustomTransitionPage]: a non-opaque
+  /// page still installs a full-screen modal barrier over everything below it,
+  /// which froze the master pane. See [SplitDetailPage] for the whole story.
+  static SplitDetailPage<void> _splitAwarePage({
+    required GoRouterState state,
+    required Widget child,
+  }) {
+    return SplitDetailPage<void>(
+      key: state.pageKey,
+      child: child,
+      transitionDuration: _RouteMotion.pushDuration,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         return _SlideFadeTransition(
           animation: animation,

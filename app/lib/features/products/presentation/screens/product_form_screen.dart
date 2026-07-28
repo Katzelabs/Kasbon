@@ -46,10 +46,41 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   String _selectedUnit = 'pcs';
   String? _imagePath;
-  late String _tempProductId;
   Product? _existingProduct;
   CategorySelection _categorySelection = const NoCategory();
   String? _initialCategoryId;
+
+  /// Which product the fields currently hold.
+  ///
+  /// The populate guard used to be `_existingProduct == null`, which answers
+  /// "have I loaded anything?" rather than "have I loaded *this*?" - so a
+  /// mounted form silently kept editing the previous record when the selection
+  /// changed underneath it.
+  String? _populatedForId;
+
+  ProviderSubscription<AsyncValue<Product>>? _productSubscription;
+
+  /// Whether the first build has happened.
+  ///
+  /// The subscription below fires immediately, which for a cached product means
+  /// inside `initState`. Calling `setState` there would mark an element dirty
+  /// while it is being built; before the first build there is nothing to
+  /// invalidate anyway, since the fields are simply read fresh.
+  bool _hasBuilt = false;
+
+  /// Owns image uploads for a product that does not exist yet.
+  ///
+  /// Lazily initialised rather than generated in `initState` so it cannot go
+  /// stale: a form that switches to another product now files uploads under
+  /// that product's id, not under the id it was first opened with.
+  late final String _draftProductId = const Uuid().v4();
+
+  String get _imageOwnerId => widget.productId ?? _draftProductId;
+
+  /// The pane this form is being shown in, or null when it is a route of its
+  /// own. Captured in `build` because the action buttons need it from a
+  /// callback, where an inherited lookup would be out of place.
+  DetailPaneScope? _pane;
 
   final List<String> _units = [
     'pcs',
@@ -69,8 +100,47 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     // Set default values
     _stockController.text = '0';
     _minStockController.text = '5';
-    // Generate a temporary product ID for new products (used for image naming)
-    _tempProductId = widget.productId ?? const Uuid().v4();
+    _watchProduct();
+  }
+
+  @override
+  void didUpdateWidget(ProductFormScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The router keys this screen by product id, so in practice a change here
+    // means a caller built it without that key. Re-subscribing rather than
+    // trusting the key is what makes the populate id-aware instead of
+    // mount-aware.
+    if (oldWidget.productId != widget.productId) {
+      _watchProduct();
+    }
+  }
+
+  /// Subscribes to the product being edited and populates the form from it.
+  ///
+  /// A listener rather than a `ref.watch` in `build`: populating during a build
+  /// meant an `addPostFrameCallback` plus a `setState` a frame later, which is
+  /// a setState-during-build hazard wearing a delay.
+  void _watchProduct() {
+    _productSubscription?.close();
+    _productSubscription = null;
+    _populatedForId = null;
+    _existingProduct = null;
+    _categorySelection = const NoCategory();
+    _initialCategoryId = null;
+
+    final id = widget.productId;
+    if (id == null) return;
+
+    _productSubscription = ref.listenManual<AsyncValue<Product>>(
+      productProvider(id),
+      (previous, next) {
+        final product = next.valueOrNull;
+        if (product == null || product.id == _populatedForId) return;
+        _populateForm(product);
+        if (_hasBuilt && mounted) setState(() {});
+      },
+      fireImmediately: true,
+    );
   }
 
   @override
@@ -102,6 +172,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   void _populateForm(Product product) {
     _existingProduct = product;
+    _populatedForId = product.id;
     _nameController.text = product.name;
     _descriptionController.text = product.description ?? '';
     _costPriceController.text = _formatCurrency(product.costPrice.toInt());
@@ -186,7 +257,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _hasBuilt = true;
     final formState = ref.watch(productFormProvider);
+    final pane = _pane = DetailPaneScope.maybeOf(context);
 
     // Listen for form state changes
     ref.listen(productFormProvider, (previous, next) {
@@ -198,38 +271,98 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               ? 'Produk berhasil diperbarui'
               : 'Produk berhasil ditambahkan',
         );
-        context.pop();
+        _dismiss();
       } else if (next.errorMessage != null) {
         ModernToast.error(context, next.errorMessage!);
       }
     });
 
+    final title = widget.isEditing ? 'Edit Produk' : 'Tambah Produk';
+    final body = widget.isEditing
+        ? _buildEditForm()
+        : _buildFormContent(formState.isLoading);
+
+    // Docked in the detail panel, this is not a screen: the window's header
+    // already spans above it, and a Scaffold with an app bar of its own would
+    // put a second bar inside the panel. Same chrome the detail panel and the
+    // POS cart wear - a header row, a rule, and the content below it.
+    if (pane != null) {
+      return Column(
+        children: [
+          _buildPanelHeader(title, pane.onClose),
+          const ModernDivider(),
+          Expanded(child: body),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: ModernAppBar.backWithActions(
-        title: widget.isEditing ? 'Edit Produk' : 'Tambah Produk',
+        title: title,
         onBack: () => context.pop(),
         onProfileTap: () {
           // TODO: Navigate to profile
         },
       ),
-      body: widget.isEditing
-          ? _buildEditForm()
-          : _buildFormContent(formState.isLoading),
+      body: body,
     );
   }
 
+  Widget _buildPanelHeader(String title, VoidCallback onClose) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: AppDimensions.spacing16,
+        // The close button carries its own touch-target padding.
+        right: AppDimensions.spacing8,
+        top: AppDimensions.spacing12,
+        bottom: AppDimensions.spacing12,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: AppTextStyles.h4,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            onPressed: onClose,
+            icon: const Icon(Icons.close),
+            iconSize: AppDimensions.iconMedium,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(
+              minWidth: AppDimensions.minTouchTarget,
+              minHeight: AppDimensions.minTouchTarget,
+            ),
+            tooltip: 'Tutup',
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Leaves this screen, whichever way it is being shown.
+  ///
+  /// In a pane this pops one level of the nested stack, so closing
+  /// `/products/:id/edit` lands on `/products/:id` rather than on the list.
+  void _dismiss() {
+    final pane = _pane;
+    if (pane != null) {
+      pane.onClose();
+    } else {
+      context.pop();
+    }
+  }
+
   Widget _buildEditForm() {
+    // Watched only for its loading and error states; the fields themselves are
+    // filled by the subscription set up in initState.
     final productAsync = ref.watch(productProvider(widget.productId!));
 
     return productAsync.when(
-      data: (product) {
-        // Populate form only once
-        if (_existingProduct == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _populateForm(product);
-            setState(() {});
-          });
-        }
+      data: (_) {
         final formState = ref.watch(productFormProvider);
         return _buildFormContent(formState.isLoading);
       },
@@ -258,9 +391,11 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   Widget _buildFormContent(bool isLoading) {
-    final isTablet = context.isTabletOrDesktop;
+    // The space the form has, not the window - the two-column fork is fed pane
+    // width when this is the detail half of a split view.
+    final isWide = context.isAtLeast(Breakpoint.expanded);
 
-    return isTablet
+    return isWide
         ? _buildTabletLayout(isLoading)
         : _buildMobileLayout(isLoading);
   }
@@ -380,7 +515,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
           Center(
             child: ProductImagePicker(
               currentImagePath: _imagePath,
-              productId: _tempProductId,
+              productId: _imageOwnerId,
               onImageChanged: (path) {
                 setState(() => _imagePath = path);
               },
@@ -426,6 +561,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           .firstOrNull
                       : null;
                   return CategoryAutocompleteField(
+                    // Keyed by record so the field's own controller resets with
+                    // the rest of the form when the selection changes.
+                    key: ValueKey('category-${_populatedForId ?? 'new'}'),
                     categories: categories,
                     initialCategory: initialCategory,
                     onChanged: (selection) {
@@ -566,7 +704,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ),
         const SizedBox(height: AppDimensions.spacing12),
         ModernButton.outline(
-          onPressed: isLoading ? null : () => context.pop(),
+          onPressed: isLoading ? null : _dismiss,
           fullWidth: true,
           child: const Text('Batal'),
         ),
@@ -579,7 +717,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       children: [
         Expanded(
           child: ModernButton.outline(
-            onPressed: isLoading ? null : () => context.pop(),
+            onPressed: isLoading ? null : _dismiss,
             fullWidth: true,
             child: const Text('Batal'),
           ),

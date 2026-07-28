@@ -5,6 +5,7 @@ import '../responsive/breakpoint.dart';
 import '../responsive/modern_breakpoint_scope.dart';
 
 export '../responsive/breakpoint.dart';
+export '../responsive/master_detail_scaffold.dart';
 export '../responsive/modern_breakpoint_scope.dart';
 export '../responsive/modern_content_column.dart';
 export '../responsive/modern_shell_insets.dart';

@@ -202,19 +202,61 @@ class SliverContentColumn extends StatelessWidget {
 class ContentLayout {
   ContentLayout._();
 
-  /// Narrowest a master pane may become before the split collapses.
-  ///
-  /// Below this a list stops being usable - filter chips wrap to three rows and
-  /// a product row cannot show name, price and stock together.
-  static const double masterPaneMin = 320;
+  // ---------------------------------------------------------------------
+  // Docked detail panel
+  //
+  // The geometry a panel docked against the trailing edge takes: the POS
+  // cart, the products detail. One rule, so two panels docked in the same
+  // window are the same width and the app does not look like two apps.
+  // ---------------------------------------------------------------------
 
-  /// Widest a master pane grows, however much room there is.
+  /// Narrowest the docked panel may become.
   ///
-  /// Past this the detail pane is the better home for extra width.
-  static const double masterPaneMax = 420;
+  /// Below this it stops being usable - a detail's label/value rows wrap and a
+  /// cart line cannot show name, quantity and price together.
+  static const double detailPaneMin = 320;
 
-  /// Master pane's share of a split view, before the min/max clamp.
-  static const double masterPaneFraction = 0.32;
+  /// Widest it grows at `expanded`. Past this the content beside it is the
+  /// better home for the extra room.
+  static const double detailPaneMax = 420;
+
+  /// Its share of the pane at `expanded`, before the clamp.
+  ///
+  /// A share rather than a flat width: a fixed number is 40% of a landscape
+  /// tablet and 14% of a desktop. A share alone is a 700dp panel on an
+  /// ultrawide, hence the clamps at both ends.
+  static const double detailPaneFraction = 0.30;
+
+  /// Its share at `large` - deliberately smaller, off a much bigger pane, so
+  /// the panel still grows in absolute terms while the content beside it gains
+  /// most of the extra width.
+  static const double detailPaneFractionLarge = 0.28;
+
+  static const double detailPaneMaxLarge = 480;
+
+  /// Lower clamp at `large`, derived rather than chosen.
+  ///
+  /// The two rules disagree at the tier boundary: 0.30 of 1299dp is 390dp,
+  /// 0.28 of 1300dp is 364dp. A flat minimum below 390 would make the panel
+  /// jump 26dp *narrower* as the window is dragged one pixel wider - the class
+  /// of discontinuity this overhaul exists to remove. Pinning the floor to
+  /// where the `expanded` rule leaves off keeps the width continuous across
+  /// the boundary and monotonic in the pane's width.
+  static const double detailPaneMinLarge =
+      detailPaneFraction * AppBreakpoints.expandedMax;
+
+  /// Width of a docked detail panel within a pane measured by [layout].
+  static double detailPaneWidth(BreakpointData layout) {
+    if (layout.breakpoint.isLarge) {
+      return (layout.width * detailPaneFractionLarge)
+          .clamp(detailPaneMinLarge, detailPaneMaxLarge)
+          .toDouble();
+    }
+
+    return (layout.width * detailPaneFraction)
+        .clamp(detailPaneMin, detailPaneMax)
+        .toDouble();
+  }
 
   /// Width of a right-edge side sheet at expanded and above.
   static const double sideSheetWidth = 400;
