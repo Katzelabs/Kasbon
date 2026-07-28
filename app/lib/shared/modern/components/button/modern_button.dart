@@ -304,23 +304,30 @@ class ModernButton extends StatelessWidget {
     final effectiveBorderRadius =
         borderRadius ?? BorderRadius.circular(AppDimensions.radiusMedium);
 
-    final button = Container(
+    // Ink surface inside the decorated box, not around it.
+    //
+    // A Material paints ink beneath its child, so with it wrapped around the
+    // button the fill painted straight over every ripple. On a `text` variant
+    // that went unnoticed - there is no fill to hide it - but a primary button
+    // has been swallowing its own tap feedback since the library was written.
+    //
+    // The padding moves inside the InkWell with it, so the ripple covers the
+    // whole tap target rather than just the label.
+    Widget result = Container(
       height: _height,
-      padding: _padding,
       decoration: BoxDecoration(
         color: _backgroundColor,
         borderRadius: effectiveBorderRadius,
         border: _border != null ? Border.fromBorderSide(_border!) : null,
       ),
-      child: buttonContent,
-    );
-
-    Widget result = Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _isDisabled ? null : _handleTap,
-        borderRadius: effectiveBorderRadius,
-        child: button,
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _isDisabled ? null : _handleTap,
+          borderRadius: effectiveBorderRadius,
+          child: Padding(padding: _padding, child: buttonContent),
+        ),
       ),
     );
 

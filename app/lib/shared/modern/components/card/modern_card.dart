@@ -211,6 +211,30 @@ class ModernCard extends StatelessWidget {
 
     final isInteractive = onTap != null || onLongPress != null;
 
+    // The ink surface goes *inside* the decorated box, not around it.
+    //
+    // An InkWell does not paint its own splash - the enclosing Material does,
+    // beneath its child. With the Material wrapped around the card, the card's
+    // own opaque background painted straight over the ripple, so a tap looked
+    // like nothing at all. Nesting it here means the background paints first,
+    // the ink over it, and the content over that.
+    //
+    // The container's clipBehavior then keeps the splash inside the rounded
+    // corners, which is why this does not need its own ClipRRect.
+    Widget surface(bool isHovered) {
+      if (!isInteractive) return content;
+
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          borderRadius: effectiveBorderRadius,
+          child: content,
+        ),
+      );
+    }
+
     Widget buildCard(bool isHovered) => AnimatedContainer(
           duration: ModernHoverBuilder.duration,
           curve: Curves.easeOut,
@@ -224,7 +248,7 @@ class ModernCard extends StatelessWidget {
             boxShadow: _shadowFor(isHovered: isHovered),
           ),
           clipBehavior: clipBehavior,
-          child: content,
+          child: surface(isHovered),
         );
 
     if (!isInteractive) return buildCard(false);
@@ -233,15 +257,7 @@ class ModernCard extends StatelessWidget {
     // cannot do is change the card's own elevation or border, which is the
     // part a desktop user actually reads at a glance across a grid.
     return ModernHoverBuilder(
-      builder: (context, isHovered, _) => Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          borderRadius: effectiveBorderRadius,
-          child: buildCard(isHovered),
-        ),
-      ),
+      builder: (context, isHovered, _) => buildCard(isHovered),
     );
   }
 }
@@ -399,7 +415,21 @@ class ModernGradientCard extends StatelessWidget {
         ? effectiveGradient.colors.first
         : AppColors.primary;
 
-    Widget card = Container(
+    // Same nesting as ModernCard, and for the same reason: a gradient is as
+    // opaque as a solid fill, so a Material wrapped around this card hid every
+    // ripple the dashboard's summary cards ever tried to show.
+    if (onTap != null) {
+      content = Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: effectiveBorderRadius,
+          child: content,
+        ),
+      );
+    }
+
+    return Container(
       width: width,
       height: height,
       margin: margin,
@@ -408,20 +438,10 @@ class ModernGradientCard extends StatelessWidget {
         borderRadius: effectiveBorderRadius,
         boxShadow: AppShadows.glow(glowSource, opacity: 0.24),
       ),
+      // Needed now that the ink lives inside: without it the splash paints
+      // square corners over the gradient's rounded ones.
+      clipBehavior: onTap != null ? Clip.antiAlias : Clip.none,
       child: content,
     );
-
-    if (onTap != null) {
-      card = Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: effectiveBorderRadius,
-          child: card,
-        ),
-      );
-    }
-
-    return card;
   }
 }

@@ -130,14 +130,10 @@ class ModernChip extends StatelessWidget {
 
     final borderColor = selected ? AppColors.primary : AppColors.border;
 
-    Widget chip = Container(
-      height: _height,
+    final chipShape = BorderRadius.circular(AppDimensions.radiusRound);
+
+    Widget chipContent = Padding(
       padding: _padding,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        border: Border.all(color: borderColor, width: 1),
-        borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
-      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -177,18 +173,29 @@ class ModernChip extends StatelessWidget {
       ),
     );
 
+    // Ink inside the pill. Wrapped around it, the chip's own fill hid the
+    // ripple - most visible on a selected chip, which is the most opaque.
     if (onSelected != null && enabled) {
-      chip = Material(
+      chipContent = Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => onSelected!(!selected),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
-          child: chip,
+          borderRadius: chipShape,
+          child: chipContent,
         ),
       );
     }
 
-    return chip;
+    return Container(
+      height: _height,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        border: Border.all(color: borderColor, width: 1),
+        borderRadius: chipShape,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: chipContent,
+    );
   }
 }
 
@@ -240,10 +247,9 @@ class ModernChipGroup extends StatelessWidget {
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: chips
-              .expand((chip) => [chip, SizedBox(width: spacing)])
-              .toList()
-            ..removeLast(),
+          children:
+              chips.expand((chip) => [chip, SizedBox(width: spacing)]).toList()
+                ..removeLast(),
         ),
       );
     }

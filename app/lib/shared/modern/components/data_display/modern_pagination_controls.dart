@@ -319,30 +319,32 @@ class _PaginationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Ink inside the button's box - wrapped around it, the fill hid the ripple.
     Widget button = ModernHoverBuilder(
       enabled: !_isDisabled,
-      builder: (context, isHovered, _) => Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
+      builder: (context, isHovered, _) => AnimatedContainer(
+        duration: ModernHoverBuilder.duration,
+        curve: Curves.easeOut,
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: _isDisabled
+              ? Colors.transparent
+              : (isHovered
+                  ? AppColors.primaryContainer
+                  : AppColors.surfaceVariant),
           borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-          child: AnimatedContainer(
-            duration: ModernHoverBuilder.duration,
-            curve: Curves.easeOut,
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: _isDisabled
-                  ? Colors.transparent
-                  : (isHovered
-                      ? AppColors.primaryContainer
-                      : AppColors.surfaceVariant),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              border: Border.all(
-                color: isHovered ? AppColors.primary : AppColors.border,
-                width: AppDimensions.inputBorderWidth,
-              ),
-            ),
+          border: Border.all(
+            color: isHovered ? AppColors.primary : AppColors.border,
+            width: AppDimensions.inputBorderWidth,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
             child: Center(
               child: Icon(
                 icon,
@@ -388,30 +390,30 @@ class _PageNumberButton extends StatelessWidget {
     // highlight would suggest clicking it does something.
     final button = ModernHoverBuilder(
       enabled: !isSelected && !_isDisabled,
-      builder: (context, isHovered, _) => Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isSelected ? null : onPressed,
+      builder: (context, isHovered, _) => AnimatedContainer(
+        duration: ModernHoverBuilder.duration,
+        curve: Curves.easeOut,
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary
+              : (isHovered
+                  ? AppColors.primaryContainer
+                  : AppColors.surfaceVariant),
           borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-          child: AnimatedContainer(
-            duration: ModernHoverBuilder.duration,
-            curve: Curves.easeOut,
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppColors.primary
-                  : (isHovered
-                      ? AppColors.primaryContainer
-                      : AppColors.surfaceVariant),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              border: Border.all(
-                color: isSelected || isHovered
-                    ? AppColors.primary
-                    : AppColors.border,
-                width: AppDimensions.inputBorderWidth,
-              ),
-            ),
+          border: Border.all(
+            color:
+                isSelected || isHovered ? AppColors.primary : AppColors.border,
+            width: AppDimensions.inputBorderWidth,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: isSelected ? null : onPressed,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
             child: Center(
               child: Text(
                 '$pageNumber',

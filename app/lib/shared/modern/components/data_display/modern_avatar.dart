@@ -200,6 +200,41 @@ class ModernAvatar extends StatelessWidget {
         backgroundColor ?? AppColors.primaryContainer;
     final effectiveForegroundColor = foregroundColor ?? AppColors.primary;
 
+    Widget? face = imageUrl == null
+        ? Center(
+            child: initials != null
+                ? Text(
+                    initials!
+                        .substring(0, initials!.length.clamp(0, 2))
+                        .toUpperCase(),
+                    style: _textStyle.copyWith(
+                      color: effectiveForegroundColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                : Icon(
+                    fallbackIcon,
+                    size: _iconSize,
+                    color: effectiveForegroundColor,
+                  ),
+          )
+        : null;
+
+    // Ink inside the avatar, so the ripple lands over the photo or the
+    // initials rather than underneath them. The tap wrapper used to sit
+    // outside, where the avatar's own fill - and its DecorationImage - covered
+    // every splash.
+    if (onTap != null) {
+      face = Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: _borderRadius,
+          child: face ?? const SizedBox.expand(),
+        ),
+      );
+    }
+
     Widget avatar = Container(
       width: _dimension,
       height: _dimension,
@@ -217,23 +252,8 @@ class ModernAvatar extends StatelessWidget {
               )
             : null,
       ),
-      child: imageUrl == null
-          ? Center(
-              child: initials != null
-                  ? Text(
-                      initials!.substring(0, initials!.length.clamp(0, 2)).toUpperCase(),
-                      style: _textStyle.copyWith(
-                        color: effectiveForegroundColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    )
-                  : Icon(
-                      fallbackIcon,
-                      size: _iconSize,
-                      color: effectiveForegroundColor,
-                    ),
-            )
-          : null,
+      clipBehavior: onTap != null ? Clip.antiAlias : Clip.none,
+      child: face,
     );
 
     if (badge != null) {
@@ -246,17 +266,6 @@ class ModernAvatar extends StatelessWidget {
             child: badge!,
           ),
         ],
-      );
-    }
-
-    if (onTap != null) {
-      avatar = Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: _borderRadius,
-          child: avatar,
-        ),
       );
     }
 
@@ -334,7 +343,8 @@ class ModernAvatarGroup extends StatelessWidget {
 
     Widget group = SizedBox(
       height: _dimension,
-      width: _dimension + (visibleCount - 1) * (_dimension - overlap) +
+      width: _dimension +
+          (visibleCount - 1) * (_dimension - overlap) +
           (extraCount > 0 ? (_dimension - overlap) : 0),
       child: Stack(
         children: [

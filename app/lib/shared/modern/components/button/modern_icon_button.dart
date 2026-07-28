@@ -163,7 +163,9 @@ class ModernIconButton extends StatelessWidget {
   }
 
   Color get _iconColor {
-    if (color != null) return _isDisabled ? color!.withValues(alpha: 0.5) : color!;
+    if (color != null) {
+      return _isDisabled ? color!.withValues(alpha: 0.5) : color!;
+    }
     if (_isDisabled) return AppColors.textDisabled;
     switch (variant) {
       case ModernIconButtonVariant.filled:
@@ -194,6 +196,8 @@ class ModernIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Ink inside the circle, not around it - a Material paints its ink beneath
+    // its child, so the filled variants were painting over their own ripple.
     Widget button = Container(
       width: _dimension,
       height: _dimension,
@@ -202,17 +206,16 @@ class ModernIconButton extends StatelessWidget {
         shape: BoxShape.circle,
         border: _border,
       ),
-      child: Center(
-        child: Icon(icon, size: _iconSize, color: _iconColor),
-      ),
-    );
-
-    button = Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _isDisabled ? null : _handleTap,
-        borderRadius: BorderRadius.circular(_dimension / 2),
-        child: button,
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _isDisabled ? null : _handleTap,
+          customBorder: const CircleBorder(),
+          child: Center(
+            child: Icon(icon, size: _iconSize, color: _iconColor),
+          ),
+        ),
       ),
     );
 
