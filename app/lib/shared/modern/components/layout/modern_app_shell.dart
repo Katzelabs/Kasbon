@@ -358,8 +358,6 @@ class _ModernAppShellState extends ConsumerState<ModernAppShell> {
               isExpanded: isExpanded,
               onToggleExpanded: canToggle ? () => _toggleSidebar(tier) : null,
               account: ref.watch(shellAccountProvider),
-              isPosActive: currentPath.startsWith('/pos'),
-              onKasirTap: _onFabTap,
               onAccountTap: () => _onNavigate('/settings'),
             ),
             // Main content area.
@@ -564,8 +562,6 @@ class _ModernNavigationRail extends StatelessWidget {
     required this.currentIndex,
     required this.onTap,
     required this.isExpanded,
-    required this.isPosActive,
-    required this.onKasirTap,
     required this.onAccountTap,
     this.account,
     this.onToggleExpanded,
@@ -576,11 +572,6 @@ class _ModernNavigationRail extends StatelessWidget {
   final void Function(int index) onTap;
   final bool isExpanded;
 
-  /// Whether POS is the current route, so the Kasir action can echo the
-  /// compact FAB's pressed state.
-  final bool isPosActive;
-
-  final VoidCallback onKasirTap;
   final VoidCallback onAccountTap;
 
   /// Signed-in identity, or null when there is no session.
@@ -634,7 +625,7 @@ class _ModernNavigationRail extends StatelessWidget {
                   itemBuilder: (context, index) => _buildNavItem(index),
                 ),
               ),
-              // Footer: the Kasir shortcut and the account row.
+              // Footer: the account row.
               _buildFooter(),
               // Toggle button
               if (onToggleExpanded != null) _buildToggleButton(),
@@ -760,13 +751,13 @@ class _ModernNavigationRail extends StatelessWidget {
     );
   }
 
-  /// The Kasir shortcut and the account row.
+  /// The account row.
   ///
-  /// Kasir is duplicated here on purpose. On compact it is the notched FAB -
-  /// permanently visible, one tap from any screen - and the rail replacing the
-  /// bottom bar must not quietly demote the app's most-used action to one row
-  /// among seven. The rail item stays as the *destination*; this is the
-  /// *action*, tinted the same primary as the FAB it stands in for.
+  /// This carried a second, primary-tinted "Kasir" button until it was cut as
+  /// redundant: Kasir is already the rail's second destination, so the footer
+  /// was offering the same route twice within 300px of itself. The compact FAB
+  /// it was meant to stand in for exists because a four-item bottom bar has
+  /// nowhere to put POS; the rail has no such problem.
   Widget _buildFooter() {
     return Container(
       padding: const EdgeInsets.fromLTRB(
@@ -780,65 +771,8 @@ class _ModernNavigationRail extends StatelessWidget {
           top: BorderSide(color: AppColors.borderLight),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildKasirAction(),
-          const SizedBox(height: AppDimensions.spacing8),
-          _buildAccountRow(),
-        ],
-      ),
+      child: _buildAccountRow(),
     );
-  }
-
-  Widget _buildKasirAction() {
-    final background = isPosActive ? AppColors.primaryDark : AppColors.primary;
-
-    final content = Material(
-      color: background,
-      borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-      child: InkWell(
-        onTap: onKasirTap,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-        splashColor: Colors.white.withValues(alpha: 0.18),
-        child: Container(
-          height: AppDimensions.minTouchTarget,
-          padding: EdgeInsets.symmetric(
-            horizontal:
-                isExpanded ? AppDimensions.spacing16 : AppDimensions.spacing12,
-          ),
-          child: Row(
-            mainAxisAlignment:
-                isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.point_of_sale,
-                color: Colors.white,
-                size: AppDimensions.iconMedium,
-              ),
-              if (isExpanded) ...[
-                const SizedBox(width: AppDimensions.spacing12),
-                Expanded(
-                  child: Text(
-                    'Kasir',
-                    style: AppTextStyles.button.copyWith(color: Colors.white),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-
-    return isExpanded
-        ? content
-        : Tooltip(
-            message: 'Buka kasir',
-            waitDuration: const Duration(milliseconds: 400),
-            child: content,
-          );
   }
 
   Widget _buildAccountRow() {

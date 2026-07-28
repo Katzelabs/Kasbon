@@ -141,12 +141,12 @@ void main() {
   });
 
   group('rail footer', () {
-    testWidgets('keeps Kasir one click away, matching the compact FAB',
-        (tester) async {
-      final navigated = await pumpShell(tester, ResponsiveWidths.medium);
+    testWidgets('carries the account row alone', (tester) async {
+      // A second Kasir button lived here until it was cut as redundant - the
+      // rail's own second destination already goes there.
+      await pumpShell(tester, ResponsiveWidths.large);
 
-      await tester.tap(find.byTooltip('Buka kasir'));
-      expect(navigated, ['/pos']);
+      expect(find.text('Kasir'), findsOneWidget);
     });
 
     testWidgets('routes the account row to settings', (tester) async {
