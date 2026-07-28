@@ -43,37 +43,48 @@ class ProductGridItem extends StatelessWidget {
         borderColor: hasInCart ? AppColors.primary : AppColors.border,
         onTap: _isDisabled ? null : onTap,
         child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Product image
-          Expanded(
-            flex: 3,
-            child: Stack(
-              children: [
-                _buildImage(),
-                // Stock badge
-                if (product.isOutOfStock || product.isLowStock)
-                  Positioned(
-                    top: AppDimensions.spacing8,
-                    right: AppDimensions.spacing8,
-                    child: _buildStockBadge(),
-                  ),
-                // Quantity in cart badge
-                if (hasInCart)
-                  Positioned(
-                    top: AppDimensions.spacing8,
-                    left: AppDimensions.spacing8,
-                    child: _buildCartBadge(),
-                  ),
-              ],
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product image - absorbs whatever height the text leaves over.
+            Expanded(
+              child: Stack(
+                children: [
+                  _buildImage(),
+                  // Stock badge
+                  if (product.isOutOfStock || product.isLowStock)
+                    Positioned(
+                      top: AppDimensions.spacing8,
+                      right: AppDimensions.spacing8,
+                      child: _buildStockBadge(),
+                    ),
+                  // Quantity in cart badge
+                  if (hasInCart)
+                    Positioned(
+                      top: AppDimensions.spacing8,
+                      left: AppDimensions.spacing8,
+                      child: _buildCartBadge(),
+                    ),
+                ],
+              ),
             ),
-          ),
-          // Product info
-          Expanded(
-            flex: 2,
-            child: Padding(
+            // Product info.
+            //
+            // Sized to its text rather than to a share of the tile, and the
+            // image above takes whatever is left. The three lines here have a
+            // fixed height - a name, a price and a stock line - so giving them a
+            // proportion of the tile is a bet that the proportion is always
+            // larger than the text, and it was not: at the tile geometry a
+            // phone produces, the old `Expanded(flex: 2)` was 19px short and the
+            // card overflowed.
+            //
+            // That bet used to be safe-ish because a fixed column count gave
+            // only a handful of possible tile sizes. The grid now sizes tiles by
+            // max extent, so every width between 2 and 9 columns is reachable
+            // and the text must not depend on the tile's proportions at all.
+            Padding(
               padding: const EdgeInsets.all(AppDimensions.spacing12),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Product name
@@ -92,8 +103,10 @@ class ProductGridItem extends StatelessWidget {
                     style: AppTextStyles.priceMedium.copyWith(
                       color: AppColors.primary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const Spacer(),
+                  const SizedBox(height: AppDimensions.spacing8),
                   // Stock info
                   Text(
                     'Stok: ${product.stock} ${product.unit}',
@@ -104,13 +117,14 @@ class ProductGridItem extends StatelessWidget {
                               ? AppColors.warning
                               : AppColors.textTertiary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

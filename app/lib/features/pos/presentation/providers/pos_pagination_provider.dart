@@ -7,8 +7,15 @@ import '../../../products/domain/entities/product_filter.dart';
 import '../../../products/domain/usecases/get_paginated_products.dart';
 import 'pos_search_provider.dart';
 
-/// Page size for POS product pagination
-const int kPosProductsPageSize = 10;
+/// Page size for POS product pagination.
+///
+/// Was 10, which was one and a half rows once the grid started fitting six
+/// columns to a desktop pane. The 200dp infinite-scroll trigger then fired on
+/// the frame the page arrived, every time, so the grid fetched continuously
+/// while sitting still - indistinguishable from a network fault.
+///
+/// 30 keeps a page at least three rows tall at every width the grid reaches.
+const int kPosProductsPageSize = 30;
 
 /// State class for POS paginated products
 class PosPaginatedState extends Equatable {
@@ -116,7 +123,8 @@ class PosPaginationNotifier extends StateNotifier<PosPaginatedState> {
   }
 
   /// Internal method to load products
-  Future<void> _loadProducts({required int page, required bool isInitial}) async {
+  Future<void> _loadProducts(
+      {required int page, required bool isInitial}) async {
     // Add debounce delay for search
     if (_currentSearchQuery?.isNotEmpty == true) {
       await Future.delayed(const Duration(milliseconds: 300));

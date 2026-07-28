@@ -3,20 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
-import '../../../../config/theme/app_shadows.dart';
-import '../../../../config/theme/app_text_styles.dart';
-import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
-import '../../../../shared/providers/navigation_sidebar_provider.dart';
 import '../../../categories/presentation/providers/categories_provider.dart';
 import '../../../products/domain/entities/product.dart';
-import '../../domain/entities/cart_item.dart';
 import '../../domain/entities/cart_operation_result.dart';
 import '../providers/cart_provider.dart';
+import '../providers/pos_layout_provider.dart';
 import '../providers/pos_pagination_provider.dart';
 import '../providers/pos_search_provider.dart';
-import '../widgets/cart_item_tile.dart';
+import '../widgets/cart_panel.dart';
 import '../widgets/cart_summary_bar.dart';
 import '../widgets/payment_dialog.dart';
 import '../widgets/pos_shortcuts.dart';
@@ -24,13 +20,18 @@ import '../widgets/product_grid_item.dart';
 
 /// Point of Sale (Kasir) screen
 ///
-/// Mobile layout:
-/// - Full-screen product grid
-/// - Floating cart button with item count
-/// - Bottom sheet for cart details
+/// Two layouts, chosen by how wide the *pane* is rather than by what the device
+/// is called - see [PosLayout.showsCartSidebar]:
 ///
-/// Tablet layout:
-/// - Split panel: Product grid (left ~60%) + Cart sidebar (right ~40%)
+/// - **Overlay** (below `expanded`): full-width product grid, a floating cart
+///   summary bar, and the cart as a modal sheet.
+/// - **Split** (`expanded` and above): product grid beside a docked
+///   [CartPanel], collapsible to a FAB.
+///
+/// The grid itself has no column count. It is scoped to the space it occupies
+/// and sized by [PosLayout.productTileMaxExtent], so the rail expanding, the
+/// cart collapsing and the window resizing are all the same event to it: the
+/// pane got wider or narrower.
 class PosScreen extends ConsumerStatefulWidget {
   const PosScreen({super.key});
 
@@ -42,7 +43,6 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _searchFocusNode = FocusNode(debugLabel: 'pos-search');
-  bool _isCartExpanded = true;
 
   /// Whether the soft keyboard is covering part of the screen.
   ///
@@ -114,21 +114,11 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     await PaymentDialog.show(context);
   }
 
-  /// Show confirmation dialog before clearing cart
-  Future<void> _confirmClearCart() async {
-    final confirmed = await ModernDialog.confirm(
-      context,
-      title: 'Hapus Semua Item?',
-      message: 'Semua item di keranjang akan dihapus.',
-      confirmLabel: 'Hapus Semua',
-      cancelLabel: 'Batal',
-      isDestructive: true,
-    );
-
-    if (confirmed == true) {
-      ref.read(cartProvider.notifier).clear();
-    }
-  }
+  /// Show confirmation dialog before clearing cart.
+  ///
+  /// Delegates to [CartPanel] so the Ctrl+Backspace path and the cart's own
+  /// "Hapus Semua" button ask the identical question.
+  Future<void> _confirmClearCart() => CartPanel.confirmClearCart(context, ref);
 
   /// Back out of the current context: drop the search filter if there is one,
   /// otherwise just give up focus so the grid is scrollable by keyboard again.
@@ -166,6 +156,10 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // The pane, not the window. Inside the shell this is the space left after
+    // the navigation rail, which is what decides whether a docked cart fits.
+    final layout = context.breakpointData;
+
     return PosShortcuts(
       onFocusSearch: _focusSearch,
       onCheckout: _checkout,
@@ -180,12 +174,15 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             // TODO: Navigate to profile
           },
         ),
-        body: context.isMobile ? _buildMobileLayout() : _buildTabletLayout(),
+        body: PosLayout.showsCartSidebar(layout.breakpoint)
+            ? _buildSplitLayout(layout)
+            : _buildOverlayLayout(),
       ),
     );
   }
 
-  Widget _buildMobileLayout() {
+  /// Grid across the full pane, cart reachable through the summary bar.
+  Widget _buildOverlayLayout() {
     // Was a local `const bottomNavHeight = 80.0`, duplicating
     // AppDimensions.bottomNavHeight where the two could drift apart
     // independently.
@@ -193,14 +190,17 @@ class _PosScreenState extends ConsumerState<PosScreen> {
 
     return Stack(
       children: [
-        // Main content
         Column(
           children: [
-            // Search and category filter in card
             _buildSearchAndFilterCard(),
-            // Product grid
             Expanded(
-              child: _buildProductGrid(crossAxisCount: 2),
+              child: _buildProductGrid(
+                // Both the summary bar and the shell's bottom bar float over
+                // the grid, so the last row needs room for whichever are
+                // present.
+                extraBottomPadding:
+                    shellBottomInset + PosLayout.cartSummaryBarInset,
+              ),
             ),
           ],
         ),
@@ -216,73 +216,78 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     );
   }
 
-  Widget _buildTabletLayout() {
-    // The rail's width is a function of the window tier as well as the stored
-    // preference - at `medium` it is pinned collapsed regardless. Resolve both
-    // rather than reading the raw preference, which is null until the user
-    // touches the toggle.
-    final isNavSidebarExpanded = resolveRailExpanded(
-      context.windowBreakpoint,
-      ref.watch(navigationSidebarExpandedProvider),
-    );
-
-    // Calculate grid columns based on sidebar visibility:
-    // - Cart hidden → 5 columns (regardless of nav state)
-    // - Cart visible + nav collapsed → 4 columns
-    // - Cart visible + nav expanded → 3 columns
-    int gridColumns;
-    if (!_isCartExpanded) {
-      gridColumns = 5;
-    } else if (isNavSidebarExpanded) {
-      gridColumns = 3;
-    } else {
-      gridColumns = 4;
-    }
+  /// Grid beside a docked cart.
+  ///
+  /// Neither side is given a column count or a fixed width by anything outside
+  /// this method: the cart takes its share of [layout], the grid gets the rest
+  /// and re-scopes to it, and the tile extent does the rest.
+  Widget _buildSplitLayout(BreakpointData layout) {
+    final isCartExpanded = ref.watch(posCartExpandedProvider);
+    final cartWidth = PosLayout.cartSidebarWidth(layout);
 
     return Stack(
       children: [
         Row(
           children: [
-            // Product grid section (left)
             Expanded(
-              child: Column(
-                children: [
-                  // Search and category filter in card
-                  _buildSearchAndFilterCard(),
-                  // Product grid - columns based on sidebar visibility
-                  Expanded(
-                    child: _buildProductGrid(
-                      crossAxisCount: gridColumns,
-                    ),
-                  ),
-                ],
+              // The grid pane measures itself. Collapsing the cart widens this
+              // by ~350dp and the grid gains columns from that alone, which is
+              // what deleted the cart-and-rail-state column ladder.
+              child: ModernBreakpointScope.fromLayout(
+                child: Column(
+                  children: [
+                    _buildSearchAndFilterCard(),
+                    Expanded(child: _buildProductGrid()),
+                  ],
+                ),
               ),
             ),
-            // Cart sidebar (right) - animated
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              width: _isCartExpanded ? 350 : 0,
-              child: _isCartExpanded
-                  ? Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        border: Border(
-                          left: BorderSide(
-                            color: AppColors.border,
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      child: _buildCartSidebar(),
-                    )
-                  : const SizedBox.shrink(),
+            _buildCartSidebar(
+              isExpanded: isCartExpanded,
+              width: cartWidth,
             ),
           ],
         ),
         // FAB when cart is collapsed - hidden when keyboard is visible
-        if (!_isCartExpanded && !_isKeyboardVisible) _buildCartFab(),
+        if (!isCartExpanded && !_isKeyboardVisible) _buildCartFab(),
       ],
+    );
+  }
+
+  Widget _buildCartSidebar({
+    required bool isExpanded,
+    required double width,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      width: isExpanded ? width : 0,
+      child: isExpanded
+          ? ClipRect(
+              // Mid-animation the container is narrower than the panel needs.
+              // Laying the panel out at its final width and clipping the
+              // overflow makes the cart slide in from the edge; without this
+              // it reflows every frame and overflows while it does.
+              child: OverflowBox(
+                alignment: Alignment.centerLeft,
+                minWidth: width,
+                maxWidth: width,
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(
+                      left: BorderSide(color: AppColors.border, width: 1),
+                    ),
+                  ),
+                  child: CartPanel.sidebar(
+                    onClose: () => ref
+                        .read(posCartExpandedProvider.notifier)
+                        .state = false,
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 
@@ -380,7 +385,7 @@ class _PosScreenState extends ConsumerState<PosScreen> {
     );
   }
 
-  Widget _buildProductGrid({required int crossAxisCount}) {
+  Widget _buildProductGrid({double extraBottomPadding = 0}) {
     final paginatedState = ref.watch(posPaginationProvider);
     final cart = ref.watch(cartProvider);
 
@@ -421,14 +426,14 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           left: AppDimensions.spacing16,
           right: AppDimensions.spacing16,
           top: AppDimensions.spacing16,
-          // Extra bottom padding for mobile to account for cart bar + bottom nav
-          bottom: context.isMobile
-              ? AppDimensions.spacing16 +
-                  160 // cart bar (~64) + bottom nav (~80) + spacing
-              : AppDimensions.spacing16,
+          bottom: AppDimensions.spacing16 + extraBottomPadding,
         ),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossAxisCount,
+        // Max extent rather than a column count: the grid fits as many 220dp
+        // tiles as the pane holds and stretches them to fill the remainder. A
+        // phone gets 2, a desktop pane with the cart closed gets 7, and no
+        // ladder of breakpoints has to be maintained to say so.
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: PosLayout.productTileMaxExtent,
           crossAxisSpacing: AppDimensions.spacing12,
           mainAxisSpacing: AppDimensions.spacing12,
           childAspectRatio: 0.75,
@@ -471,7 +476,8 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         clipBehavior: Clip.none,
         children: [
           FloatingActionButton(
-            onPressed: () => setState(() => _isCartExpanded = true),
+            onPressed: () =>
+                ref.read(posCartExpandedProvider.notifier).state = true,
             backgroundColor: AppColors.primary,
             child: const Icon(Icons.shopping_cart, color: Colors.white),
           ),
@@ -500,214 +506,6 @@ class _PosScreenState extends ConsumerState<PosScreen> {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCartSidebar() {
-    final cart = ref.watch(cartProvider);
-    final itemCount = ref.watch(cartItemCountProvider);
-    final total = ref.watch(cartTotalProvider);
-    final hasStockWarning = ref.watch(cartHasStockWarningProvider);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Cart header
-        Container(
-          padding: const EdgeInsets.only(
-            left: AppDimensions.spacing16,
-            right: AppDimensions.spacing8,
-            top: AppDimensions.spacing12,
-            bottom: AppDimensions.spacing12,
-          ),
-          decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: AppColors.border),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Text(
-                'Keranjang',
-                style: AppTextStyles.h4,
-              ),
-              const SizedBox(width: AppDimensions.spacing8),
-              Text(
-                '($itemCount)',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const Spacer(),
-              if (cart.isNotEmpty)
-                ModernButton.text(
-                  onPressed: () => _confirmClearCart(),
-                  size: ModernSize.small,
-                  child: Text(
-                    'Hapus Semua',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.error,
-                    ),
-                  ),
-                ),
-              IconButton(
-                onPressed: () => setState(() => _isCartExpanded = false),
-                icon: const Icon(Icons.close),
-                iconSize: AppDimensions.iconMedium,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(
-                  minWidth: AppDimensions.minTouchTarget,
-                  minHeight: AppDimensions.minTouchTarget,
-                ),
-                tooltip: 'Tutup keranjang',
-              ),
-            ],
-          ),
-        ),
-        // Cart items
-        Expanded(
-          child: cart.isEmpty ? _buildEmptyCart() : _buildCartItems(cart),
-        ),
-        // Stock warning
-        if (hasStockWarning)
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.spacing16,
-              vertical: AppDimensions.spacing8,
-            ),
-            color: AppColors.warningLight,
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.warning_amber_rounded,
-                  size: AppDimensions.iconMedium,
-                  color: AppColors.warning,
-                ),
-                const SizedBox(width: AppDimensions.spacing8),
-                Expanded(
-                  child: Text(
-                    'Beberapa item melebihi stok yang tersedia',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.warning,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        // Cart footer
-        _buildCartFooter(total, cart.isNotEmpty),
-      ],
-    );
-  }
-
-  Widget _buildEmptyCart() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.shopping_cart_outlined,
-            size: 64,
-            color: AppColors.textTertiary,
-          ),
-          const SizedBox(height: AppDimensions.spacing16),
-          Text(
-            'Keranjang Kosong',
-            style: AppTextStyles.h4.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppDimensions.spacing8),
-          Text(
-            'Pilih produk untuk menambahkan ke keranjang',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCartItems(List<CartItem> cart) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(AppDimensions.spacing16),
-      itemCount: cart.length,
-      separatorBuilder: (_, __) =>
-          const SizedBox(height: AppDimensions.spacing12),
-      itemBuilder: (context, index) {
-        final item = cart[index];
-        return CartItemTile(
-          item: item,
-          onQuantityChanged: (qty) {
-            final result = ref
-                .read(cartProvider.notifier)
-                .updateQuantity(item.product.id, qty);
-
-            if (result.result == CartOperationResult.exceedsStock) {
-              ModernToast.warning(
-                context,
-                'Stok maksimal ${result.availableStock} ${result.unit}',
-              );
-            }
-          },
-          onRemove: () {
-            ref.read(cartProvider.notifier).removeProduct(item.product.id);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildCartFooter(double total, bool hasItems) {
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.spacing16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: const Border(
-          top: BorderSide(color: AppColors.border),
-        ),
-        boxShadow: AppShadows.up,
-      ),
-      child: Column(
-        children: [
-          // Total
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Total',
-                style: AppTextStyles.bodyLarge.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                CurrencyFormatter.format(total),
-                style: AppTextStyles.h3.copyWith(
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppDimensions.spacing16),
-          // Checkout button
-          ModernButton.primary(
-            onPressed: hasItems
-                ? () async {
-                    final result = await PaymentDialog.show(context);
-                    if (result == true) {
-                      // Payment was successful - navigation handled by dialog
-                    }
-                  }
-                : null,
-            fullWidth: true,
-            size: ModernSize.large,
-            child: const Text('BAYAR'),
-          ),
         ],
       ),
     );

@@ -7,6 +7,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/domain/usecases/get_transaction.dart';
@@ -62,8 +63,16 @@ class TransactionSuccessScreen extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, Transaction transaction) {
-    return Padding(
-      padding: const EdgeInsets.all(AppDimensions.spacing24),
+    // This screen sits outside the shell, so nothing above it caps its width.
+    // Unclamped, the receipt summary spans a 2560px monitor and the two action
+    // buttons end up a metre apart. A form-width column is the same reading
+    // problem a login form has.
+    return ModernContentColumn(
+      width: ContentWidth.form,
+      horizontalPadding: AppDimensions.spacing24,
+      verticalPadding: const EdgeInsets.symmetric(
+        vertical: AppDimensions.spacing24,
+      ),
       child: Column(
         children: [
           // Close button at top-right
@@ -136,7 +145,8 @@ class TransactionSuccessScreen extends ConsumerWidget {
                 // Cash received
                 _buildDetailRow(
                   label: 'Uang Diterima',
-                  value: CurrencyFormatter.format(transaction.cashReceived ?? 0),
+                  value:
+                      CurrencyFormatter.format(transaction.cashReceived ?? 0),
                 ),
                 const SizedBox(height: AppDimensions.spacing12),
                 // Change
