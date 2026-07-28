@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../config/theme/app_dimensions.dart';
+import 'breakpoint.dart';
 
 /// How much space the app shell's own chrome takes out of a screen's body.
 ///
@@ -66,11 +67,13 @@ extension ModernShellInsets on BuildContext {
     // Uses MediaQuery rather than the breakpoint scope for the same reason:
     // this must not change when a pane scope narrows the measured width.
     //
-    // The threshold is the legacy one, so this returns exactly what the 25
-    // hand-written expressions returned. RESP_04 moves it to the tier boundary
-    // in the same commit that flips medium to a rail.
+    // The threshold is `compact`, and must stay in step with the tier the shell
+    // draws a bottom bar for. RESP_04 moved it down from the legacy 900: the
+    // medium tier now gets a navigation rail, so a 600-899dp window has no bar
+    // to pad around and every screen would otherwise reserve 80px of dead
+    // space beneath itself.
     final width = MediaQuery.sizeOf(this).width;
-    return width < AppDimensions.breakpointMobile
+    return AppBreakpoints.fromWidth(width).isCompact
         ? AppDimensions.bottomNavHeight
         : 0.0;
   }

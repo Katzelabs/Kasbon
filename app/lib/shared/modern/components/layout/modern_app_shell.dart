@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +10,9 @@ import '../../../../config/theme/app_shadows.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../providers/navigation_sidebar_provider.dart';
+import '../../../providers/shell_account_provider.dart';
+import '../data_display/modern_avatar.dart';
+import '../../utils/modern_variants.dart';
 
 /// Navigation item data for ModernAppShell
 class ModernNavItem {
@@ -32,8 +36,13 @@ class ModernNavItem {
   });
 }
 
-/// Default navigation items for the KASBON app
-const List<ModernNavItem> defaultMobileNavItems = [
+/// The four destinations the compact bottom bar can hold.
+///
+/// Four, not seven, because the bar also carries a notched FAB in its middle.
+/// POS, Hutang and Laporan are unreachable from here and live behind the FAB
+/// and the dashboard - which is precisely the gap the rail closes from `medium`
+/// upward.
+const List<ModernNavItem> defaultCompactNavItems = [
   ModernNavItem(
     icon: Icons.home_outlined,
     activeIcon: Icons.home,
@@ -60,7 +69,12 @@ const List<ModernNavItem> defaultMobileNavItems = [
   ),
 ];
 
-const List<ModernNavItem> defaultTabletNavItems = [
+/// Every destination, in the order `Ctrl/Cmd+1..7` addresses them.
+///
+/// The rail shows all seven at `medium` and up. The ordering is load-bearing
+/// twice over: it is the visual order of the rail, and it is the keyboard
+/// shortcut mapping, so inserting an item renumbers the shortcuts.
+const List<ModernNavItem> defaultRailNavItems = [
   ModernNavItem(
     icon: Icons.home_outlined,
     activeIcon: Icons.home,
@@ -105,15 +119,42 @@ const List<ModernNavItem> defaultTabletNavItems = [
   ),
 ];
 
-/// A Modern responsive navigation shell for the app
+/// Digits 1..7, in the order they map onto [defaultRailNavItems].
 ///
-/// Features:
-/// - Responsive layout (mobile bottom nav / tablet sidebar)
-/// - Customizable navigation items
-/// - Center FAB for mobile POS access
+/// `LogicalKeyboardKey` has no way to derive `digitN` from an index, so the
+/// list is spelled out. It is trimmed to the item count at bind time, which is
+/// what keeps a custom seven-plus-item list from throwing.
+const List<LogicalKeyboardKey> _destinationDigits = [
+  LogicalKeyboardKey.digit1,
+  LogicalKeyboardKey.digit2,
+  LogicalKeyboardKey.digit3,
+  LogicalKeyboardKey.digit4,
+  LogicalKeyboardKey.digit5,
+  LogicalKeyboardKey.digit6,
+  LogicalKeyboardKey.digit7,
+];
+
+/// The app's responsive navigation shell.
 ///
-/// Note: App bar is now handled by individual screens using [ModernAppBar].
-/// This shell only provides navigation (bottom nav for mobile, sidebar for tablet).
+/// ## Tier → chrome
+///
+/// | Tier       | Width      | Chrome                                        |
+/// |------------|------------|-----------------------------------------------|
+/// | `compact`  | < 600dp    | Bottom nav (4 items) + notched FAB            |
+/// | `medium`   | 600-899dp  | Collapsed 80dp rail, 7 items, no toggle       |
+/// | `expanded` | 900-1299dp | Rail, collapsible 80↔280, default collapsed   |
+/// | `large`    | >= 1300dp  | Rail, default expanded to 280dp with labels   |
+///
+/// `medium` is the behaviour change RESP_04 exists for. An iPad in portrait
+/// (834dp) used to get the phone build: a four-item bottom bar with POS,
+/// Hutang and Laporan simply missing. It now gets the rail and all seven.
+///
+/// The paired change is in `ModernShellInsets.shellBottomInset`, which stops
+/// reserving 80px below every screen in that band. The two must move together
+/// or 600-899dp gets padding for a bar that is no longer drawn.
+///
+/// Note: the app bar is owned by individual screens via [ModernAppBar]. This
+/// shell provides navigation only.
 ///
 /// Example:
 /// ```dart
@@ -127,8 +168,8 @@ class ModernAppShell extends ConsumerStatefulWidget {
     super.key,
     required this.child,
     required this.currentPath,
-    this.mobileNavItems,
-    this.tabletNavItems,
+    this.compactNavItems,
+    this.railNavItems,
     this.onNavigate,
     this.showFab = true,
     this.fabIcon = Icons.point_of_sale,
@@ -141,19 +182,19 @@ class ModernAppShell extends ConsumerStatefulWidget {
   /// The current route path
   final String currentPath;
 
-  /// Navigation items for mobile layout
-  /// Defaults to [defaultMobileNavItems]
-  final List<ModernNavItem>? mobileNavItems;
+  /// Destinations for the compact bottom bar.
+  /// Defaults to [defaultCompactNavItems].
+  final List<ModernNavItem>? compactNavItems;
 
-  /// Navigation items for tablet layout
-  /// Defaults to [defaultTabletNavItems]
-  final List<ModernNavItem>? tabletNavItems;
+  /// Destinations for the navigation rail, `medium` and up.
+  /// Defaults to [defaultRailNavItems].
+  final List<ModernNavItem>? railNavItems;
 
   /// Callback when a navigation item is tapped
   /// If null, uses GoRouter navigation
   final void Function(String routePath)? onNavigate;
 
-  /// Whether to show the center FAB on mobile
+  /// Whether to show the center FAB on compact
   final bool showFab;
 
   /// Icon for the center FAB
@@ -167,11 +208,11 @@ class ModernAppShell extends ConsumerStatefulWidget {
 }
 
 class _ModernAppShellState extends ConsumerState<ModernAppShell> {
-  List<ModernNavItem> get _mobileItems =>
-      widget.mobileNavItems ?? defaultMobileNavItems;
+  List<ModernNavItem> get _compactItems =>
+      widget.compactNavItems ?? defaultCompactNavItems;
 
-  List<ModernNavItem> get _tabletItems =>
-      widget.tabletNavItems ?? defaultTabletNavItems;
+  List<ModernNavItem> get _railItems =>
+      widget.railNavItems ?? defaultRailNavItems;
 
   int _getNavIndexFromPath(String path, List<ModernNavItem> items) {
     for (int i = 0; i < items.length; i++) {
@@ -198,9 +239,8 @@ class _ModernAppShellState extends ConsumerState<ModernAppShell> {
     }
   }
 
-  void _toggleSidebar() {
-    ref.read(navigationSidebarExpandedProvider.notifier).state =
-        !ref.read(navigationSidebarExpandedProvider);
+  void _toggleSidebar(Breakpoint tier) {
+    ref.read(navigationSidebarExpandedProvider.notifier).toggle(tier);
   }
 
   /// Get the actual current path from GoRouter for nested routes
@@ -220,14 +260,60 @@ class _ModernAppShellState extends ConsumerState<ModernAppShell> {
     // Get actual current path (handles nested routes correctly)
     final actualPath = _getCurrentPath(context);
 
-    if (context.isMobile) {
-      return _buildMobileShell(actualPath);
-    }
-    return _buildTabletShell(actualPath);
+    // The window, not the container. This is shell chrome deciding what the
+    // whole window looks like - the one case `windowBreakpoint` is for.
+    final tier = context.windowBreakpoint;
+
+    final shell = tier.isCompact
+        ? _buildCompactShell(actualPath)
+        : _buildRailShell(actualPath, tier);
+
+    return _withDestinationShortcuts(shell);
   }
 
-  Widget _buildMobileShell(String currentPath) {
-    final currentIndex = _getNavIndexFromPath(currentPath, _mobileItems);
+  /// Binds `Ctrl/Cmd+1..7` to the rail destinations.
+  ///
+  /// Both modifiers are registered rather than branching on the platform: the
+  /// app runs on macOS, Windows, Linux and the web, and a user on a Mac with a
+  /// PC keyboard reaches for Ctrl. Neither combination collides with a text
+  /// field's own bindings.
+  ///
+  /// The shortcuts stay bound at every tier, including `compact`. A narrow
+  /// desktop window still has a keyboard, and the four-item bottom bar is
+  /// exactly where the other three destinations are hardest to reach.
+  ///
+  /// The [Focus] wrapper is load-bearing. Key events walk *up* from the node
+  /// holding primary focus; with nothing focused that node is the root scope,
+  /// which sits above this widget, and the bindings would never be consulted.
+  /// `autofocus` parks focus inside the shell so the chain always passes
+  /// through here, and `skipTraversal` keeps it out of the tab order.
+  Widget _withDestinationShortcuts(Widget child) {
+    final items = _railItems;
+    final count = items.length < _destinationDigits.length
+        ? items.length
+        : _destinationDigits.length;
+
+    final bindings = <ShortcutActivator, VoidCallback>{};
+    for (var i = 0; i < count; i++) {
+      final path = items[i].routePath;
+      void go() => _onNavigate(path);
+
+      bindings[SingleActivator(_destinationDigits[i], control: true)] = go;
+      bindings[SingleActivator(_destinationDigits[i], meta: true)] = go;
+    }
+
+    return CallbackShortcuts(
+      bindings: bindings,
+      child: Focus(
+        autofocus: true,
+        skipTraversal: true,
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildCompactShell(String currentPath) {
+    final currentIndex = _getNavIndexFromPath(currentPath, _compactItems);
 
     return Scaffold(
       // Inherits AppColors.background from the theme. The canvas is a cool
@@ -235,10 +321,10 @@ class _ModernAppShellState extends ConsumerState<ModernAppShell> {
       // scaffold they were invisible except for their shadow.
       extendBody: true,
       body: ModernBreakpointScope.fromLayout(child: widget.child),
-      bottomNavigationBar: _ModernMobileBottomNav(
-        items: _mobileItems,
+      bottomNavigationBar: _ModernCompactBottomNav(
+        items: _compactItems,
         currentIndex: currentIndex,
-        onTap: (index) => _onNavigate(_mobileItems[index].routePath),
+        onTap: (index) => _onNavigate(_compactItems[index].routePath),
         showFab: widget.showFab,
         fabIcon: widget.fabIcon,
         onFabTap: _onFabTap,
@@ -247,24 +333,34 @@ class _ModernAppShellState extends ConsumerState<ModernAppShell> {
     );
   }
 
-  Widget _buildTabletShell(String currentPath) {
-    final currentIndex = _getNavIndexFromPath(currentPath, _tabletItems);
-    final isSidebarExpanded = ref.watch(navigationSidebarExpandedProvider);
+  Widget _buildRailShell(String currentPath, Breakpoint tier) {
+    final currentIndex = _getNavIndexFromPath(currentPath, _railItems);
+    final isExpanded = resolveRailExpanded(
+      tier,
+      ref.watch(navigationSidebarExpandedProvider),
+    );
+
+    // Only `expanded` and `large` have room for a 280dp rail, so `medium`
+    // offers no toggle rather than a control that would do nothing.
+    final canToggle = tier.atLeast(Breakpoint.expanded);
 
     return Scaffold(
       // Rail stays white, content area takes the cool canvas - the two zones
       // separate by value rather than by a shadow drawn between two whites.
       body: SafeArea(
-        bottom: false, // Typically not needed for tablet
+        bottom: false, // No bottom chrome at this tier.
         child: Row(
           children: [
-            // Sidebar
-            _ModernTabletSidebar(
-              items: _tabletItems,
+            _ModernNavigationRail(
+              items: _railItems,
               currentIndex: currentIndex,
-              onTap: (index) => _onNavigate(_tabletItems[index].routePath),
-              isExpanded: isSidebarExpanded,
-              onToggleExpanded: _toggleSidebar,
+              onTap: (index) => _onNavigate(_railItems[index].routePath),
+              isExpanded: isExpanded,
+              onToggleExpanded: canToggle ? () => _toggleSidebar(tier) : null,
+              account: ref.watch(shellAccountProvider),
+              isPosActive: currentPath.startsWith('/pos'),
+              onKasirTap: _onFabTap,
+              onAccountTap: () => _onNavigate('/settings'),
             ),
             // Main content area.
             //
@@ -281,12 +377,11 @@ class _ModernAppShellState extends ConsumerState<ModernAppShell> {
       ),
     );
   }
-
 }
 
-/// Mobile bottom navigation with center FAB
-class _ModernMobileBottomNav extends StatelessWidget {
-  const _ModernMobileBottomNav({
+/// Compact bottom navigation with center FAB
+class _ModernCompactBottomNav extends StatelessWidget {
+  const _ModernCompactBottomNav({
     required this.items,
     required this.currentIndex,
     required this.onTap,
@@ -413,45 +508,66 @@ class _ModernMobileBottomNav extends StatelessWidget {
     final item = items[index];
     final isSelected = currentIndex == index;
 
-    return InkWell(
-      onTap: () => onTap(index),
-      borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.spacing12,
-          vertical: AppDimensions.spacing8,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isSelected ? (item.activeIcon ?? item.icon) : item.icon,
-              color: isSelected ? AppColors.primary : AppColors.textTertiary,
-              size: AppDimensions.iconLarge,
-            ),
-            const SizedBox(height: AppDimensions.spacing4),
-            Text(
-              item.label,
-              style: AppTextStyles.navLabel.copyWith(
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+    // Flexible, so the row can never overflow. There is slack at 375dp with
+    // 'Pengaturan' at the default text scale, but not much - a 320dp screen or
+    // the 1.2 scale the app clamps to eats it, and four items plus a 72dp FAB
+    // notch leave nowhere for the excess to go. Where there is room this lays
+    // out identically to an unconstrained child.
+    return Flexible(
+      child: InkWell(
+        onTap: () => onTap(index),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.spacing12,
+            vertical: AppDimensions.spacing8,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isSelected ? (item.activeIcon ?? item.icon) : item.icon,
                 color: isSelected ? AppColors.primary : AppColors.textTertiary,
+                size: AppDimensions.iconLarge,
               ),
-            ),
-          ],
+              const SizedBox(height: AppDimensions.spacing4),
+              Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTextStyles.navLabel.copyWith(
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color:
+                      isSelected ? AppColors.primary : AppColors.textTertiary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Tablet sidebar navigation
-class _ModernTabletSidebar extends StatelessWidget {
-  const _ModernTabletSidebar({
+/// The navigation rail shown at `medium` and above.
+///
+/// Hand-rolled rather than Material's [NavigationRail], deliberately. The
+/// active row here is a solid `primaryContainer` fill (see [_buildNavItem]),
+/// collapsed rows carry tooltips, and rows have a hover colour tuned to this
+/// palette. `NavigationRail` supplies none of the three and offers nothing in
+/// exchange - it does not collapse to labels-on-demand, and its indicator is
+/// a pill behind the icon only.
+class _ModernNavigationRail extends StatelessWidget {
+  const _ModernNavigationRail({
     required this.items,
     required this.currentIndex,
     required this.onTap,
     required this.isExpanded,
+    required this.isPosActive,
+    required this.onKasirTap,
+    required this.onAccountTap,
+    this.account,
     this.onToggleExpanded,
   });
 
@@ -459,6 +575,18 @@ class _ModernTabletSidebar extends StatelessWidget {
   final int currentIndex;
   final void Function(int index) onTap;
   final bool isExpanded;
+
+  /// Whether POS is the current route, so the Kasir action can echo the
+  /// compact FAB's pressed state.
+  final bool isPosActive;
+
+  final VoidCallback onKasirTap;
+  final VoidCallback onAccountTap;
+
+  /// Signed-in identity, or null when there is no session.
+  final ShellAccount? account;
+
+  /// Null at `medium`, where a 280dp rail would not fit.
   final VoidCallback? onToggleExpanded;
 
   @override
@@ -480,25 +608,40 @@ class _ModernTabletSidebar extends StatelessWidget {
           right: BorderSide(color: AppColors.border),
         ),
       ),
-      child: Column(
-        children: [
-          // Logo area
-          _buildLogoArea(),
-          // Navigation items
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppDimensions.spacing12,
-                vertical: AppDimensions.spacing12,
+      // The rows are laid out at the destination width from the first frame
+      // and the box slides over them, rather than the rows being squeezed
+      // through every width in between. Without this, an 80→280 expansion
+      // spends 200ms laying an icon, a 16dp gap and a label into 23dp of row -
+      // which is not merely ugly, it is a RenderFlex overflow on every frame
+      // of the animation.
+      child: ClipRect(
+        child: OverflowBox(
+          alignment: Alignment.centerLeft,
+          minWidth: width,
+          maxWidth: width,
+          child: Column(
+            children: [
+              // Logo area
+              _buildLogoArea(),
+              // Navigation items
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppDimensions.spacing12,
+                    vertical: AppDimensions.spacing12,
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) => _buildNavItem(index),
+                ),
               ),
-              itemCount: items.length,
-              itemBuilder: (context, index) => _buildNavItem(index),
-            ),
+              // Footer: the Kasir shortcut and the account row.
+              _buildFooter(),
+              // Toggle button
+              if (onToggleExpanded != null) _buildToggleButton(),
+              const SizedBox(height: AppDimensions.spacing16),
+            ],
           ),
-          // Toggle button
-          if (onToggleExpanded != null) _buildToggleButton(),
-          const SizedBox(height: AppDimensions.spacing16),
-        ],
+        ),
       ),
     );
   }
@@ -555,8 +698,7 @@ class _ModernTabletSidebar extends StatelessWidget {
     final item = items[index];
     final isSelected = currentIndex == index;
 
-    final foreground =
-        isSelected ? AppColors.primary : AppColors.textSecondary;
+    final foreground = isSelected ? AppColors.primary : AppColors.textSecondary;
 
     final content = Material(
       // A solid container tint rather than 10% primary. At one-tenth alpha the
@@ -616,6 +758,160 @@ class _ModernTabletSidebar extends StatelessWidget {
               child: content,
             ),
     );
+  }
+
+  /// The Kasir shortcut and the account row.
+  ///
+  /// Kasir is duplicated here on purpose. On compact it is the notched FAB -
+  /// permanently visible, one tap from any screen - and the rail replacing the
+  /// bottom bar must not quietly demote the app's most-used action to one row
+  /// among seven. The rail item stays as the *destination*; this is the
+  /// *action*, tinted the same primary as the FAB it stands in for.
+  Widget _buildFooter() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppDimensions.spacing12,
+        AppDimensions.spacing12,
+        AppDimensions.spacing12,
+        AppDimensions.spacing8,
+      ),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: AppColors.borderLight),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildKasirAction(),
+          const SizedBox(height: AppDimensions.spacing8),
+          _buildAccountRow(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKasirAction() {
+    final background = isPosActive ? AppColors.primaryDark : AppColors.primary;
+
+    final content = Material(
+      color: background,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+      child: InkWell(
+        onTap: onKasirTap,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+        splashColor: Colors.white.withValues(alpha: 0.18),
+        child: Container(
+          height: AppDimensions.minTouchTarget,
+          padding: EdgeInsets.symmetric(
+            horizontal:
+                isExpanded ? AppDimensions.spacing16 : AppDimensions.spacing12,
+          ),
+          child: Row(
+            mainAxisAlignment:
+                isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.point_of_sale,
+                color: Colors.white,
+                size: AppDimensions.iconMedium,
+              ),
+              if (isExpanded) ...[
+                const SizedBox(width: AppDimensions.spacing12),
+                Expanded(
+                  child: Text(
+                    'Kasir',
+                    style: AppTextStyles.button.copyWith(color: Colors.white),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return isExpanded
+        ? content
+        : Tooltip(
+            message: 'Buka kasir',
+            waitDuration: const Duration(milliseconds: 400),
+            child: content,
+          );
+  }
+
+  Widget _buildAccountRow() {
+    // No session, or Supabase not initialised. The row still navigates to
+    // settings, so the rail's shape does not change under it.
+    final name = account?.name ?? 'Akun';
+    final email = account?.email;
+
+    final avatar = ModernAvatar.initials(
+      account?.initials ?? '?',
+      size: ModernSize.small,
+      backgroundColor: AppColors.primaryContainer,
+      foregroundColor: AppColors.primary,
+    );
+
+    final content = Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+      child: InkWell(
+        onTap: onAccountTap,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+        hoverColor: AppColors.surfaceVariant,
+        child: Container(
+          height: AppDimensions.minTouchTarget,
+          padding: EdgeInsets.symmetric(
+            horizontal:
+                isExpanded ? AppDimensions.spacing12 : AppDimensions.spacing8,
+          ),
+          child: Row(
+            mainAxisAlignment:
+                isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
+            children: [
+              avatar,
+              if (isExpanded) ...[
+                const SizedBox(width: AppDimensions.spacing12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (email != null && email != name)
+                        Text(
+                          email,
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.textTertiary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+
+    return isExpanded
+        ? content
+        : Tooltip(
+            message: email == null || email == name ? name : '$name\n$email',
+            waitDuration: const Duration(milliseconds: 400),
+            child: content,
+          );
   }
 
   Widget _buildToggleButton() {

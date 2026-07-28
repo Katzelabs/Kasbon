@@ -142,7 +142,14 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   }
 
   Widget _buildTabletLayout() {
-    final isNavSidebarExpanded = ref.watch(navigationSidebarExpandedProvider);
+    // The rail's width is a function of the window tier as well as the stored
+    // preference - at `medium` it is pinned collapsed regardless. Resolve both
+    // rather than reading the raw preference, which is null until the user
+    // touches the toggle.
+    final isNavSidebarExpanded = resolveRailExpanded(
+      context.windowBreakpoint,
+      ref.watch(navigationSidebarExpandedProvider),
+    );
 
     // Calculate grid columns based on sidebar visibility:
     // - Cart hidden → 5 columns (regardless of nav state)
