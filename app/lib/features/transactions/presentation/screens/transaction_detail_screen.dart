@@ -16,38 +16,75 @@ import '../providers/transactions_provider.dart';
 import '../widgets/transaction_item_tile.dart';
 import '../../../../config/routes/app_router.dart';
 
-/// Screen displaying transaction details
+/// Screen displaying transaction details.
+///
+/// Serves two routes - `/transactions/:id` and `/debts/:id` - and two
+/// presentations: a full screen below the split breakpoint, and the detail pane
+/// of whichever list it was opened from above it. It reads [DetailPaneScope] to
+/// tell which, rather than being duplicated into a purpose-built panel the way
+/// products was: the difference here is a header and a dismissal, not a layout.
 class TransactionDetailScreen extends ConsumerWidget {
   const TransactionDetailScreen({
     super.key,
     required this.transactionId,
+    this.basePath = AppRoutes.transactions,
   });
 
   final String transactionId;
 
+  /// The list this detail hangs off - `/transactions` from the history,
+  /// `/debts` from the hutang list.
+  ///
+  /// Only used when there is no stack to pop, which is what a deep link or a
+  /// refresh leaves you with. `go` synthesises the parent from the URL in every
+  /// other case, and the URL already knows which branch you are on.
+  final String basePath;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final transactionAsync = ref.watch(transactionDetailProvider(transactionId));
+    final transactionAsync =
+        ref.watch(transactionDetailProvider(transactionId));
+    final pane = DetailPaneScope.maybeOf(context);
 
     return Scaffold(
-      appBar: ModernAppBar.backWithActions(
-        title: 'Detail Transaksi',
-        onBack: () {
-          // If we can pop (came from transaction list), pop
-          // Otherwise navigate to transactions list (came from success screen)
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go(AppRoutes.transactions);
-          }
-        },
-        onProfileTap: () {},
-      ),
+      // Docked, this is not a screen on the window's canvas - it is what the
+      // panel is showing, so the panel's own surface has to read through.
+      //
+      // A Scaffold paints `scaffoldBackgroundColor` by default, which flipped
+      // the panel from white to the list's grey the moment a row was selected,
+      // and took the divider with it. Transparent here, not
+      // `AppColors.surface`: the panel decides what a panel looks like, and one
+      // place should own that.
+      backgroundColor: pane != null ? Colors.transparent : null,
+      // A pane owns no navigation: it has nothing to go back to, and the
+      // account menu belongs to the window once. Closing it is what "back"
+      // means here, and that is the pane's own affordance.
+      appBar: pane != null
+          ? ModernAppBar.pane(
+              title: 'Detail Transaksi',
+              onClose: pane.onClose,
+            )
+          : ModernAppBar.backWithActions(
+              title: 'Detail Transaksi',
+              onBack: () {
+                // Popping is what returns you to the list you came from -
+                // `/debts` or `/transactions`, whichever synthesised this
+                // stack. The fallback is for arrivals with no stack at all,
+                // like the success screen or a cold deep link.
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go(basePath);
+                }
+              },
+              onProfileTap: () {},
+            ),
       body: transactionAsync.when(
         loading: () => const Center(child: ModernLoading()),
         error: (error, _) => ModernErrorState.generic(
           message: 'Gagal memuat detail transaksi',
-          onRetry: () => ref.invalidate(transactionDetailProvider(transactionId)),
+          onRetry: () =>
+              ref.invalidate(transactionDetailProvider(transactionId)),
         ),
         data: (transaction) => _buildContent(context, ref, transaction),
       ),
@@ -59,35 +96,94 @@ class TransactionDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     Transaction transaction,
   ) {
-    final isTablet = context.isTabletOrDesktop;
-
     // Calculate bottom padding based on device type to account for bottom nav
-    final bottomPadding =
-        AppDimensions.spacing16 + context.shellBottomInset;
+    final bottomPadding = AppDimensions.spacing16 + context.shellBottomInset;
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        left: isTablet ? AppDimensions.spacing24 : AppDimensions.spacing16,
-        right: isTablet ? AppDimensions.spacing24 : AppDimensions.spacing16,
-        top: isTablet ? AppDimensions.spacing24 : AppDimensions.spacing16,
-        bottom: isTablet ? AppDimensions.spacing24 : bottomPadding,
+    return ModernContentColumn(
+      verticalPadding: EdgeInsets.only(
+        top: AppDimensions.spacing16,
+        bottom: bottomPadding,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Transaction header card
-          _buildHeaderCard(transaction),
-          const SizedBox(height: AppDimensions.spacing16),
-          // Items list card
-          _buildItemsCard(transaction),
-          const SizedBox(height: AppDimensions.spacing16),
-          // Payment summary card
-          _buildPaymentCard(transaction),
-          const SizedBox(height: AppDimensions.spacing24),
-          // Action buttons
-          _buildActionButtons(context, ref, transaction),
-        ],
+      child: SingleChildScrollView(
+        child: Builder(
+          // The tier is read here, inside the content column, and from the
+          // *scope* rather than from MediaQuery. Both matter: this screen is
+          // also the detail pane of the transactions and debts lists, where it
+          // has ~400dp regardless of how wide the window is. Asking the window
+          // would put a two-column layout in a phone-width panel.
+          builder: (context) => context.isAtLeast(Breakpoint.expanded)
+              ? _buildTwoColumn(context, ref, transaction)
+              : _buildSingleColumn(context, ref, transaction),
+        ),
       ),
+    );
+  }
+
+  /// Narrow, and in the detail pane: one column of cards.
+  Widget _buildSingleColumn(
+    BuildContext context,
+    WidgetRef ref,
+    Transaction transaction,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildHeaderCard(transaction),
+        const SizedBox(height: AppDimensions.spacing16),
+        _buildItemsCard(transaction),
+        const SizedBox(height: AppDimensions.spacing16),
+        _buildPaymentCard(transaction),
+        const SizedBox(height: AppDimensions.spacing24),
+        // Side by side once the column is wider than a phone. In the detail
+        // pane this is compact, so they stack there.
+        _buildActionButtons(
+          context,
+          ref,
+          transaction,
+          stacked: context.isCompact,
+        ),
+      ],
+    );
+  }
+
+  /// Wide: the line items on the left, what you owe and what you can do about
+  /// it on the right.
+  ///
+  /// The header spans both columns rather than sitting above one of them - it
+  /// names the whole transaction, so it is a title, not a left-column card.
+  Widget _buildTwoColumn(
+    BuildContext context,
+    WidgetRef ref,
+    Transaction transaction,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildHeaderCard(transaction),
+        const SizedBox(height: AppDimensions.spacing16),
+        Row(
+          // The item list is usually the taller of the two; stretching the
+          // totals card to match would leave a card mostly full of nothing.
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(flex: 3, child: _buildItemsCard(transaction)),
+            const SizedBox(width: AppDimensions.spacing16),
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildPaymentCard(transaction),
+                  const SizedBox(height: AppDimensions.spacing16),
+                  // Stacked even here: this column is the narrow one, and two
+                  // buttons side by side inside it would each be ~150dp.
+                  _buildActionButtons(context, ref, transaction, stacked: true),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -176,7 +272,8 @@ class TransactionDetailScreen extends ConsumerWidget {
           if (transaction.discountAmount > 0)
             ModernSummaryRow(
               label: 'Diskon',
-              value: '- ${CurrencyFormatter.format(transaction.discountAmount)}',
+              value:
+                  '- ${CurrencyFormatter.format(transaction.discountAmount)}',
             ),
           const SizedBox(height: AppDimensions.spacing8),
           const ModernDivider(),
@@ -207,18 +304,24 @@ class TransactionDetailScreen extends ConsumerWidget {
   Widget _buildActionButtons(
     BuildContext context,
     WidgetRef ref,
-    Transaction transaction,
-  ) {
-    final isTablet = context.isTabletOrDesktop;
-
+    Transaction transaction, {
+    required bool stacked,
+  }) {
     // Generate receipt text for sharing
-    final receiptText = ref.watch(receiptTextFromTransactionProvider(transaction));
+    final receiptText =
+        ref.watch(receiptTextFromTransactionProvider(transaction));
 
     final receiptButton = ModernButton.primary(
       fullWidth: true,
       leadingIcon: Icons.receipt_outlined,
       onPressed: () {
-        // Navigate to receipt screen
+        // Always the transaction's receipt, even when this detail was opened
+        // from `/debts`: a transaction has one receipt, not one per list it can
+        // be reached through, and a `/debts/:id/receipt` duplicate would be a
+        // second route to the same print preview. The cost is that backing out
+        // of the receipt lands on `/transactions/:id`; the receipt is a leaf
+        // you leave, so it is the branch you continue in rather than the one
+        // you were sent back to.
         context.go(AppRoutes.receiptPath(transaction.id));
       },
       child: const Text('Lihat Struk'),
@@ -238,22 +341,22 @@ class TransactionDetailScreen extends ConsumerWidget {
       child: const Text('Bagikan Struk'),
     );
 
-    if (isTablet) {
-      return Row(
+    if (stacked) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(child: receiptButton),
-          const SizedBox(width: AppDimensions.spacing12),
-          Expanded(child: shareButton),
+          receiptButton,
+          const SizedBox(height: AppDimensions.spacing12),
+          shareButton,
         ],
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Row(
       children: [
-        receiptButton,
-        const SizedBox(height: AppDimensions.spacing12),
-        shareButton,
+        Expanded(child: receiptButton),
+        const SizedBox(width: AppDimensions.spacing12),
+        Expanded(child: shareButton),
       ],
     );
   }

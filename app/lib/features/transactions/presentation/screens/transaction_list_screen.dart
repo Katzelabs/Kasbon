@@ -10,49 +10,98 @@ import '../providers/transactions_provider.dart';
 import '../widgets/date_filter_chips.dart';
 import '../widgets/transaction_card.dart';
 import '../widgets/transaction_date_header.dart';
+import 'transaction_detail_screen.dart';
 import '../../../../config/routes/app_router.dart';
 
-/// Screen displaying list of transactions with date filtering
-class TransactionListScreen extends ConsumerWidget {
+/// Screen displaying list of transactions with date filtering.
+///
+/// ## One screen, one header, the split inside it
+///
+/// The screen owns the `Scaffold` and the app bar, and the body divides into
+/// the list and a docked detail panel - the arrangement `ProductListScreen` and
+/// `PosScreen` both use. Wrapping the *whole screen* would put the header
+/// inside the left pane, so "Riwayat Transaksi" would stop short of the panel.
+class TransactionListScreen extends StatelessWidget {
   const TransactionListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final groupedAsync = ref.watch(groupedTransactionsProvider);
-
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Riwayat Transaksi',
         onProfileTap: () {},
       ),
-      body: Column(
-        children: [
-          // Date filter chips
-          const DateFilterChips(),
-          const ModernDivider(),
-          // Transaction list
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () async {
-                ref.invalidate(transactionsProvider);
-              },
-              child: groupedAsync.when(
-                loading: () => const Center(child: ModernLoading()),
-                error: (error, _) => ModernErrorState.generic(
-                  message: 'Gagal memuat transaksi',
-                  onRetry: () => ref.invalidate(transactionsProvider),
-                ),
-                data: (grouped) {
-                  if (grouped.isEmpty) {
-                    return _buildEmptyState();
-                  }
-                  return _buildTransactionList(context, grouped);
-                },
+      body: MasterDetailScaffold(
+        basePath: AppRoutes.transactions,
+        selectionParser: AppRoutes.selectedTransactionId,
+        // The detail screen itself, not a purpose-built panel: it reads
+        // DetailPaneScope and swaps its own chrome. Products needed a panel
+        // because its screen's two-column body and scrolling action row both
+        // had to change; this one is a single column of cards either way.
+        detailBuilder: (context, uri, id) => TransactionDetailScreen(
+          key: ValueKey('transaction-$id'),
+          transactionId: id,
+        ),
+        placeholderBuilder: (context) => const _DetailPanePlaceholder(),
+        master: const TransactionListPane(),
+      ),
+    );
+  }
+}
+
+/// What the detail panel shows before anything is selected.
+class _DetailPanePlaceholder extends StatelessWidget {
+  const _DetailPanePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ModernEmptyState(
+      icon: Icons.receipt_long_outlined,
+      title: 'Pilih Transaksi',
+      message: 'Pilih transaksi dari daftar untuk melihat detailnya',
+    );
+  }
+}
+
+/// The transaction list itself, filling whichever pane it is given.
+///
+/// Split out from [TransactionListScreen] so the date chips and the card
+/// padding measure themselves against the *pane*, not against the content area
+/// the header spans.
+class TransactionListPane extends ConsumerWidget {
+  const TransactionListPane({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final groupedAsync = ref.watch(groupedTransactionsProvider);
+
+    return Column(
+      children: [
+        // Date filter chips
+        const DateFilterChips(),
+        const ModernDivider(),
+        // Transaction list
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(transactionsProvider);
+            },
+            child: groupedAsync.when(
+              loading: () => const Center(child: ModernLoading()),
+              error: (error, _) => ModernErrorState.generic(
+                message: 'Gagal memuat transaksi',
+                onRetry: () => ref.invalidate(transactionsProvider),
               ),
+              data: (grouped) {
+                if (grouped.isEmpty) {
+                  return _buildEmptyState();
+                }
+                return _buildTransactionList(context, grouped);
+              },
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -68,10 +117,13 @@ class TransactionListScreen extends ConsumerWidget {
     BuildContext context,
     Map<DateTime, List<Transaction>> grouped,
   ) {
-    final padding = context.horizontalPadding;
+    // The pane's padding, not the window's: as a master pane this list is much
+    // narrower than the window it sits in, and the deprecated
+    // `horizontalPadding` would give it a 32dp desktop inset inside a 600dp
+    // column.
+    final padding = context.contentPadding;
     // Calculate bottom padding based on device type to account for bottom nav
-    final bottomPadding =
-        AppDimensions.spacing16 + context.shellBottomInset;
+    final bottomPadding = AppDimensions.spacing16 + context.shellBottomInset;
 
     final slivers = grouped.entries.expand((entry) {
       final date = entry.key;
@@ -99,7 +151,8 @@ class TransactionListScreen extends ConsumerWidget {
                   ),
                   child: TransactionCard(
                     transaction: txn,
-                    onTap: () => context.go(AppRoutes.transactionDetailPath(txn.id)),
+                    onTap: () =>
+                        context.go(AppRoutes.transactionDetailPath(txn.id)),
                   ),
                 );
               },
