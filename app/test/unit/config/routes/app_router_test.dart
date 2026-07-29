@@ -12,6 +12,7 @@ void main() {
       expect(AppRoutes.productDetailPath('p1'), '/products/p1');
       expect(AppRoutes.productEditPath('p1'), '/products/p1/edit');
       expect(AppRoutes.transactionDetailPath('t1'), '/transactions/t1');
+      expect(AppRoutes.debtDetailPath('t1'), '/debts/t1');
       expect(AppRoutes.receiptPath('t1'), '/transactions/t1/receipt');
       expect(AppRoutes.posSuccessPath('t1'), '/pos/success/t1');
     });
@@ -27,6 +28,8 @@ void main() {
             AppRoutes.productEditPath('p1'),
         AppRoutes.transactionDetail.replaceAll(':id', 't1'):
             AppRoutes.transactionDetailPath('t1'),
+        AppRoutes.debtDetail.replaceAll(':id', 't1'):
+            AppRoutes.debtDetailPath('t1'),
         AppRoutes.receipt.replaceAll(':id', 't1'): AppRoutes.receiptPath('t1'),
         AppRoutes.posSuccess.replaceAll(':transactionId', 't1'):
             AppRoutes.posSuccessPath('t1'),
@@ -56,6 +59,75 @@ void main() {
         AppRoutes.receiptPath('t1')
             .startsWith(AppRoutes.transactionDetailPath('t1')),
         isTrue,
+      );
+    });
+
+    // The wart this fixes: debt used to tap through to /transactions/:id, so
+    // `go` synthesised /transactions as the parent and backing out of a debt
+    // landed on the transaction history. A debt's detail has to hang off
+    // /debts for back to mean the list you opened it from.
+    test('nest the debt detail under the debt list, not under transactions',
+        () {
+      expect(
+        AppRoutes.debtDetailPath('t1').startsWith('${AppRoutes.debts}/'),
+        isTrue,
+      );
+      expect(
+        AppRoutes.debtDetailPath('t1').startsWith(AppRoutes.transactions),
+        isFalse,
+      );
+    });
+
+    // Both routes address the same record. If one id builder ever stopped
+    // agreeing with the other, /debts/:id would open a different transaction
+    // than /transactions/:id for the same tap.
+    test('address the same transaction from either list', () {
+      expect(
+        AppRoutes.selectedDebtId(Uri.parse(AppRoutes.debtDetailPath('t1'))),
+        AppRoutes.selectedTransactionId(
+          Uri.parse(AppRoutes.transactionDetailPath('t1')),
+        ),
+      );
+    });
+  });
+
+  group('AppRoutes.selectedTransactionId', () {
+    test('reads the id out of the detail location', () {
+      expect(
+        AppRoutes.selectedTransactionId(Uri.parse('/transactions/t1')),
+        't1',
+      );
+    });
+
+    // The receipt covers the whole window at every tier, so nothing is visibly
+    // selected while it is up - but dismissing it returns to a split whose
+    // pane should still be showing the transaction the receipt came from.
+    test('keeps the selection while the receipt is up', () {
+      expect(
+        AppRoutes.selectedTransactionId(Uri.parse('/transactions/t1/receipt')),
+        't1',
+      );
+    });
+
+    test('finds nothing to select on the list or another feature', () {
+      expect(
+        AppRoutes.selectedTransactionId(Uri.parse('/transactions')),
+        isNull,
+      );
+      expect(AppRoutes.selectedTransactionId(Uri.parse('/debts/t1')), isNull);
+    });
+  });
+
+  group('AppRoutes.selectedDebtId', () {
+    test('reads the id out of the detail location', () {
+      expect(AppRoutes.selectedDebtId(Uri.parse('/debts/t1')), 't1');
+    });
+
+    test('finds nothing to select on the list or another feature', () {
+      expect(AppRoutes.selectedDebtId(Uri.parse('/debts')), isNull);
+      expect(
+        AppRoutes.selectedDebtId(Uri.parse('/transactions/t1')),
+        isNull,
       );
     });
 

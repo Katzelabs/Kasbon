@@ -59,6 +59,20 @@ class AppRoutes {
   static const String reportsCustomers = '/reports/customers';
   static const String reportsInventory = '/reports/inventory';
   static const String debts = '/debts';
+
+  /// A debt's detail. The same record `/transactions/:id` addresses, reached
+  /// from the other list.
+  ///
+  /// Debt used to tap straight through to `/transactions/:id`, which is a
+  /// *different branch*: `go` synthesised `/transactions` as the parent, so
+  /// opening a debt and pressing back landed on the transaction history, and
+  /// `/debts` had no detail of its own to dock in a pane. One route fixes both.
+  ///
+  /// A `/debts?tx=` query param was the cheaper-looking alternative and was
+  /// rejected for the same reason the receipt is nested: a location that is not
+  /// a child route synthesises no parent stack, so the narrow-screen back
+  /// button would have had nothing to pop.
+  static const String debtDetail = '/debts/:id';
   static const String settings = '/settings';
   static const String settingsShopProfile = '/settings/shop-profile';
   static const String settingsReceipt = '/settings/receipt';
@@ -81,6 +95,18 @@ class AppRoutes {
   // interpolating an id into a URL string by hand.
   static String productDetailPath(String id) => '/products/$id';
   static String productEditPath(String id) => '/products/$id/edit';
+  static String transactionDetailPath(String id) => '/transactions/$id';
+  static String debtDetailPath(String id) => '/debts/$id';
+  static String receiptPath(String transactionId) =>
+      '/transactions/$transactionId/receipt';
+  static String posSuccessPath(String transactionId) =>
+      '/pos/success/$transactionId';
+
+  // Selection parsers for the split views.
+  //
+  // These live here rather than in the split view because each is a statement
+  // about the shape of a route family, and belongs next to the patterns it
+  // decodes.
 
   /// The product id a location addresses, or null if it addresses none.
   ///
@@ -89,20 +115,38 @@ class AppRoutes {
   /// is a sibling route with no id, not a detail of anything, and reading
   /// `add` as a product id would send the pane looking for a product by that
   /// name.
+  static String? selectedProductId(Uri uri) =>
+      _selectedIdUnder(uri, 'products', notIds: const {'add'});
+
+  /// The transaction id a location addresses, or null if it addresses none.
   ///
-  /// Lives here rather than in the split view because it is a statement about
-  /// the shape of these routes, and it belongs next to the patterns it decodes.
-  static String? selectedProductId(Uri uri) {
+  /// `/transactions/:id/receipt` still resolves to `:id`: the receipt is a
+  /// full-screen route that covers the split entirely, and when it is dismissed
+  /// the pane should still be showing the transaction it was printed from.
+  static String? selectedTransactionId(Uri uri) =>
+      _selectedIdUnder(uri, 'transactions');
+
+  /// The debt id a location addresses, or null if it addresses none.
+  ///
+  /// Only `/debts/:id` — a debt's receipt is addressed as the transaction's,
+  /// under [receipt], because there is one receipt per transaction and not one
+  /// per list you reached it from.
+  static String? selectedDebtId(Uri uri) => _selectedIdUnder(uri, 'debts');
+
+  /// The id in the second segment of a `/feature/:id/...` location.
+  ///
+  /// [notIds] names sibling routes that occupy the id's position without being
+  /// one — `/products/add`.
+  static String? _selectedIdUnder(
+    Uri uri,
+    String feature, {
+    Set<String> notIds = const {},
+  }) {
     final segments = uri.pathSegments;
-    if (segments.length < 2 || segments.first != 'products') return null;
+    if (segments.length < 2 || segments.first != feature) return null;
     final id = segments[1];
-    return id == 'add' ? null : id;
+    return notIds.contains(id) ? null : id;
   }
-  static String transactionDetailPath(String id) => '/transactions/$id';
-  static String receiptPath(String transactionId) =>
-      '/transactions/$transactionId/receipt';
-  static String posSuccessPath(String transactionId) =>
-      '/pos/success/$transactionId';
 }
 
 /// Converts Supabase auth state stream into a ChangeNotifier for GoRouter.
@@ -139,9 +183,11 @@ class GoRouterRefreshStream extends ChangeNotifier {
 /// back to. That is why the receipt is `/transactions/:id/receipt` rather than
 /// a top-level `/receipt/:id`, and why the dev screens hang off `/dev`.
 ///
-/// One consequence to be aware of: because the back stack comes from the URL
-/// hierarchy rather than from history, opening a debt from `/debts` lands on
-/// `/transactions/:id` and backs out to `/transactions`, not to `/debts`.
+/// The same rule is why a record reachable from two lists needs a route under
+/// each: because the back stack comes from the URL hierarchy rather than from
+/// history, `/debts` sending you to `/transactions/:id` backed out to
+/// `/transactions`. Hence [AppRoutes.debtDetail] alongside
+/// [AppRoutes.transactionDetail], both rendering the same screen.
 class AppRouter {
   AppRouter._();
 
@@ -305,12 +351,17 @@ class AppRouter {
                 name: 'transaction-detail',
                 pageBuilder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  return _slidePage(
+                  return _splitAwarePage(
                     state: state,
                     child: TransactionDetailScreen(transactionId: id),
                   );
                 },
                 routes: [
+                  // A screen at every tier, deliberately. The receipt is a
+                  // print preview already clamped to 400px, so a 900dp pane
+                  // would show the same paper strip with more grey around it,
+                  // and nesting a second split-aware page under the first buys
+                  // that nothing.
                   GoRoute(
                     path: 'receipt',
                     name: 'receipt',
@@ -387,7 +438,7 @@ class AppRouter {
             ],
           ),
 
-          // Debts (Hutang)
+          // Debts (Hutang) with nested detail route
           GoRoute(
             path: AppRoutes.debts,
             name: 'debts',
@@ -395,6 +446,25 @@ class AppRouter {
               state: state,
               child: const DebtListScreen(),
             ),
+            routes: [
+              // The same screen `/transactions/:id` renders, told which list it
+              // belongs to. Two routes onto one record is the point: the branch
+              // you opened it from is the branch back returns you to.
+              GoRoute(
+                path: ':id',
+                name: 'debt-detail',
+                pageBuilder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return _splitAwarePage(
+                    state: state,
+                    child: TransactionDetailScreen(
+                      transactionId: id,
+                      basePath: AppRoutes.debts,
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
 
           // Settings with nested routes

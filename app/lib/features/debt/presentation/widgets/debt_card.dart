@@ -6,6 +6,7 @@ import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_formatter.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../providers/debt_provider.dart';
@@ -32,8 +33,14 @@ class DebtCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final markPaidState = ref.watch(markDebtPaidProvider);
 
+    // Whether this debt is the one open in the detail pane beside the list.
+    // Null outside a split view, so a phone never lights a card up.
+    final isOpen = MasterSelectionScope.selectedIdOf(context) == transaction.id;
+
     return ModernCard.outlined(
       onTap: onTap,
+      color: isOpen ? AppColors.primaryContainer : null,
+      borderColor: isOpen ? AppColors.primary : AppColors.border,
       padding: const EdgeInsets.all(AppDimensions.spacing16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,7 +129,8 @@ class DebtCardCompact extends StatelessWidget {
     return ModernListTile(
       onTap: onTap,
       title: Text(transaction.transactionNumber),
-      subtitle: Text(DateFormatter.getRelativeTime(transaction.transactionDate)),
+      subtitle:
+          Text(DateFormatter.getRelativeTime(transaction.transactionDate)),
       trailing: Text(
         CurrencyFormatter.format(transaction.total),
         style: AppTextStyles.bodyMedium.copyWith(

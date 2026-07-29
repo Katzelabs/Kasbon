@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kasbon_pos/config/routes/app_router.dart';
+import 'package:kasbon_pos/config/theme/app_colors.dart';
 import 'package:kasbon_pos/core/utils/responsive_utils.dart';
 
 import '../../../helpers/responsive_helpers.dart';
@@ -128,7 +129,8 @@ void main() {
       expect(find.text(masterMarker), findsOneWidget);
     });
 
-    testWidgets('at large, the detail renders in the pane and the route empties',
+    testWidgets(
+        'at large, the detail renders in the pane and the route empties',
         (tester) async {
       final router = await pumpAt(tester, ResponsiveWidths.large);
 
@@ -212,7 +214,8 @@ void main() {
   // makes an app look like two apps.
   group('geometry', () {
     for (final width in [ResponsiveWidths.expanded, ResponsiveWidths.large]) {
-      testWidgets('docks trailing at the cart width, ${ResponsiveWidths.label(width)}',
+      testWidgets(
+          'docks trailing at the cart width, ${ResponsiveWidths.label(width)}',
           (tester) async {
         final router = await pumpAt(tester, width);
 
@@ -243,6 +246,76 @@ void main() {
         );
       });
     }
+
+    // The regression: the edge was a `border` on the decoration that painted
+    // the panel's surface, and a background decoration paints *behind* its
+    // child. Anything opaque docked in the panel - a detail screen's Scaffold,
+    // a ColoredBox - therefore took the rule with it, so an empty panel showed
+    // a separator and a filled one showed none.
+    group('the edge between the panes', () {
+      Finder paneEdge() => find.descendant(
+            of: find.byType(MasterDetailScaffold),
+            matching: find.byWidgetPredicate(
+              (w) =>
+                  w is DecoratedBox &&
+                  w.position == DecorationPosition.foreground,
+            ),
+          );
+
+      testWidgets('is painted over the panel, not behind it', (tester) async {
+        final router = await pumpAt(tester, ResponsiveWidths.large);
+
+        router.go('/products/p1');
+        await tester.pumpAndSettle();
+
+        expect(paneEdge(), findsOneWidget);
+
+        final decoration =
+            tester.widget<DecoratedBox>(paneEdge()).decoration as BoxDecoration;
+        expect(
+          decoration.border,
+          const Border(
+            left: BorderSide(
+              color: AppColors.border,
+              width: MasterDetailScaffold.dividerWidth,
+            ),
+          ),
+        );
+      });
+
+      testWidgets('is there with nothing selected too', (tester) async {
+        await pumpAt(tester, ResponsiveWidths.large);
+
+        expect(paneEdge(), findsOneWidget);
+      });
+
+      testWidgets('leaves the panel content beside it, not under it',
+          (tester) async {
+        final router = await pumpAt(tester, ResponsiveWidths.large);
+
+        router.go('/products/p1');
+        await tester.pumpAndSettle();
+
+        // A foreground decoration does not inset its own child, so the panel
+        // has to pay for the rule out of its content width.
+        final expected = ContentLayout.detailPaneWidth(
+          BreakpointData(
+            breakpoint: AppBreakpoints.fromWidth(ResponsiveWidths.large),
+            width: ResponsiveWidths.large,
+            height: 1200,
+            windowBreakpoint: AppBreakpoints.fromWidth(ResponsiveWidths.large),
+          ),
+        );
+
+        expect(detailWidth, expected - MasterDetailScaffold.dividerWidth);
+        expect(
+          tester.getRect(find.text(paneDetail('p1'))).left,
+          greaterThanOrEqualTo(
+            tester.getRect(paneEdge()).left + MasterDetailScaffold.dividerWidth,
+          ),
+        );
+      });
+    });
 
     testWidgets('the screen header spans both panes', (tester) async {
       // The split lives inside the screen's body, the way the POS screen docks
@@ -291,7 +364,8 @@ void main() {
     await tester.tap(find.text(masterMarker), warnIfMissed: false);
     await tester.pumpAndSettle();
 
-    expect(masterTaps, 2, reason: 'the barrier must stand down beside the pane');
+    expect(masterTaps, 2,
+        reason: 'the barrier must stand down beside the pane');
   });
 
   testWidgets('the barrier still blocks the list underneath at compact',
@@ -335,7 +409,8 @@ void main() {
       // `add` is a sibling route with no id. Reading it as one would send the
       // pane looking for a product called "add".
       expect(AppRoutes.selectedProductId(Uri.parse('/products/add')), isNull);
-      expect(AppRoutes.selectedProductId(Uri.parse('/transactions/t1')), isNull);
+      expect(
+          AppRoutes.selectedProductId(Uri.parse('/transactions/t1')), isNull);
     });
   });
 }

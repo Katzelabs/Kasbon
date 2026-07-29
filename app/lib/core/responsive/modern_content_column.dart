@@ -31,10 +31,24 @@ enum ContentWidth {
   final double maxWidth;
 }
 
-/// Centres content, clamps it to a readable width, and applies tier padding.
+/// Centres content horizontally, clamps it to a readable width, and applies
+/// tier padding.
 ///
 /// Before this, the widget library had no max-width constraint anywhere outside
 /// three dialogs, so a 2560px monitor stretched every screen edge to edge.
+///
+/// ## Horizontally. Vertically it starts at the top
+///
+/// This used to be a plain `Center`, which aligns on *both* axes, and `Align`
+/// hands its child loose constraints - so a `SingleChildScrollView` inside it
+/// shrink-wrapped its content instead of filling the viewport, and anything
+/// shorter than the screen floated in the middle of it. A transaction with two
+/// line items sat halfway down the detail pane with a band of empty surface
+/// above it.
+///
+/// Content that does not fill the viewport belongs at the top; only a screen
+/// that is *deliberately* a centred card - the auth forms - wants otherwise,
+/// and those pass [alignment] explicitly.
 ///
 /// ## Re-scoping is the point, not a detail
 ///
@@ -57,6 +71,13 @@ class ModernContentColumn extends StatelessWidget {
   /// scroll and need to control their own top and bottom insets.
   final EdgeInsets? verticalPadding;
 
+  /// Where the clamped column sits in the space it is given.
+  ///
+  /// [Alignment.topCenter] by default: horizontally centred, and starting at
+  /// the top so content shorter than the viewport does not float. Pass
+  /// [Alignment.center] for a screen that is deliberately a centred card.
+  final Alignment alignment;
+
   final Widget child;
 
   const ModernContentColumn({
@@ -65,6 +86,7 @@ class ModernContentColumn extends StatelessWidget {
     this.width = ContentWidth.standard,
     this.horizontalPadding,
     this.verticalPadding,
+    this.alignment = Alignment.topCenter,
   });
 
   /// Shorthand for a single-column form.
@@ -73,6 +95,7 @@ class ModernContentColumn extends StatelessWidget {
     required this.child,
     this.horizontalPadding,
     this.verticalPadding,
+    this.alignment = Alignment.topCenter,
   }) : width = ContentWidth.form;
 
   /// Shorthand for prose or a settings list.
@@ -81,6 +104,7 @@ class ModernContentColumn extends StatelessWidget {
     required this.child,
     this.horizontalPadding,
     this.verticalPadding,
+    this.alignment = Alignment.topCenter,
   }) : width = ContentWidth.reading;
 
   /// Shorthand for a dashboard or multi-column report.
@@ -89,6 +113,7 @@ class ModernContentColumn extends StatelessWidget {
     required this.child,
     this.horizontalPadding,
     this.verticalPadding,
+    this.alignment = Alignment.topCenter,
   }) : width = ContentWidth.wide;
 
   @override
@@ -109,7 +134,8 @@ class ModernContentColumn extends StatelessWidget {
 
     if (width == ContentWidth.full) return content;
 
-    return Center(
+    return Align(
+      alignment: alignment,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: width.maxWidth),
         child: content,

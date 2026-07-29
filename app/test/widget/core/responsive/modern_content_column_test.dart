@@ -67,6 +67,73 @@ void main() {
     });
   });
 
+  // The regression: this was a plain `Center`, which aligns on both axes. Since
+  // `Align` hands its child loose constraints, a scroll view inside it
+  // shrink-wrapped rather than filling the viewport - so a short transaction
+  // sat halfway down the detail pane with empty surface above it.
+  group('vertical placement', () {
+    testWidgets('starts short content at the top', (tester) async {
+      await pumpAtWidth(
+        tester,
+        1600,
+        const ModernContentColumn(
+          horizontalPadding: 0,
+          child: SizedBox(height: 40, child: Placeholder()),
+        ),
+        height: 1000,
+      );
+
+      expect(tester.getRect(find.byType(Placeholder)).top, 0);
+    });
+
+    testWidgets('does not float a scroll view that underfills the viewport',
+        (tester) async {
+      await pumpAtWidth(
+        tester,
+        1600,
+        const ModernContentColumn(
+          horizontalPadding: 0,
+          child: SingleChildScrollView(
+            child: SizedBox(height: 40, child: Placeholder()),
+          ),
+        ),
+        height: 1000,
+      );
+
+      expect(tester.getRect(find.byType(Placeholder)).top, 0);
+    });
+
+    // Auth is the one shape that genuinely wants a centred card, so the
+    // behaviour stays reachable rather than being deleted.
+    testWidgets('centres when a caller asks for it', (tester) async {
+      await pumpAtWidth(
+        tester,
+        1600,
+        const ModernContentColumn(
+          horizontalPadding: 0,
+          alignment: Alignment.center,
+          child: SizedBox(height: 40, child: Placeholder()),
+        ),
+        height: 1000,
+      );
+
+      expect(tester.getRect(find.byType(Placeholder)).center.dy, 500);
+    });
+
+    testWidgets('still centres horizontally either way', (tester) async {
+      await pumpAtWidth(
+        tester,
+        1600,
+        const ModernContentColumn.form(
+          horizontalPadding: 0,
+          child: SizedBox(height: 40, child: Placeholder()),
+        ),
+      );
+
+      expect(tester.getRect(find.byType(Placeholder)).center.dx, 800);
+    });
+  });
+
   group('re-scoping', () {
     testWidgets('children see the column width, not the window',
         (tester) async {

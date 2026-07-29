@@ -48,6 +48,33 @@ void main() {
                 ),
               ],
             ),
+            // One record, two lists. Both detail routes render the same
+            // screen; what differs is the branch each hangs off, which is the
+            // whole reason /debts/:id exists.
+            GoRoute(
+              path: '/transactions',
+              pageBuilder: (c, s) => const MaterialPage(child: Text('txns')),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  pageBuilder: (c, s) => MaterialPage(
+                    child: Text('txn ${s.pathParameters['id']}'),
+                  ),
+                ),
+              ],
+            ),
+            GoRoute(
+              path: '/debts',
+              pageBuilder: (c, s) => const MaterialPage(child: Text('debts')),
+              routes: [
+                GoRoute(
+                  path: ':id',
+                  pageBuilder: (c, s) => MaterialPage(
+                    child: Text('txn ${s.pathParameters['id']}'),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ],
@@ -114,6 +141,71 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('list'), findsOneWidget);
     expect(reportedUrl(router).toString(), '/products');
+  });
+
+  // The RESP_08 wart, pinned from both ends: the back stack comes from the URL
+  // hierarchy, not from history, so the *branch* a detail hangs off is the list
+  // it returns you to - regardless of where you actually came from.
+  group('a record reachable from two lists', () {
+    testWidgets('backs out of /debts/:id to /debts', (tester) async {
+      final router = buildRouter();
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      router.go('/debts');
+      await tester.pumpAndSettle();
+
+      router.go('/debts/t1');
+      await tester.pumpAndSettle();
+      expect(find.text('txn t1'), findsOneWidget);
+      expect(reportedUrl(router).toString(), '/debts/t1');
+
+      expect(router.canPop(), isTrue);
+      router.pop();
+      await tester.pumpAndSettle();
+
+      expect(reportedUrl(router).toString(), '/debts');
+      expect(find.text('debts'), findsOneWidget);
+    });
+
+    testWidgets('backs out of /transactions/:id to /transactions',
+        (tester) async {
+      final router = buildRouter();
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      router.go('/transactions/t1');
+      await tester.pumpAndSettle();
+
+      router.pop();
+      await tester.pumpAndSettle();
+
+      expect(reportedUrl(router).toString(), '/transactions');
+      expect(find.text('txns'), findsOneWidget);
+    });
+
+    // This is the bug the new route removes. Standing in /debts and going to
+    // the *transactions* detail synthesises /transactions as the parent, so
+    // back leaves the feature entirely - the list you were looking at is not
+    // on the stack at all.
+    testWidgets('going to the other branch strands the list you came from',
+        (tester) async {
+      final router = buildRouter();
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      router.go('/debts');
+      await tester.pumpAndSettle();
+
+      router.go('/transactions/t1');
+      await tester.pumpAndSettle();
+
+      router.pop();
+      await tester.pumpAndSettle();
+
+      expect(reportedUrl(router).toString(), '/transactions');
+      expect(find.text('debts'), findsNothing);
+    });
   });
 
   testWidgets('go to a NON-nested route strands it with nothing to pop',

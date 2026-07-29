@@ -5,6 +5,7 @@ import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_formatter.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../domain/entities/transaction.dart';
 
@@ -21,8 +22,16 @@ class TransactionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Whether this transaction is the one open in the detail pane beside the
+    // list. Null outside a split view, so a phone never lights a card up.
+    final isOpen = MasterSelectionScope.selectedIdOf(context) == transaction.id;
+
     return ModernCard.outlined(
       onTap: onTap,
+      // Tinted rather than merely outlined, matching the product cards: a
+      // border colour alone is easy to miss in a column of identical cards.
+      color: isOpen ? AppColors.primaryContainer : null,
+      borderColor: isOpen ? AppColors.primary : AppColors.border,
       padding: const EdgeInsets.all(AppDimensions.spacing16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

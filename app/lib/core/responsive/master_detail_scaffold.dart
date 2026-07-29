@@ -84,6 +84,14 @@ class MasterDetailScaffold extends StatelessWidget {
   /// What the detail pane shows when nothing is selected.
   final WidgetBuilder? placeholderBuilder;
 
+  /// The rule between the two panes, and the inset it costs the panel.
+  ///
+  /// One logical pixel, drawn over the panel's leading edge. Named because two
+  /// places have to agree on it - the decoration that paints it and the padding
+  /// that keeps content clear of it - and because the geometry tests measure
+  /// the panel to within it.
+  static const double dividerWidth = 1;
+
   /// The narrowest tier that gets two panes.
   ///
   /// At `expanded` (900dp) the panel takes its 320dp minimum and the list keeps
@@ -155,22 +163,47 @@ class MasterDetailScaffold extends StatelessWidget {
         SizedBox(
           width: detailWidth,
           child: DecoratedBox(
-            // A border on the panel rather than a VerticalDivider between the
-            // two, matching the cart: the edge belongs to the thing that docks.
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(
-                left: BorderSide(color: AppColors.border, width: 1),
+            // The panel's own surface, behind whatever docks in it. Read as a
+            // *floor*, not as the panel's appearance: anything opaque the pane
+            // renders covers it, which is fine as long as what covers it is
+            // also a surface. A detail screen wanting the panel's colour should
+            // let this through rather than repaint the window's canvas over it.
+            decoration: const BoxDecoration(color: AppColors.surface),
+            child: DecoratedBox(
+              // The edge, in *front* of the content.
+              //
+              // It used to be a `border` on the decoration above, which paints
+              // behind the child - so the moment anything opaque docked here,
+              // the rule went with it. That is what made the panel merge into
+              // the list as soon as a row was selected: an empty panel showed
+              // the surface and the edge, a filled one showed neither.
+              //
+              // Still a border on the panel rather than a VerticalDivider
+              // between the two, matching the cart: the edge belongs to the
+              // thing that docks. Only the paint order changed.
+              position: DecorationPosition.foreground,
+              decoration: const BoxDecoration(
+                border: Border(
+                  left:
+                      BorderSide(color: AppColors.border, width: dividerWidth),
+                ),
               ),
-            ),
-            child: ModernBreakpointScope.fromLayout(
-              isPane: true,
-              child: DetailPaneScope(
-                onClose: () => closeDetail(context, basePath),
-                child: selectedId == null
-                    ? (placeholderBuilder?.call(context) ??
-                        const SizedBox.shrink())
-                    : detailBuilder(context, uri, selectedId),
+              child: Padding(
+                // Keeps the panel's content beside the rule rather than under
+                // it. A foreground decoration does not inset its child on its
+                // own, so without this the leading pixel of every docked
+                // header would sit beneath the edge.
+                padding: const EdgeInsets.only(left: dividerWidth),
+                child: ModernBreakpointScope.fromLayout(
+                  isPane: true,
+                  child: DetailPaneScope(
+                    onClose: () => closeDetail(context, basePath),
+                    child: selectedId == null
+                        ? (placeholderBuilder?.call(context) ??
+                            const SizedBox.shrink())
+                        : detailBuilder(context, uri, selectedId),
+                  ),
+                ),
               ),
             ),
           ),
