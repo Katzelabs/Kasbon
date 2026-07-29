@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kasbon_pos/features/reports/domain/entities/daily_sales.dart';
 import 'package:kasbon_pos/features/reports/domain/entities/heatmap_cell.dart';
 import 'package:kasbon_pos/features/reports/domain/entities/period_comparison.dart';
 import 'package:kasbon_pos/features/reports/domain/entities/sales_summary.dart';
@@ -11,6 +12,7 @@ import 'package:kasbon_pos/features/reports/presentation/widgets/distribution_pi
 import 'package:kasbon_pos/features/reports/presentation/widgets/hourly_sales_heatmap.dart';
 import 'package:kasbon_pos/features/reports/presentation/widgets/peak_hours_card.dart';
 import 'package:kasbon_pos/features/reports/presentation/widgets/period_comparison_card.dart';
+import 'package:kasbon_pos/features/reports/presentation/widgets/sales_bar_chart.dart';
 import 'package:kasbon_pos/features/reports/presentation/widgets/sales_trend_line_chart.dart';
 
 import '../../../helpers/responsive_helpers.dart';
@@ -220,7 +222,8 @@ void main() {
     });
 
     testWidgets('renders all seven weekday rows', (tester) async {
-      await tester.pumpWidget(_host(const HourlySalesHeatmap(heatmap: populated)));
+      await tester
+          .pumpWidget(_host(const HourlySalesHeatmap(heatmap: populated)));
 
       for (final label in kWeekdayLabelsShort) {
         expect(find.text(label), findsOneWidget);
@@ -229,7 +232,8 @@ void main() {
 
     testWidgets('surfaces the peak hour when nothing is selected',
         (tester) async {
-      await tester.pumpWidget(_host(const HourlySalesHeatmap(heatmap: populated)));
+      await tester
+          .pumpWidget(_host(const HourlySalesHeatmap(heatmap: populated)));
 
       expect(
         find.textContaining('Jam tersibuk: Jumat, 09:00'),
@@ -238,7 +242,8 @@ void main() {
     });
 
     testWidgets('shows the intensity legend', (tester) async {
-      await tester.pumpWidget(_host(const HourlySalesHeatmap(heatmap: populated)));
+      await tester
+          .pumpWidget(_host(const HourlySalesHeatmap(heatmap: populated)));
 
       expect(find.text('Sepi'), findsOneWidget);
       expect(find.text('Ramai'), findsOneWidget);
@@ -416,5 +421,243 @@ void main() {
         );
       }
     }
+  });
+
+  // RESP_09b. The group above proves the charts do not throw when wide. These
+  // pin what they should actually *do* with the width - which is the part a
+  // "renders without exception" test will happily let regress.
+  group('chart layout scales with the pane', () {
+    const heatmap = HourlyHeatmap([
+      HeatmapCell(
+        dayOfWeek: 5,
+        hourOfDay: 14,
+        transactionCount: 4,
+        revenue: 268500,
+      ),
+      HeatmapCell(
+        dayOfWeek: 1,
+        hourOfDay: 9,
+        transactionCount: 2,
+        revenue: 80000,
+      ),
+    ]);
+
+    const slices = [
+      PieSliceData(label: 'Makanan', value: 682500, color: Colors.orange),
+      PieSliceData(label: 'Minuman', value: 279500, color: Colors.blue),
+    ];
+
+    /// Pumps [child] into a pane [paneWidth] wide inside a [windowWidth]
+    /// window - the shape of a dashboard cell, and the case where reading the
+    /// window instead of the container goes wrong.
+    Future<void> pumpInPane(
+      WidgetTester tester, {
+      required double windowWidth,
+      required double paneWidth,
+      required Widget child,
+    }) async {
+      await pumpAtWidth(
+        tester,
+        windowWidth,
+        SingleChildScrollView(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(width: paneWidth, child: child),
+          ),
+        ),
+      );
+    }
+
+    group('HourlySalesHeatmap', () {
+      test('cell size derives from the pane, between its two bounds', () {
+        // Too narrow for 24 legible columns: hold the floor and let the grid
+        // scroll rather than shrinking cells out of reach of a finger.
+        expect(HourlySalesHeatmap.cellSizeFor(375), 26);
+        expect(HourlySalesHeatmap.cellSizeFor(460), 26);
+
+        // Enough room: grow to fill it exactly.
+        expect(HourlySalesHeatmap.cellSizeFor(34 + 24 * 32), closeTo(32, 0.01));
+
+        // Past the ceiling, stop - a grid of playing cards is not more
+        // readable than a grid of tiles.
+        expect(HourlySalesHeatmap.cellSizeFor(2560), 44);
+      });
+
+      testWidgets('cells size from the pane, not the window', (tester) async {
+        // A 460dp cell of a two-column dashboard on a 1600dp window. Reading
+        // the window here would give 65dp cells in a 460dp box.
+        await pumpInPane(
+          tester,
+          windowWidth: 1600,
+          paneWidth: 460,
+          child: const HourlySalesHeatmap(heatmap: heatmap),
+        );
+
+        final cells = find.descendant(
+          of: find.byType(HourlySalesHeatmap),
+          matching: find.byType(GestureDetector),
+        );
+
+        expect(cells, findsNWidgets(7 * 24));
+        expect(tester.getSize(cells.first).width, 26);
+        expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('grows its cells when the pane is wide', (tester) async {
+        await pumpInPane(
+          tester,
+          windowWidth: 1600,
+          paneWidth: 34 + 24 * 36,
+          child: const HourlySalesHeatmap(heatmap: heatmap),
+        );
+
+        final cells = find.descendant(
+          of: find.byType(HourlySalesHeatmap),
+          matching: find.byType(GestureDetector),
+        );
+
+        expect(tester.getSize(cells.first).width, closeTo(36, 0.01));
+      });
+    });
+
+    group('DistributionPieChart', () {
+      testWidgets('stacks the legend under the donut on a phone',
+          (tester) async {
+        await pumpInPane(
+          tester,
+          windowWidth: 375,
+          paneWidth: 343,
+          child: const DistributionPieChart(slices: slices),
+        );
+
+        final donut = tester.getRect(find.byType(PieChart));
+        final legendEntry = tester.getRect(find.text('Makanan'));
+
+        expect(legendEntry.top, greaterThan(donut.bottom - 1));
+      });
+
+      testWidgets('puts the legend beside the donut when there is room',
+          (tester) async {
+        await pumpInPane(
+          tester,
+          windowWidth: 1600,
+          paneWidth: 900,
+          child: const DistributionPieChart(slices: slices),
+        );
+
+        final donut = tester.getRect(find.byType(PieChart));
+        final legendEntry = tester.getRect(find.text('Makanan'));
+
+        expect(legendEntry.left, greaterThan(donut.right));
+        // And the donut stops growing rather than filling the row.
+        expect(donut.width, lessThanOrEqualTo(260));
+      });
+
+      testWidgets('keeps stacking inside a narrow dashboard cell',
+          (tester) async {
+        // Expanded window, but the chart only has a 380dp cell of it - not
+        // enough for a donut and a legend column side by side.
+        await pumpInPane(
+          tester,
+          windowWidth: 1600,
+          paneWidth: 380,
+          child: const DistributionPieChart(slices: slices),
+        );
+
+        final donut = tester.getRect(find.byType(PieChart));
+        final legendEntry = tester.getRect(find.text('Makanan'));
+
+        expect(legendEntry.top, greaterThan(donut.bottom - 1));
+      });
+    });
+
+    group('SalesTrendLineChart', () {
+      /// Labels the chart drew. Skipped buckets render a `SizedBox`, so the
+      /// `Text` count is the visible label count.
+      int labelCount(WidgetTester tester) => tester
+          .widgetList(find.descendant(
+            of: find.byType(LineChart),
+            matching: find.byType(Text),
+          ))
+          .length;
+
+      testWidgets('names more buckets when it has more room', (tester) async {
+        final points = [
+          for (var day = 1; day <= 31; day++)
+            _point(day, (day * 1000).toDouble()),
+        ];
+
+        await pumpInPane(
+          tester,
+          windowWidth: 375,
+          paneWidth: 343,
+          child: SalesTrendLineChart(points: points),
+        );
+        final narrow = labelCount(tester);
+
+        await pumpInPane(
+          tester,
+          windowWidth: 1600,
+          paneWidth: 1100,
+          child: SalesTrendLineChart(points: points),
+        );
+        final wide = labelCount(tester);
+
+        expect(wide, greaterThan(narrow));
+      });
+    });
+
+    group('bar charts stop growing', () {
+      testWidgets('the weekday chart is capped well short of the window',
+          (tester) async {
+        await pumpInPane(
+          tester,
+          windowWidth: 2560,
+          paneWidth: 2560,
+          child: const DayOfWeekBarChart(heatmap: heatmap),
+        );
+
+        expect(
+          tester.getSize(find.byType(BarChart)).width,
+          lessThanOrEqualTo(640),
+        );
+      });
+
+      testWidgets('the daily chart is capped, and its bars with it',
+          (tester) async {
+        await pumpInPane(
+          tester,
+          windowWidth: 2560,
+          paneWidth: 2560,
+          child: SalesBarChart(
+            dailySales: [
+              for (var day = 1; day <= 7; day++)
+                DailySales(
+                  date: DateTime(2026, 7, day),
+                  revenue: day * 10000,
+                  transactionCount: day,
+                ),
+            ],
+          ),
+        );
+
+        expect(
+          tester.getSize(find.byType(BarChart)).width,
+          lessThanOrEqualTo(960),
+        );
+
+        final rod = tester
+            .widget<BarChart>(find.byType(BarChart))
+            .data
+            .barGroups
+            .first
+            .barRods
+            .first;
+
+        // Seven bars across 900dp is 128dp a slot; without the cap each bar
+        // would be nearly 80dp wide.
+        expect(rod.width, lessThanOrEqualTo(28));
+      });
+    });
   });
 }

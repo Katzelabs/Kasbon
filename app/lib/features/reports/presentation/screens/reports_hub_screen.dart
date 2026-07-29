@@ -12,9 +12,15 @@ import '../providers/date_range_provider.dart';
 import '../providers/report_provider.dart';
 import '../widgets/date_range_selector.dart';
 import '../widgets/export_bottom_sheet.dart';
+import '../widgets/report_layout.dart';
 import '../../../../config/routes/app_router.dart';
 
-/// Main reports hub screen with summary cards and navigation to detailed reports
+/// Main reports hub screen with summary cards and navigation to detailed
+/// reports.
+///
+/// The menu is a grid rather than a list. It routes to six destinations now,
+/// which is a long scroll even on a phone and an absurd single column of
+/// full-width cards on anything wider.
 class ReportsHubScreen extends ConsumerWidget {
   const ReportsHubScreen({super.key});
 
@@ -35,144 +41,120 @@ class ReportsHubScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Builder(
-        builder: (context) {
-          // Calculate bottom padding based on device type to account for bottom nav
-          final bottomPadding =
-              AppDimensions.spacing16 + context.shellBottomInset;
-
-          return RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(salesSummaryProvider);
-              ref.invalidate(dailySalesProvider);
-              ref.invalidate(topProductsByQtyProvider);
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: EdgeInsets.only(bottom: bottomPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: AppDimensions.spacing16),
-
-                  // Date range selector
-                  const DateRangeSelector(),
-
-                  const SizedBox(height: AppDimensions.spacing8),
-
-                  // Current period label
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.spacing16,
-                    ),
-                    child: Text(
-                      dateRange.label,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: AppDimensions.spacing16),
-
-                  // Sales summary card
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.spacing16,
-                    ),
-                    child: salesSummaryAsync.when(
-                      data: (summary) => _buildMainSummaryCard(summary),
-                      loading: () => const SizedBox(
-                        height: 180,
-                        child: Center(child: ModernLoading()),
-                      ),
-                      error: (error, _) => ModernErrorState(
-                        message: error.toString(),
-                        onRetry: () => ref.invalidate(salesSummaryProvider),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: AppDimensions.spacing24),
-
-                  // Report menu cards
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.spacing16,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const ModernSectionHeader(
-                          title: 'Menu Laporan',
-                          actionLabel: null,
-                        ),
-                        const SizedBox(height: AppDimensions.spacing12),
-                        _buildReportMenuItem(
-                          context: context,
-                          icon: Icons.trending_up_rounded,
-                          title: 'Laporan Penjualan',
-                          subtitle: 'Grafik & detail penjualan harian',
-                          color: AppColors.primary,
-                          onTap: () => context.go(AppRoutes.reportsSales),
-                        ),
-                        const SizedBox(height: AppDimensions.spacing12),
-                        _buildReportMenuItem(
-                          context: context,
-                          icon: Icons.inventory_2_rounded,
-                          title: 'Laporan Produk',
-                          subtitle:
-                              'Produk terlaris berdasarkan qty/pendapatan/laba',
-                          color: AppColors.info,
-                          onTap: () => context.go(AppRoutes.reportsProducts),
-                        ),
-                        const SizedBox(height: AppDimensions.spacing12),
-                        _buildReportMenuItem(
-                          context: context,
-                          icon: Icons.account_balance_wallet_rounded,
-                          title: 'Laporan Laba',
-                          subtitle: 'Analisis keuntungan per produk',
-                          color: AppColors.success,
-                          onTap: () => context.go(AppRoutes.reportsProfit),
-                        ),
-                        const SizedBox(height: AppDimensions.spacing12),
-                        _buildReportMenuItem(
-                          context: context,
-                          icon: Icons.insights_rounded,
-                          title: 'Analitik Lanjutan',
-                          subtitle:
-                              'Tren, distribusi kategori & pola jam ramai',
-                          color: AppColors.accentCyan,
-                          onTap: () => context.go(AppRoutes.reportsAnalytics),
-                        ),
-                        const SizedBox(height: AppDimensions.spacing12),
-                        _buildReportMenuItem(
-                          context: context,
-                          icon: Icons.people_alt_rounded,
-                          title: 'Laporan Pelanggan',
-                          subtitle: 'Pelanggan teratas & nilai seumur hidup',
-                          color: AppColors.accentPink,
-                          onTap: () => context.go(AppRoutes.reportsCustomers),
-                        ),
-                        const SizedBox(height: AppDimensions.spacing12),
-                        _buildReportMenuItem(
-                          context: context,
-                          icon: Icons.swap_vert_rounded,
-                          title: 'Pergerakan Stok',
-                          subtitle: 'Perputaran & produk yang kurang laku',
-                          color: AppColors.warning,
-                          onTap: () => context.go(AppRoutes.reportsInventory),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: AppDimensions.spacing32),
-                ],
-              ),
-            ),
-          );
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(salesSummaryProvider);
+          ref.invalidate(dailySalesProvider);
+          ref.invalidate(topProductsByQtyProvider);
         },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.only(
+            top: AppDimensions.spacing16,
+            bottom: AppDimensions.spacing32 + context.shellBottomInset,
+          ),
+          child: ModernContentColumn(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // The column already supplies the gutter, so the chips must
+                // not add a second one.
+                const DateRangeSelector(padding: EdgeInsets.zero),
+
+                const SizedBox(height: AppDimensions.spacing8),
+
+                // Current period label
+                Text(
+                  dateRange.label,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+
+                const SizedBox(height: AppDimensions.spacing16),
+
+                // Sales summary card
+                salesSummaryAsync.when(
+                  data: (summary) => _buildMainSummaryCard(summary),
+                  loading: () => const SizedBox(
+                    height: 180,
+                    child: Center(child: ModernLoading()),
+                  ),
+                  error: (error, _) => ModernErrorState(
+                    message: error.toString(),
+                    onRetry: () => ref.invalidate(salesSummaryProvider),
+                  ),
+                ),
+
+                const SizedBox(height: AppDimensions.spacing24),
+
+                const ModernSectionHeader(
+                  title: 'Menu Laporan',
+                  actionLabel: null,
+                ),
+                const SizedBox(height: AppDimensions.spacing12),
+
+                ReportTileGrid(
+                  // Below this the subtitle wraps to three lines and the card
+                  // stops reading as one line of thought.
+                  minTileWidth: 280,
+                  maxColumns: 3,
+                  children: [
+                    _buildReportMenuItem(
+                      context: context,
+                      icon: Icons.trending_up_rounded,
+                      title: 'Laporan Penjualan',
+                      subtitle: 'Grafik & detail penjualan harian',
+                      color: AppColors.primary,
+                      onTap: () => context.go(AppRoutes.reportsSales),
+                    ),
+                    _buildReportMenuItem(
+                      context: context,
+                      icon: Icons.inventory_2_rounded,
+                      title: 'Laporan Produk',
+                      subtitle:
+                          'Produk terlaris berdasarkan qty/pendapatan/laba',
+                      color: AppColors.info,
+                      onTap: () => context.go(AppRoutes.reportsProducts),
+                    ),
+                    _buildReportMenuItem(
+                      context: context,
+                      icon: Icons.account_balance_wallet_rounded,
+                      title: 'Laporan Laba',
+                      subtitle: 'Analisis keuntungan per produk',
+                      color: AppColors.success,
+                      onTap: () => context.go(AppRoutes.reportsProfit),
+                    ),
+                    _buildReportMenuItem(
+                      context: context,
+                      icon: Icons.insights_rounded,
+                      title: 'Analitik Lanjutan',
+                      subtitle: 'Tren, distribusi kategori & pola jam ramai',
+                      color: AppColors.accentCyan,
+                      onTap: () => context.go(AppRoutes.reportsAnalytics),
+                    ),
+                    _buildReportMenuItem(
+                      context: context,
+                      icon: Icons.people_alt_rounded,
+                      title: 'Laporan Pelanggan',
+                      subtitle: 'Pelanggan teratas & nilai seumur hidup',
+                      color: AppColors.accentPink,
+                      onTap: () => context.go(AppRoutes.reportsCustomers),
+                    ),
+                    _buildReportMenuItem(
+                      context: context,
+                      icon: Icons.swap_vert_rounded,
+                      title: 'Pergerakan Stok',
+                      subtitle: 'Perputaran & produk yang kurang laku',
+                      color: AppColors.warning,
+                      onTap: () => context.go(AppRoutes.reportsInventory),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

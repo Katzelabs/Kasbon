@@ -136,6 +136,19 @@ class ModernDataTable<T> extends StatelessWidget {
   bool _isSortable(ModernTableColumn<T> column) =>
       column.sortable && onSort != null;
 
+  /// Width of the coloured bar marking a selected row, which the header
+  /// mirrors with a spacer so the two line up.
+  static const double _selectionIndicatorWidth = 3.0;
+
+  /// Everything ahead of the first column.
+  ///
+  /// The indicator is always drawn, checkbox or not. Leaving it out of the
+  /// width arithmetic - as this did - overflowed every table configured with
+  /// `showCheckboxColumn: false` by exactly those 3dp, because the flex
+  /// columns were handed the full width and then pushed 3dp to the right.
+  double get _leadingWidth =>
+      showCheckboxColumn ? checkboxColumnWidth : _selectionIndicatorWidth;
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -164,7 +177,7 @@ class ModernDataTable<T> extends StatelessWidget {
         final availableWidth = constraints.maxWidth;
         final columnWidths = _calculateColumnWidths(availableWidth);
         final totalColumnsWidth = columnWidths.values.fold<double>(
-          showCheckboxColumn ? checkboxColumnWidth : 0,
+          _leadingWidth,
           (sum, width) => sum + width,
         );
 
@@ -235,8 +248,7 @@ class ModernDataTable<T> extends StatelessWidget {
 
   Map<String, double> _calculateColumnWidths(double availableWidth) {
     final widths = <String, double>{};
-    double remainingWidth =
-        availableWidth - (showCheckboxColumn ? checkboxColumnWidth : 0);
+    double remainingWidth = availableWidth - _leadingWidth;
     int totalFlex = 0;
 
     // First pass: calculate fixed widths and total flex
@@ -275,11 +287,11 @@ class ModernDataTable<T> extends StatelessWidget {
       child: Row(
         children: [
           // Spacer to align with selection indicator in data rows
-          const SizedBox(width: 3),
+          const SizedBox(width: _selectionIndicatorWidth),
           // Select all checkbox (adjusted width to match data rows)
           if (showCheckboxColumn)
             SizedBox(
-              width: checkboxColumnWidth - 3,
+              width: checkboxColumnWidth - _selectionIndicatorWidth,
               child: Center(
                 child: Checkbox(
                   value: _isAllSelected,
@@ -449,14 +461,13 @@ class ModernDataTable<T> extends StatelessWidget {
               children: [
                 // Selection indicator (3px colored bar on left)
                 Container(
-                  width: 3,
+                  width: _selectionIndicatorWidth,
                   color: isSelected ? AppColors.primary : Colors.transparent,
                 ),
                 // Row checkbox (adjusted width to account for selection indicator)
                 if (showCheckboxColumn)
                   SizedBox(
-                    width: checkboxColumnWidth -
-                        3, // Subtract selection indicator width
+                    width: checkboxColumnWidth - _selectionIndicatorWidth,
                     child: Center(
                       child: Checkbox(
                         value: isSelected,

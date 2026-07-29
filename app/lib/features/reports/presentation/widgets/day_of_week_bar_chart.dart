@@ -5,13 +5,19 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../domain/entities/heatmap_cell.dart';
+import 'report_layout.dart';
 
 /// Revenue per weekday, derived from the same heatmap payload.
 ///
 /// Always renders all seven bars, including days with no sales - a missing
 /// Sunday bar would read as "no data" when it actually means "closed", which
 /// is exactly the fact the shop needs to see.
+///
+/// Seven bars are the whole series, so the chart is capped rather than left to
+/// fill a desktop window: past [ReportChartWidths.dayOfWeekBar] the bars stop
+/// being a comparison and become seven distant sticks.
 class DayOfWeekBarChart extends StatelessWidget {
   final HourlyHeatmap heatmap;
   final double height;
@@ -22,8 +28,23 @@ class DayOfWeekBarChart extends StatelessWidget {
     this.height = 180,
   });
 
+  /// Bar width for the space the chart has, so bars thicken with the chart
+  /// instead of staying 22dp inside an ever-wider gap.
+  double _barWidth(double available) {
+    const axisGutter = 48.0;
+    final slot = (available - axisGutter) / 7;
+    return (slot * 0.5).clamp(14.0, 44.0);
+  }
+
   @override
   Widget build(BuildContext context) {
+    return ReportChartFrame(
+      maxWidth: ReportChartWidths.dayOfWeekBar,
+      child: Builder(builder: _buildChart),
+    );
+  }
+
+  Widget _buildChart(BuildContext context) {
     final revenueByDay = heatmap.revenueByDay;
     final transactionsByDay = heatmap.transactionsByDay;
     final busiest = heatmap.busiestDay;
@@ -145,7 +166,7 @@ class DayOfWeekBarChart extends StatelessWidget {
                     color: day == busiest
                         ? AppColors.primary
                         : AppColors.primaryLight.withValues(alpha: 0.55),
-                    width: 22,
+                    width: _barWidth(context.availableWidth),
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(4),
                     ),

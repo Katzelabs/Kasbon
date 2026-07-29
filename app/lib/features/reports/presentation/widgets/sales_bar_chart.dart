@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -6,9 +8,16 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../domain/entities/daily_sales.dart';
+import 'report_layout.dart';
 
-/// Bar chart widget for displaying daily sales trend
+/// Bar chart of revenue per day across the selected range.
+///
+/// Bar width and label density are both derived from the width the chart has
+/// rather than from the number of days alone: 31 bars in a 340dp phone card
+/// and 31 bars in a 900dp desktop card are different drawings of the same
+/// series, and picking one fixed answer makes the other look broken.
 class SalesBarChart extends StatelessWidget {
   final List<DailySales> dailySales;
   final double height;
@@ -18,6 +27,26 @@ class SalesBarChart extends StatelessWidget {
     required this.dailySales,
     this.height = 200,
   });
+
+  /// Width of the plot area, i.e. everything the left axis does not reserve.
+  double _plotWidth(double available) => available - 50;
+
+  double _barWidth(double available) {
+    final slot = _plotWidth(available) / dailySales.length;
+    return (slot * 0.6).clamp(4.0, 28.0);
+  }
+
+  /// Label every nth day, so dates never collide.
+  int _labelStride(double available) {
+    const labelSlot = 26.0;
+    // Never demand more labels than there are days: a one-day range would
+    // clamp to an empty range and throw.
+    final floor = math.min(3, dailySales.length);
+    final maxLabels = (_plotWidth(available) / labelSlot)
+        .floor()
+        .clamp(floor, dailySales.length);
+    return (dailySales.length / maxLabels).ceil().clamp(1, dailySales.length);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +64,18 @@ class SalesBarChart extends StatelessWidget {
       );
     }
 
-    final maxRevenue = dailySales.map((e) => e.revenue).reduce(
-        (a, b) => a > b ? a : b);
+    return ReportChartFrame(
+      maxWidth: ReportChartWidths.dailyBar,
+      child: Builder(builder: _buildChart),
+    );
+  }
+
+  Widget _buildChart(BuildContext context) {
+    final available = context.availableWidth;
+    final labelStride = _labelStride(available);
+
+    final maxRevenue =
+        dailySales.map((e) => e.revenue).reduce((a, b) => a > b ? a : b);
 
     return SizedBox(
       height: height,
@@ -79,8 +118,10 @@ class SalesBarChart extends StatelessWidget {
                     return const SizedBox();
                   }
                   final date = dailySales[index].date;
-                  // Show fewer labels if there are many days
-                  if (dailySales.length > 7 && index % 2 != 0) {
+                  // Keep the last label whatever the stride, so the range end
+                  // is always readable.
+                  final isLast = index == dailySales.length - 1;
+                  if (index % labelStride != 0 && !isLast) {
                     return const SizedBox();
                   }
                   return Padding(
@@ -140,7 +181,7 @@ class SalesBarChart extends StatelessWidget {
                 BarChartRodData(
                   toY: entry.value.revenue,
                   color: AppColors.primary,
-                  width: dailySales.length > 20 ? 8 : 16,
+                  width: _barWidth(available),
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(4),
                   ),

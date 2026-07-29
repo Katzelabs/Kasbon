@@ -19,17 +19,20 @@ import '../widgets/hourly_sales_heatmap.dart';
 import '../widgets/peak_hours_card.dart';
 import '../widgets/period_comparison_card.dart';
 import '../widgets/report_filter_bar.dart';
+import '../widgets/report_layout.dart';
 import '../widgets/sales_trend_line_chart.dart';
 
 /// Advanced analytics: trends, distributions, and time-of-day patterns.
+///
+/// The densest screen in the app - six analytical blocks that used to be one
+/// vertical scroll however much room the window had. Past [ReportDashboardGrid]'s
+/// column minimum they lay out as a dashboard instead, two columns and then
+/// three, because comparing a trend against a distribution means seeing both.
 class AnalyticsReportScreen extends ConsumerWidget {
   const AnalyticsReportScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final bottomPadding =
-        AppDimensions.spacing16 + context.shellBottomInset;
-
     return Scaffold(
       appBar: ModernAppBar.backWithActions(
         title: 'Analitik Lanjutan',
@@ -46,46 +49,38 @@ class AnalyticsReportScreen extends ConsumerWidget {
         onRefresh: () async => invalidateAnalytics(ref),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.only(bottom: bottomPadding),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: AppDimensions.spacing16),
-              DateRangeSelector(),
-              SizedBox(height: AppDimensions.spacing16),
-              _Section(child: ReportFilterBar()),
-              SizedBox(height: AppDimensions.spacing24),
-              _TrendSection(),
-              SizedBox(height: AppDimensions.spacing24),
-              _ComparisonSection(),
-              SizedBox(height: AppDimensions.spacing24),
-              _CategorySection(),
-              SizedBox(height: AppDimensions.spacing24),
-              _PaymentSection(),
-              SizedBox(height: AppDimensions.spacing24),
-              _HeatmapSection(),
-              SizedBox(height: AppDimensions.spacing24),
-              _DayOfWeekSection(),
-              SizedBox(height: AppDimensions.spacing32),
-            ],
+          padding: EdgeInsets.only(
+            top: AppDimensions.spacing16,
+            bottom: AppDimensions.spacing32 + context.shellBottomInset,
+          ),
+          child: const ModernContentColumn(
+            width: ContentWidth.wide,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DateRangeSelector(padding: EdgeInsets.zero),
+                SizedBox(height: AppDimensions.spacing16),
+                ReportFilterBar(),
+                SizedBox(height: AppDimensions.spacing24),
+                ReportDashboardGrid(
+                  // A chart below this loses its axis labels before it loses
+                  // its shape, which is the worse failure.
+                  minColumnWidth: 400,
+                  maxColumns: 3,
+                  children: [
+                    _TrendSection(),
+                    _ComparisonSection(),
+                    _CategorySection(),
+                    _PaymentSection(),
+                    _HeatmapSection(),
+                    _DayOfWeekSection(),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Standard horizontal inset for a block of report content.
-class _Section extends StatelessWidget {
-  final Widget child;
-
-  const _Section({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing16),
-      child: child,
     );
   }
 }
@@ -131,43 +126,38 @@ class _TrendSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Section(
-          child: ModernSectionHeader(title: 'Tren Penjualan & Laba'),
-        ),
+        const ModernSectionHeader(title: 'Tren Penjualan & Laba'),
         const SizedBox(height: AppDimensions.spacing8),
-        _Section(
-          child: Row(
-            children: [
-              for (final option in TrendGranularity.values) ...[
-                ModernChip(
-                  label: option.label,
-                  selected: granularity == option,
-                  onSelected: (_) => ref
-                      .read(trendGranularityProvider.notifier)
-                      .state = option,
-                ),
-                const SizedBox(width: AppDimensions.spacing8),
-              ],
-            ],
-          ),
+        // Wraps rather than overflows: three chips do not fit across a
+        // dashboard cell at every tier.
+        Wrap(
+          spacing: AppDimensions.spacing8,
+          runSpacing: AppDimensions.spacing8,
+          children: [
+            for (final option in TrendGranularity.values)
+              ModernChip(
+                label: option.label,
+                selected: granularity == option,
+                onSelected: (_) =>
+                    ref.read(trendGranularityProvider.notifier).state = option,
+              ),
+          ],
         ),
         const SizedBox(height: AppDimensions.spacing16),
-        _Section(
-          child: ModernCard.outlined(
-            padding: const EdgeInsets.all(AppDimensions.spacing16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SalesTrendLegend(),
-                const SizedBox(height: AppDimensions.spacing16),
-                _AsyncBlock<List<SalesTrendPoint>>(
-                  value: trendAsync,
-                  onRetry: () => ref.invalidate(salesTrendProvider),
-                  loadingHeight: 220,
-                  builder: (points) => SalesTrendLineChart(points: points),
-                ),
-              ],
-            ),
+        ModernCard.outlined(
+          padding: const EdgeInsets.all(AppDimensions.spacing16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SalesTrendLegend(),
+              const SizedBox(height: AppDimensions.spacing16),
+              _AsyncBlock<List<SalesTrendPoint>>(
+                value: trendAsync,
+                onRetry: () => ref.invalidate(salesTrendProvider),
+                loadingHeight: 220,
+                builder: (points) => SalesTrendLineChart(points: points),
+              ),
+            ],
           ),
         ),
       ],
@@ -182,13 +172,11 @@ class _ComparisonSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final comparisonAsync = ref.watch(periodComparisonProvider);
 
-    return _Section(
-      child: _AsyncBlock(
-        value: comparisonAsync,
-        onRetry: () => ref.invalidate(periodComparisonProvider),
-        loadingHeight: 180,
-        builder: (comparison) => PeriodComparisonCard(comparison: comparison),
-      ),
+    return _AsyncBlock(
+      value: comparisonAsync,
+      onRetry: () => ref.invalidate(periodComparisonProvider),
+      loadingHeight: 180,
+      builder: (comparison) => PeriodComparisonCard(comparison: comparison),
     );
   }
 }
@@ -203,35 +191,31 @@ class _CategorySection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Section(
-          child: ModernSectionHeader(title: 'Distribusi Kategori'),
-        ),
+        const ModernSectionHeader(title: 'Distribusi Kategori'),
         const SizedBox(height: AppDimensions.spacing12),
-        _Section(
-          child: ModernCard.outlined(
-            padding: const EdgeInsets.all(AppDimensions.spacing16),
-            child: _AsyncBlock(
-              value: categoriesAsync,
-              onRetry: () => ref.invalidate(categoryDistributionProvider),
-              builder: (slices) => DistributionPieChart(
-                centerLabel: 'Total',
-                slices: [
-                  for (var i = 0; i < slices.length; i++)
-                    PieSliceData(
-                      label: slices[i].categoryName,
-                      value: slices[i].revenue,
-                      // Fall back to the palette when a category has no colour
-                      // of its own, so slices stay visually distinct.
-                      color: slices[i].isUncategorised
-                          ? AppColors.textTertiary
-                          : ColorUtils.fromHex(
-                              slices[i].categoryColor,
-                              fallback: ColorUtils.paletteAt(i),
-                            ),
-                      detail: '${slices[i].quantitySold} item terjual',
-                    ),
-                ],
-              ),
+        ModernCard.outlined(
+          padding: const EdgeInsets.all(AppDimensions.spacing16),
+          child: _AsyncBlock(
+            value: categoriesAsync,
+            onRetry: () => ref.invalidate(categoryDistributionProvider),
+            builder: (slices) => DistributionPieChart(
+              centerLabel: 'Total',
+              slices: [
+                for (var i = 0; i < slices.length; i++)
+                  PieSliceData(
+                    label: slices[i].categoryName,
+                    value: slices[i].revenue,
+                    // Fall back to the palette when a category has no colour
+                    // of its own, so slices stay visually distinct.
+                    color: slices[i].isUncategorised
+                        ? AppColors.textTertiary
+                        : ColorUtils.fromHex(
+                            slices[i].categoryColor,
+                            fallback: ColorUtils.paletteAt(i),
+                          ),
+                    detail: '${slices[i].quantitySold} item terjual',
+                  ),
+              ],
             ),
           ),
         ),
@@ -250,65 +234,61 @@ class _PaymentSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Section(
-          child: ModernSectionHeader(title: 'Metode Pembayaran'),
-        ),
+        const ModernSectionHeader(title: 'Metode Pembayaran'),
         const SizedBox(height: AppDimensions.spacing12),
-        _Section(
-          child: ModernCard.outlined(
-            padding: const EdgeInsets.all(AppDimensions.spacing16),
-            child: _AsyncBlock(
-              value: paymentsAsync,
-              onRetry: () => ref.invalidate(paymentDistributionProvider),
-              builder: (slices) => Column(
-                children: [
-                  DistributionPieChart(
-                    centerLabel: 'Total',
-                    slices: [
-                      for (var i = 0; i < slices.length; i++)
-                        PieSliceData(
-                          label: slices[i].label,
-                          value: slices[i].total,
-                          color: ColorUtils.paletteAt(i),
-                          detail: '${slices[i].transactionCount} transaksi',
-                        ),
-                    ],
-                  ),
-                  if (slices.totalUnpaid > 0) ...[
-                    const SizedBox(height: AppDimensions.spacing8),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(AppDimensions.spacing12),
-                      decoration: BoxDecoration(
-                        color: AppColors.warningLight,
-                        borderRadius: BorderRadius.circular(
-                          AppDimensions.radiusMedium,
-                        ),
+        ModernCard.outlined(
+          padding: const EdgeInsets.all(AppDimensions.spacing16),
+          child: _AsyncBlock(
+            value: paymentsAsync,
+            onRetry: () => ref.invalidate(paymentDistributionProvider),
+            builder: (slices) => Column(
+              children: [
+                DistributionPieChart(
+                  centerLabel: 'Total',
+                  slices: [
+                    for (var i = 0; i < slices.length; i++)
+                      PieSliceData(
+                        label: slices[i].label,
+                        value: slices[i].total,
+                        color: ColorUtils.paletteAt(i),
+                        detail: '${slices[i].transactionCount} transaksi',
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.account_balance_wallet_outlined,
-                            size: AppDimensions.iconSmall,
-                            color: AppColors.warning,
-                          ),
-                          const SizedBox(width: AppDimensions.spacing8),
-                          Expanded(
-                            child: Text(
-                              'Belum dibayar: '
-                              '${CurrencyFormatter.format(slices.totalUnpaid)}',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
+                  ],
+                ),
+                if (slices.totalUnpaid > 0) ...[
+                  const SizedBox(height: AppDimensions.spacing8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppDimensions.spacing12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningLight,
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusMedium,
                       ),
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.account_balance_wallet_outlined,
+                          size: AppDimensions.iconSmall,
+                          color: AppColors.warning,
+                        ),
+                        const SizedBox(width: AppDimensions.spacing8),
+                        Expanded(
+                          child: Text(
+                            'Belum dibayar: '
+                            '${CurrencyFormatter.format(slices.totalUnpaid)}',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         ),
@@ -327,31 +307,25 @@ class _HeatmapSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Section(
-          child: ModernSectionHeader(
-            title: 'Pola Jam Ramai',
-            subtitle: 'Ketuk kotak untuk melihat detail',
-          ),
+        const ModernSectionHeader(
+          title: 'Pola Jam Ramai',
+          subtitle: 'Ketuk kotak untuk melihat detail',
         ),
         const SizedBox(height: AppDimensions.spacing12),
-        _Section(
-          child: ModernCard.outlined(
-            padding: const EdgeInsets.all(AppDimensions.spacing16),
-            child: _AsyncBlock(
-              value: heatmapAsync,
-              onRetry: () => ref.invalidate(hourlyHeatmapProvider),
-              builder: (heatmap) => HourlySalesHeatmap(heatmap: heatmap),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppDimensions.spacing16),
-        _Section(
+        ModernCard.outlined(
+          padding: const EdgeInsets.all(AppDimensions.spacing16),
           child: _AsyncBlock(
             value: heatmapAsync,
             onRetry: () => ref.invalidate(hourlyHeatmapProvider),
-            loadingHeight: 120,
-            builder: (heatmap) => PeakHoursCard(heatmap: heatmap),
+            builder: (heatmap) => HourlySalesHeatmap(heatmap: heatmap),
           ),
+        ),
+        const SizedBox(height: AppDimensions.spacing16),
+        _AsyncBlock(
+          value: heatmapAsync,
+          onRetry: () => ref.invalidate(hourlyHeatmapProvider),
+          loadingHeight: 120,
+          builder: (heatmap) => PeakHoursCard(heatmap: heatmap),
         ),
       ],
     );
@@ -368,19 +342,15 @@ class _DayOfWeekSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _Section(
-          child: ModernSectionHeader(title: 'Perbandingan Hari'),
-        ),
+        const ModernSectionHeader(title: 'Perbandingan Hari'),
         const SizedBox(height: AppDimensions.spacing12),
-        _Section(
-          child: ModernCard.outlined(
-            padding: const EdgeInsets.all(AppDimensions.spacing16),
-            child: _AsyncBlock(
-              value: heatmapAsync,
-              onRetry: () => ref.invalidate(hourlyHeatmapProvider),
-              loadingHeight: 180,
-              builder: (heatmap) => DayOfWeekBarChart(heatmap: heatmap),
-            ),
+        ModernCard.outlined(
+          padding: const EdgeInsets.all(AppDimensions.spacing16),
+          child: _AsyncBlock(
+            value: heatmapAsync,
+            onRetry: () => ref.invalidate(hourlyHeatmapProvider),
+            loadingHeight: 180,
+            builder: (heatmap) => DayOfWeekBarChart(heatmap: heatmap),
           ),
         ),
       ],

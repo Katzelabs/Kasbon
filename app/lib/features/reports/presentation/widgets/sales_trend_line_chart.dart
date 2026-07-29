@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -6,12 +8,18 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../domain/entities/sales_trend_point.dart';
+import 'report_layout.dart';
 
 /// Line chart of revenue and (optionally) profit over time.
 ///
 /// Expects a gap-filled series - see [SalesTrendPointX.fillGaps] - so the
 /// x-axis has no holes and a quiet day reads as a dip rather than vanishing.
+///
+/// Label density scales with the width the chart actually has. A fixed stride
+/// gives six labels whether the chart is 340dp or 1200dp wide, so the wide one
+/// ends up with 200dp of empty axis between dates it could easily have named.
 class SalesTrendLineChart extends StatelessWidget {
   final List<SalesTrendPoint> points;
 
@@ -51,6 +59,21 @@ class SalesTrendLineChart extends StatelessWidget {
     }
   }
 
+  /// Label every nth bucket, so labels never collide however wide the chart is.
+  ///
+  /// [plotWidth] excludes the left axis gutter. Each label needs roughly its
+  /// own width plus breathing room; below three labels the axis stops saying
+  /// anything, so that is the floor.
+  int _labelStrideFor(double plotWidth) {
+    const labelSlot = 52.0;
+    // Three labels is the floor, but never more than there are points - a
+    // two-point series would otherwise clamp to an empty range and throw.
+    final floor = math.min(3, points.length);
+    final maxLabels =
+        (plotWidth / labelSlot).floor().clamp(floor, points.length);
+    return (points.length / maxLabels).ceil().clamp(1, points.length);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (points.isEmpty) {
@@ -67,6 +90,13 @@ class SalesTrendLineChart extends StatelessWidget {
       );
     }
 
+    return ReportChartFrame(
+      maxWidth: ReportChartWidths.trendLine,
+      child: Builder(builder: _buildChart),
+    );
+  }
+
+  Widget _buildChart(BuildContext context) {
     // Scale to the largest value on either line so neither is clipped. Profit
     // can be negative, so the floor is the lowest profit rather than zero.
     final maxRevenue = points.maxRevenue;
@@ -79,8 +109,8 @@ class SalesTrendLineChart extends StatelessWidget {
         : 0.0;
     final minY = minProfit < 0 ? minProfit * 1.2 : 0.0;
 
-    // With many buckets, label every nth point so they do not overlap.
-    final labelStride = (points.length / 6).ceil().clamp(1, points.length);
+    // 52 is the left axis reservation below, so what is left is the plot.
+    final labelStride = _labelStrideFor(context.availableWidth - 52);
 
     return SizedBox(
       height: height,

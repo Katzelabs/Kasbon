@@ -46,10 +46,17 @@ class ProfitSummaryCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: AppDimensions.spacing12),
-                  Text(
-                    title,
-                    style: AppTextStyles.h4.copyWith(
-                      color: Colors.white,
+                  // The title carries the selected range - "Total Laba Bulan
+                  // Ini" - so its length is data, not a constant, and at 375dp
+                  // it runs past the card without this.
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: AppTextStyles.h4.copyWith(
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

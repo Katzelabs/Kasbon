@@ -50,9 +50,8 @@ class TopProfitableProductsList extends StatelessWidget {
     int rank,
   ) {
     return InkWell(
-      onTap: onProductTap != null
-          ? () => onProductTap!(product.productId)
-          : null,
+      onTap:
+          onProductTap != null ? () => onProductTap!(product.productId) : null,
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacing16),
         child: Row(
@@ -94,10 +93,17 @@ class TopProfitableProductsList extends StatelessWidget {
                   const SizedBox(height: AppDimensions.spacing4),
                   Row(
                     children: [
-                      Text(
-                        '${product.totalSold} terjual',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                      // The profit figure beside this row is unbounded, so on
+                      // a phone the whole subtitle can be left under ~100dp.
+                      // The count gives way before the margin badge does.
+                      Flexible(
+                        child: Text(
+                          '${product.totalSold} terjual',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: AppDimensions.spacing8),

@@ -8,7 +8,20 @@ import '../providers/date_range_provider.dart';
 
 /// Horizontal chip selector for date range selection
 class DateRangeSelector extends ConsumerWidget {
-  const DateRangeSelector({super.key});
+  /// Inset around the chip row.
+  ///
+  /// Defaults to the screen gutter, which is what every caller wanted while
+  /// each report screen padded its own sections by hand. A screen wrapped in
+  /// [ModernContentColumn] already has that gutter and passes `EdgeInsets.zero`
+  /// instead, or the chips end up indented twice.
+  final EdgeInsetsGeometry padding;
+
+  const DateRangeSelector({
+    super.key,
+    this.padding = const EdgeInsets.symmetric(
+      horizontal: AppDimensions.spacing16,
+    ),
+  });
 
   /// Open the range picker and apply the result.
   ///
@@ -61,9 +74,7 @@ class DateRangeSelector extends ConsumerWidget {
       alignment: Alignment.centerLeft,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.spacing16,
-        ),
+        padding: padding,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

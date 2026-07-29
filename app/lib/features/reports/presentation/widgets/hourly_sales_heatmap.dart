@@ -1,10 +1,14 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../domain/entities/heatmap_cell.dart';
+import 'report_layout.dart';
 
 /// A 7x24 grid of sales intensity by weekday and hour.
 ///
@@ -12,19 +16,48 @@ import '../../domain/entities/heatmap_cell.dart';
 /// any version. Rows are ISO weekdays (Senin first, matching Indonesian
 /// convention) and columns are hours in the shop's local time.
 ///
-/// The grid scrolls horizontally: 24 legible hour columns do not fit on a
-/// phone, and shrinking them to fit makes individual cells untappable.
+/// ## Cell size comes from the pane, never from the window
+///
+/// 24 legible hour columns do not fit on a phone, so below [minCellSize] * 24
+/// the grid keeps that floor and scrolls horizontally - shrinking cells to fit
+/// makes them untappable, which is worse than a scroll.
+///
+/// Given more room it grows the cells to fill instead, up to [maxCellSize].
+/// That measurement is taken from the enclosing [ModernBreakpointScope], which
+/// is the width this widget actually has: dropped into one cell of a
+/// two-column dashboard on a 1600dp window it has ~500dp, not 1600, and sizing
+/// from the window there would produce a grid four times too wide for its box.
 class HourlySalesHeatmap extends StatefulWidget {
   final HourlyHeatmap heatmap;
 
-  /// Width and height of a single cell.
-  final double cellSize;
+  /// Floor on cell size. Below this the grid scrolls rather than shrinking.
+  final double minCellSize;
+
+  /// Ceiling on cell size, so a wide pane gets a legible grid rather than a
+  /// chessboard.
+  final double maxCellSize;
 
   const HourlySalesHeatmap({
     super.key,
     required this.heatmap,
-    this.cellSize = 26,
+    this.minCellSize = 26,
+    this.maxCellSize = 44,
   });
+
+  /// Cell size for a pane [available] logical pixels wide.
+  ///
+  /// Public so the sizing rule can be tested as the arithmetic it is, rather
+  /// than only through 168 rendered cells.
+  static double cellSizeFor(
+    double available, {
+    double min = 26,
+    double max = 44,
+  }) {
+    // 34dp of that width belongs to the weekday gutter, not to the grid.
+    final fit = (available - 34) / 24;
+    if (fit <= min) return min;
+    return math.min(fit, max);
+  }
 
   @override
   State<HourlySalesHeatmap> createState() => _HourlySalesHeatmapState();
@@ -35,6 +68,12 @@ class _HourlySalesHeatmapState extends State<HourlySalesHeatmap> {
   ({int day, int hour})? _selected;
 
   static const double _dayLabelWidth = 34;
+
+  double _cellSizeFor(double available) => HourlySalesHeatmap.cellSizeFor(
+        available,
+        min: widget.minCellSize,
+        max: widget.maxCellSize,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +91,16 @@ class _HourlySalesHeatmapState extends State<HourlySalesHeatmap> {
       );
     }
 
+    return ReportChartFrame(
+      maxWidth: ReportChartWidths.heatmap,
+      child: Builder(builder: _buildGrid),
+    );
+  }
+
+  Widget _buildGrid(BuildContext context) {
+    // The scope installed by ReportChartFrame, i.e. this widget's own box.
+    final cellSize = _cellSizeFor(context.availableWidth);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -60,9 +109,9 @@ class _HourlySalesHeatmapState extends State<HourlySalesHeatmap> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHourAxis(),
+              _buildHourAxis(cellSize),
               const SizedBox(height: AppDimensions.spacing4),
-              for (var day = 1; day <= 7; day++) _buildDayRow(day),
+              for (var day = 1; day <= 7; day++) _buildDayRow(day, cellSize),
             ],
           ),
         ),
@@ -74,13 +123,13 @@ class _HourlySalesHeatmapState extends State<HourlySalesHeatmap> {
     );
   }
 
-  Widget _buildHourAxis() {
+  Widget _buildHourAxis(double cellSize) {
     return Row(
       children: [
         const SizedBox(width: _dayLabelWidth),
         for (var hour = 0; hour < 24; hour++)
           SizedBox(
-            width: widget.cellSize,
+            width: cellSize,
             child: Center(
               // Every third hour keeps the axis readable without crowding.
               child: hour % 3 == 0
@@ -98,7 +147,7 @@ class _HourlySalesHeatmapState extends State<HourlySalesHeatmap> {
     );
   }
 
-  Widget _buildDayRow(int day) {
+  Widget _buildDayRow(int day, double cellSize) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Row(
@@ -113,13 +162,13 @@ class _HourlySalesHeatmapState extends State<HourlySalesHeatmap> {
               ),
             ),
           ),
-          for (var hour = 0; hour < 24; hour++) _buildCell(day, hour),
+          for (var hour = 0; hour < 24; hour++) _buildCell(day, hour, cellSize),
         ],
       ),
     );
   }
 
-  Widget _buildCell(int day, int hour) {
+  Widget _buildCell(int day, int hour, double cellSize) {
     final intensity = widget.heatmap.intensityAt(day, hour);
     final revenue = widget.heatmap.revenueAt(day, hour);
     final isSelected = _selected?.day == day && _selected?.hour == hour;
@@ -137,8 +186,8 @@ class _HourlySalesHeatmapState extends State<HourlySalesHeatmap> {
       child: Padding(
         padding: const EdgeInsets.all(1),
         child: Container(
-          width: widget.cellSize - 2,
-          height: widget.cellSize - 2,
+          width: cellSize - 2,
+          height: cellSize - 2,
           decoration: BoxDecoration(
             color: revenue > 0
                 ? AppColors.primary.withValues(alpha: alpha)
