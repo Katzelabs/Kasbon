@@ -14,7 +14,6 @@ import '../widgets/product_detail_panel.dart';
 import '../widgets/product_filter_card.dart';
 import '../widgets/product_grid_item.dart';
 import '../widgets/product_table_view.dart';
-import 'product_form_screen.dart';
 
 /// Screen displaying list of all products with search and filter functionality.
 ///
@@ -44,20 +43,19 @@ class ProductListScreen extends StatelessWidget {
         // The panel gets purpose-built chrome, not the full detail screen: a
         // Scaffold docked inside another screen's body meant a second app bar
         // and actions that scrolled out of reach.
-        detailBuilder: (context, uri, id) =>
-            uri.pathSegments.length > 2 && uri.pathSegments[2] == 'edit'
-                // Keyed by id for the same reason the edit route is: switching
-                // selection with the form open must load the new record rather
-                // than keep editing the old one.
-                ? ProductFormScreen(key: ValueKey('form-$id'), productId: id)
-                : ProductDetailPanel(
-                    key: ValueKey('detail-$id'),
-                    productId: id,
-                    onClose: () => MasterDetailScaffold.closeDetail(
-                      context,
-                      AppRoutes.products,
-                    ),
-                  ),
+        //
+        // Only the detail, never the form. Editing is a full-screen route at
+        // every width - see the note on the edit route in `app_router.dart` -
+        // so `/products/:id/edit` shows this panel with the form on top of it,
+        // and the panel is what you come back to when the form closes.
+        detailBuilder: (context, uri, id) => ProductDetailPanel(
+          key: ValueKey('detail-$id'),
+          productId: id,
+          onClose: () => MasterDetailScaffold.closeDetail(
+            context,
+            AppRoutes.products,
+          ),
+        ),
         placeholderBuilder: (context) => const _DetailPanePlaceholder(),
         master: const ProductListPane(),
       ),
@@ -128,7 +126,7 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
         ),
         // Inside the list pane, so it stays over the products rather than
         // floating above the detail panel.
-        if (!_isKeyboardVisible)
+        if (_usesFab(context) && !_isKeyboardVisible)
           Positioned(
             right: AppDimensions.spacing16,
             bottom: fabBottomOffset,
@@ -140,6 +138,30 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
             ),
           ),
       ],
+    );
+  }
+
+  /// Where "Tambah Produk" lives: floating over the grid, or in the toolbar.
+  ///
+  /// A FAB is a phone affordance. Given a pointer and a toolbar it is the wrong
+  /// shape twice over - it hovers over the last row of products, and it puts
+  /// the screen's primary action in the one corner a mouse is never already
+  /// near. So anything wider than a phone gets a real button in the filter bar
+  /// instead, and only a compact window keeps the FAB.
+  ///
+  /// [isInPane] is part of the test because a master pane squeezed below 600dp
+  /// is *not* a phone: the window around it is a desktop, and its narrow filter
+  /// bar carries an add button of its own.
+  static bool _usesFab(BuildContext context) =>
+      context.isCompact && !context.isInPane;
+
+  /// Opens the add-product form, for whichever control is showing it.
+  void _addProduct(BuildContext context) => context.go(AppRoutes.productAdd);
+
+  /// The filter bar, told whether it also owns the add button.
+  Widget _buildFilterBar(BuildContext context) {
+    return ProductFilterCard(
+      onAddProduct: _usesFab(context) ? null : () => _addProduct(context),
     );
   }
 
@@ -163,7 +185,7 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
         SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.all(padding),
-            child: const ProductFilterCard(),
+            child: _buildFilterBar(context),
           ),
         ),
         // Bulk Actions Bar (shown when items are selected)
@@ -199,7 +221,7 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
         SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.all(padding),
-            child: const ProductFilterCard(),
+            child: _buildFilterBar(context),
           ),
         ),
         // Bulk Actions Bar (shown when items are selected)
@@ -315,8 +337,6 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
 
         final products = result.items;
 
-        // Calculate responsive grid columns
-        final columns = _getGridColumns(context);
         final padding = context.horizontalPadding;
 
         // Calculate bottom padding for shell nav + spacing + keyboard
@@ -324,37 +344,54 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
             context.shellBottomInset +
             keyboardHeight;
 
-        // Aspect ratio for grid items (lower = taller cards)
-        const aspectRatio = 0.65;
-
         return SliverMainAxisGroup(
           slivers: [
             SliverPadding(
               padding: EdgeInsets.fromLTRB(padding, 0, padding, 0),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: columns,
-                  mainAxisSpacing: AppDimensions.spacing12,
-                  crossAxisSpacing: AppDimensions.spacing12,
-                  childAspectRatio: aspectRatio,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final product = products[index];
-                    final isSelected = selectedIds.contains(product.id);
+              // The grid is sized from the room it is actually given, which is
+              // this sliver's cross-axis extent - the pane's width less the
+              // padding above. Reading a breakpoint instead would only tell it
+              // which tier it is in, and a tier is not a width: `large` covers
+              // everything from a 1200dp laptop to a 2560dp monitor.
+              sliver: SliverLayoutBuilder(
+                builder: (context, constraints) {
+                  final columns = _gridColumns(constraints.crossAxisExtent);
+                  final tileWidth = (constraints.crossAxisExtent -
+                          _gridSpacing * (columns - 1)) /
+                      columns;
 
-                    return ProductGridItem(
-                      product: product,
-                      isSelectionMode: hasSelection,
-                      isSelected: isSelected,
-                      onTap: hasSelection
-                          ? () => _toggleSelection(ref, product.id, isSelected)
-                          : () => context.go(AppRoutes.productDetailPath(product.id)),
-                      onLongPress: () => _enterSelectionMode(ref, product.id),
-                    );
-                  },
-                  childCount: products.length,
-                ),
+                  return SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      mainAxisSpacing: _gridSpacing,
+                      crossAxisSpacing: _gridSpacing,
+                      // Not an aspect ratio: the card states the height its
+                      // photo and its type need, and the grid grants it.
+                      mainAxisExtent:
+                          ProductGridItem.extentFor(context, tileWidth),
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final product = products[index];
+                        final isSelected = selectedIds.contains(product.id);
+
+                        return ProductGridItem(
+                          product: product,
+                          isSelectionMode: hasSelection,
+                          isSelected: isSelected,
+                          onTap: hasSelection
+                              ? () =>
+                                  _toggleSelection(ref, product.id, isSelected)
+                              : () => context
+                                  .go(AppRoutes.productDetailPath(product.id)),
+                          onLongPress: () =>
+                              _enterSelectionMode(ref, product.id),
+                        );
+                      },
+                      childCount: products.length,
+                    ),
+                  );
+                },
               ),
             ),
             // Gap before pagination
@@ -416,17 +453,28 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
     ref.read(productSelectionProvider.notifier).select(productId);
   }
 
-  /// Get responsive grid columns for the space the grid actually has.
+  /// Gap between cards, both ways.
+  static const double _gridSpacing = AppDimensions.spacing12;
+
+  /// The card width the grid aims for, before it is rounded to whole columns.
   ///
-  /// Reads the breakpoint scope rather than the window: this list becomes a
-  /// master pane in RESP_07, where asking the window would give a 400dp column
-  /// five products across.
+  /// Chosen so a product photo is large enough to recognise at a glance and the
+  /// name below it gets two readable lines. The count follows from the width
+  /// rather than the other way round, so the cards stay about this size at
+  /// every window: 2 across on a phone, 4 on a tablet, 6-7 on a laptop, a dozen
+  /// on a 2560px monitor.
+  static const double _targetCardWidth = 200;
+
+  /// How many columns fit in [width], rounded to the nearest whole card.
   ///
-  /// The tier values reproduce the thresholds this replaced - the old code
-  /// returned 2 below 600, 2 below 900, and 5 above.
-  int _getGridColumns(BuildContext context) => context.responsive<int>(
-        compact: 2,
-        medium: 2,
-        expanded: 5,
-      );
+  /// Rounding rather than flooring: at 600dp `floor` would give 2 columns of
+  /// 294dp - cards half again as wide as they want to be - where `round` gives
+  /// 3 of 192dp, which is what was asked for.
+  ///
+  /// Never fewer than two. A single column of cards is a list, and the list has
+  /// a table view for that.
+  static int _gridColumns(double width) {
+    final columns = (width / _targetCardWidth).round();
+    return columns < 2 ? 2 : columns;
+  }
 }

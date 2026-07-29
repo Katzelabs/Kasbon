@@ -77,11 +77,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   String get _imageOwnerId => widget.productId ?? _draftProductId;
 
-  /// The pane this form is being shown in, or null when it is a route of its
-  /// own. Captured in `build` because the action buttons need it from a
-  /// callback, where an inherited lookup would be out of place.
-  DetailPaneScope? _pane;
-
   final List<String> _units = [
     'pcs',
     'kg',
@@ -259,7 +254,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   Widget build(BuildContext context) {
     _hasBuilt = true;
     final formState = ref.watch(productFormProvider);
-    final pane = _pane = DetailPaneScope.maybeOf(context);
 
     // Listen for form state changes
     ref.listen(productFormProvider, (previous, next) {
@@ -282,20 +276,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ? _buildEditForm()
         : _buildFormContent(formState.isLoading);
 
-    // Docked in the detail panel, this is not a screen: the window's header
-    // already spans above it, and a Scaffold with an app bar of its own would
-    // put a second bar inside the panel. Same chrome the detail panel and the
-    // POS cart wear - a header row, a rule, and the content below it.
-    if (pane != null) {
-      return Column(
-        children: [
-          _buildPanelHeader(title, pane.onClose),
-          const ModernDivider(),
-          Expanded(child: body),
-        ],
-      );
-    }
-
+    // A screen, never a pane. This used to branch on DetailPaneScope and wear
+    // panel chrome when the products list docked it beside the grid; editing
+    // now takes the window at every width, the way adding always has, so there
+    // is one presentation to reason about.
     return Scaffold(
       appBar: ModernAppBar.backWithActions(
         title: title,
@@ -308,53 +292,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     );
   }
 
-  Widget _buildPanelHeader(String title, VoidCallback onClose) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: AppDimensions.spacing16,
-        // The close button carries its own touch-target padding.
-        right: AppDimensions.spacing8,
-        top: AppDimensions.spacing12,
-        bottom: AppDimensions.spacing12,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: AppTextStyles.h4,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          IconButton(
-            onPressed: onClose,
-            icon: const Icon(Icons.close),
-            iconSize: AppDimensions.iconMedium,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: AppDimensions.minTouchTarget,
-              minHeight: AppDimensions.minTouchTarget,
-            ),
-            tooltip: 'Tutup',
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Leaves this screen, whichever way it is being shown.
+  /// Leaves this screen.
   ///
-  /// In a pane this pops one level of the nested stack, so closing
-  /// `/products/:id/edit` lands on `/products/:id` rather than on the list.
-  void _dismiss() {
-    final pane = _pane;
-    if (pane != null) {
-      pane.onClose();
-    } else {
-      context.pop();
-    }
-  }
+  /// A pop rather than a `go`, because the routes are nested: closing
+  /// `/products/:id/edit` lands on `/products/:id` - the detail, or the list
+  /// with that product open in its panel - rather than dropping the selection.
+  void _dismiss() => context.pop();
 
   Widget _buildEditForm() {
     // Watched only for its loading and error states; the fields themselves are

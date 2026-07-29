@@ -18,8 +18,15 @@ import '../providers/products_provider.dart';
 /// Two layouts. The full card is the stacked form the list has always had. The
 /// compact bar - search plus a Filter button opening an adaptive sheet - is for
 /// a master pane, where the full card would eat ~230dp of a ~400dp column.
+///
+/// Either layout also carries "Tambah Produk" when [onAddProduct] is given,
+/// which is how everything wider than a phone reaches the add form. See
+/// `ProductListPane` for why that action leaves the FAB behind.
 class ProductFilterCard extends ConsumerStatefulWidget {
-  const ProductFilterCard({super.key});
+  const ProductFilterCard({super.key, this.onAddProduct});
+
+  /// Opens the add-product form, or null when a FAB is doing that job instead.
+  final VoidCallback? onAddProduct;
 
   @override
   ConsumerState<ProductFilterCard> createState() => _ProductFilterCardState();
@@ -52,7 +59,7 @@ class _ProductFilterCardState extends ConsumerState<ProductFilterCard> {
           // Search Field - full width on mobile
           _buildSearchField(),
           const SizedBox(height: AppDimensions.spacing12),
-          // View Toggle and Sort Dropdown - separate row on mobile
+          // View Toggle, Sort Dropdown and - off a phone - the add button
           Row(
             children: [
               // View Toggle
@@ -61,6 +68,10 @@ class _ProductFilterCardState extends ConsumerState<ProductFilterCard> {
               // Sort Dropdown - flexible width
               // Measures the card's own width, not the window.
               Expanded(child: _SortDropdown(shortLabels: context.isCompact)),
+              if (widget.onAddProduct != null) ...[
+                const SizedBox(width: AppDimensions.spacing12),
+                _buildAddButton(context),
+              ],
             ],
           ),
           const SizedBox(height: AppDimensions.spacing16),
@@ -105,7 +116,32 @@ class _ProductFilterCardState extends ConsumerState<ProductFilterCard> {
             onPressed: () => _openFilterSheet(context),
           ),
         ),
+        // Icon only: this bar exists because the column is ~400dp wide, and a
+        // labelled button here would cost the search field a third of it.
+        if (widget.onAddProduct != null) ...[
+          const SizedBox(width: AppDimensions.spacing8),
+          ModernIconButton.filled(
+            icon: Icons.add,
+            tooltip: 'Tambah Produk',
+            onPressed: widget.onAddProduct,
+          ),
+        ],
       ],
+    );
+  }
+
+  /// The add button for the full card.
+  ///
+  /// Labelled where there is room for the words. At `medium` - a tablet in
+  /// portrait, sharing the row with a view toggle and a sort dropdown - it
+  /// drops to "Tambah", which is the same instruction in half the width.
+  Widget _buildAddButton(BuildContext context) {
+    return ModernButton.primary(
+      onPressed: widget.onAddProduct,
+      leadingIcon: Icons.add,
+      child: Text(
+        context.isAtLeast(Breakpoint.expanded) ? 'Tambah Produk' : 'Tambah',
+      ),
     );
   }
 

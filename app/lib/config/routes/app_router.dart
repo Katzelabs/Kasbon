@@ -260,12 +260,20 @@ class AppRouter {
                   );
                 },
                 routes: [
+                  // Editing is a screen, not a pane - at every width, and the
+                  // same screen `/products/add` opens.
+                  //
+                  // It used to dock in the list's detail panel, which put a
+                  // seven-card form into the narrowest column on the page while
+                  // the products it was not about kept the wide half. A form is
+                  // a task you finish and leave, so it gets the window; the
+                  // panel behind it is what you land back on.
                   GoRoute(
                     path: 'edit',
                     name: 'product-edit',
                     pageBuilder: (context, state) {
                       final id = state.pathParameters['id']!;
-                      return _splitAwarePage(
+                      return _slidePage(
                         state: state,
                         // A mounted form must not keep editing the record it
                         // was opened on. The key rebuilds the State when the
