@@ -84,145 +84,161 @@ class _AppSettingsScreenState extends ConsumerState<AppSettingsScreen> {
                   final bottomPadding =
                       AppDimensions.spacing16 + context.shellBottomInset;
 
-                  return SingleChildScrollView(
-                    padding: EdgeInsets.only(
-                      left: AppDimensions.spacing16,
-                      right: AppDimensions.spacing16,
-                      top: AppDimensions.spacing16,
-                      bottom: bottomPadding,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Stock notification settings card
-                        ModernCard.elevated(
-                          padding: const EdgeInsets.all(AppDimensions.spacing16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Section header
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(
-                                        AppDimensions.spacing8),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary.withValues(alpha:0.1),
-                                      borderRadius: BorderRadius.circular(
-                                          AppDimensions.radiusMedium),
-                                    ),
-                                    child: const Icon(
-                                      Icons.notifications_active_rounded,
-                                      color: AppColors.primary,
-                                      size: AppDimensions.iconMedium,
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppDimensions.spacing12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Notifikasi Stok',
-                                          style: AppTextStyles.h4,
-                                        ),
-                                        const SizedBox(height: AppDimensions.spacing4),
-                                        Text(
-                                          'Atur batas minimum stok untuk peringatan',
-                                          style: AppTextStyles.bodySmall.copyWith(
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: AppDimensions.spacing16),
-                              const ModernDivider(),
-                              const SizedBox(height: AppDimensions.spacing16),
-
-                              // Description
-                              Text(
-                                'Produk dengan stok di bawah batas minimum akan ditampilkan di daftar peringatan pada dashboard.',
-                                style: AppTextStyles.bodyMedium.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: AppDimensions.spacing16),
-
-                              // Low stock threshold field
-                              ModernTextField(
-                                label: 'Batas Stok Minimum',
-                                hint: 'Masukkan angka (minimal 1)',
-                                controller: _thresholdController,
-                                leading: const Icon(Icons.inventory_2_rounded),
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                onChanged: (value) {
-                                  // Clear error when user types
-                                  if (_thresholdError != null) {
-                                    setState(() {
-                                      _thresholdError = _validateThreshold(value);
-                                    });
-                                  }
-                                  final intValue = int.tryParse(value) ?? 1;
-                                  formNotifier.setLowStockThreshold(intValue);
-                                },
-                                errorText: _thresholdError ??
-                                    (formState.error != null &&
-                                            formState.error!.contains('stok')
-                                        ? formState.error
-                                        : null),
-                              ),
-                              const SizedBox(height: AppDimensions.spacing16),
-
-                              // Info card
-                              Container(
-                                padding:
-                                    const EdgeInsets.all(AppDimensions.spacing12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.info.withValues(alpha:0.1),
-                                  borderRadius: BorderRadius.circular(
-                                      AppDimensions.radiusMedium),
-                                  border: Border.all(
-                                    color: AppColors.info.withValues(alpha:0.3),
-                                  ),
-                                ),
-                                child: Row(
+                  // One card holding one field and a save button - a form, so
+                  // it gets form width rather than stretching a 200-character
+                  // description line across the window.
+                  return ModernContentColumn.form(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.only(
+                        top: AppDimensions.spacing16,
+                        bottom: bottomPadding,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Stock notification settings card
+                          ModernCard.elevated(
+                            padding:
+                                const EdgeInsets.all(AppDimensions.spacing16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Section header
+                                Row(
                                   children: [
-                                    const Icon(
-                                      Icons.info_outline_rounded,
-                                      color: AppColors.info,
-                                      size: AppDimensions.iconMedium,
+                                    Container(
+                                      padding: const EdgeInsets.all(
+                                          AppDimensions.spacing8),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(
+                                            AppDimensions.radiusMedium),
+                                      ),
+                                      child: const Icon(
+                                        Icons.notifications_active_rounded,
+                                        color: AppColors.primary,
+                                        size: AppDimensions.iconMedium,
+                                      ),
                                     ),
-                                    const SizedBox(width: AppDimensions.spacing12),
+                                    const SizedBox(
+                                        width: AppDimensions.spacing12),
                                     Expanded(
-                                      child: Text(
-                                        'Contoh: Jika diatur ke ${formState.lowStockThreshold}, produk dengan stok ${formState.lowStockThreshold - 1 >= 0 ? formState.lowStockThreshold - 1 : 0} atau kurang akan muncul di peringatan.',
-                                        style: AppTextStyles.bodySmall.copyWith(
-                                          color: AppColors.info,
-                                        ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Notifikasi Stok',
+                                            style: AppTextStyles.h4,
+                                          ),
+                                          const SizedBox(
+                                              height: AppDimensions.spacing4),
+                                          Text(
+                                            'Atur batas minimum stok untuk peringatan',
+                                            style: AppTextStyles.bodySmall
+                                                .copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: AppDimensions.spacing24),
+                                const SizedBox(height: AppDimensions.spacing16),
+                                const ModernDivider(),
+                                const SizedBox(height: AppDimensions.spacing16),
 
-                        // Save button
-                        ModernButton.primary(
-                          fullWidth: true,
-                          isLoading: formState.isSaving,
-                          onPressed: () => _saveSettings(context, formNotifier),
-                          child: const Text('Simpan Pengaturan'),
-                        ),
-                      ],
+                                // Description
+                                Text(
+                                  'Produk dengan stok di bawah batas minimum akan ditampilkan di daftar peringatan pada dashboard.',
+                                  style: AppTextStyles.bodyMedium.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: AppDimensions.spacing16),
+
+                                // Low stock threshold field
+                                ModernTextField(
+                                  label: 'Batas Stok Minimum',
+                                  hint: 'Masukkan angka (minimal 1)',
+                                  controller: _thresholdController,
+                                  leading:
+                                      const Icon(Icons.inventory_2_rounded),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  onChanged: (value) {
+                                    // Clear error when user types
+                                    if (_thresholdError != null) {
+                                      setState(() {
+                                        _thresholdError =
+                                            _validateThreshold(value);
+                                      });
+                                    }
+                                    final intValue = int.tryParse(value) ?? 1;
+                                    formNotifier.setLowStockThreshold(intValue);
+                                  },
+                                  errorText: _thresholdError ??
+                                      (formState.error != null &&
+                                              formState.error!.contains('stok')
+                                          ? formState.error
+                                          : null),
+                                ),
+                                const SizedBox(height: AppDimensions.spacing16),
+
+                                // Info card
+                                Container(
+                                  padding: const EdgeInsets.all(
+                                      AppDimensions.spacing12),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        AppColors.info.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(
+                                        AppDimensions.radiusMedium),
+                                    border: Border.all(
+                                      color:
+                                          AppColors.info.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.info_outline_rounded,
+                                        color: AppColors.info,
+                                        size: AppDimensions.iconMedium,
+                                      ),
+                                      const SizedBox(
+                                          width: AppDimensions.spacing12),
+                                      Expanded(
+                                        child: Text(
+                                          'Contoh: Jika diatur ke ${formState.lowStockThreshold}, produk dengan stok ${formState.lowStockThreshold - 1 >= 0 ? formState.lowStockThreshold - 1 : 0} atau kurang akan muncul di peringatan.',
+                                          style:
+                                              AppTextStyles.bodySmall.copyWith(
+                                            color: AppColors.info,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppDimensions.spacing24),
+
+                          // Save button
+                          ModernButton.primary(
+                            fullWidth: true,
+                            isLoading: formState.isSaving,
+                            onPressed: () =>
+                                _saveSettings(context, formNotifier),
+                            child: const Text('Simpan Pengaturan'),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 },

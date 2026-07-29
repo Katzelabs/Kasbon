@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../../core/utils/validators.dart';
 import '../providers/auth_provider.dart';
@@ -70,182 +71,185 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      // Same clamp as the login screen, for the same reason - see the note
+      // there. Both sit outside the shell, so nothing else caps their width.
       body: SafeArea(
-        child: Center(
+        child: ModernContentColumn.form(
+          // Centred, like the login screen - see the note there.
+          alignment: Alignment.center,
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.spacing24,
               vertical: AppDimensions.spacing24,
             ),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Back button
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: ModernIconButton(
-                        icon: Icons.arrow_back,
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Back button
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ModernIconButton(
+                      icon: Icons.arrow_back,
+                      onPressed:
+                          isLoading ? null : () => context.go(AppRoutes.login),
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.spacing16),
+
+                  // Header
+                  const Text(
+                    'Buat Akun Baru',
+                    style: AppTextStyles.h2,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppDimensions.spacing4),
+                  Text(
+                    'Isi data di bawah untuk mendaftar',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppDimensions.spacing32),
+
+                  // Full name
+                  ModernTextField(
+                    label: 'Nama Lengkap',
+                    hint: 'Masukkan nama lengkap',
+                    controller: _fullNameController,
+                    leading: const Icon(Icons.person_outlined),
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.words,
+                    maxLength: 100,
+                    validator: _validateFullName,
+                    enabled: !isLoading,
+                  ),
+                  const SizedBox(height: AppDimensions.spacing16),
+
+                  // Email
+                  ModernTextField(
+                    label: 'Email',
+                    hint: 'contoh@email.com',
+                    controller: _emailController,
+                    leading: const Icon(Icons.email_outlined),
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    maxLength: 254,
+                    validator: _validateEmail,
+                    enabled: !isLoading,
+                  ),
+                  const SizedBox(height: AppDimensions.spacing16),
+
+                  // Phone (optional)
+                  ModernTextField(
+                    label: 'No. Telepon (opsional)',
+                    hint: '08xxxxxxxxxx',
+                    controller: _phoneController,
+                    leading: const Icon(Icons.phone_outlined),
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.next,
+                    maxLength: 15,
+                    validator: _validatePhone,
+                    enabled: !isLoading,
+                  ),
+                  const SizedBox(height: AppDimensions.spacing16),
+
+                  // Password
+                  ModernTextField(
+                    label: 'Password',
+                    hint:
+                        'Minimal 8 karakter dengan huruf besar, kecil, dan angka',
+                    controller: _passwordController,
+                    leading: const Icon(Icons.lock_outlined),
+                    obscureText: _obscurePassword,
+                    textInputAction: TextInputAction.next,
+                    maxLength: 128,
+                    validator: _validatePassword,
+                    enabled: !isLoading,
+                    trailing: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: AppColors.textSecondary,
+                        size: AppDimensions.iconMedium,
+                      ),
+                      onPressed: () {
+                        setState(() => _obscurePassword = !_obscurePassword);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.spacing16),
+
+                  // Confirm password
+                  ModernTextField(
+                    label: 'Konfirmasi Password',
+                    hint: 'Ulangi password',
+                    controller: _confirmPasswordController,
+                    leading: const Icon(Icons.lock_outlined),
+                    obscureText: _obscureConfirmPassword,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _onRegister(),
+                    maxLength: 128,
+                    validator: _validateConfirmPassword,
+                    enabled: !isLoading,
+                    trailing: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: AppColors.textSecondary,
+                        size: AppDimensions.iconMedium,
+                      ),
+                      onPressed: () {
+                        setState(() =>
+                            _obscureConfirmPassword = !_obscureConfirmPassword);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: AppDimensions.spacing24),
+
+                  // Register button
+                  ModernButton.primary(
+                    onPressed: isLoading ? null : _onRegister,
+                    isLoading: isLoading,
+                    size: ModernSize.large,
+                    fullWidth: true,
+                    child: const Text('Daftar'),
+                  ),
+                  const SizedBox(height: AppDimensions.spacing16),
+
+                  // Login link
+                  // A Wrap, not a Row: at a large text scale the sentence
+                  // and the link together are wider than a phone, and a Row
+                  // overflows where this drops the link onto its own line.
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        'Sudah punya akun? ',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      ModernButton.text(
                         onPressed: isLoading
                             ? null
                             : () => context.go(AppRoutes.login),
-                      ),
-                    ),
-                    const SizedBox(height: AppDimensions.spacing16),
-
-                    // Header
-                    const Text(
-                      'Buat Akun Baru',
-                      style: AppTextStyles.h2,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppDimensions.spacing4),
-                    Text(
-                      'Isi data di bawah untuk mendaftar',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppDimensions.spacing32),
-
-                    // Full name
-                    ModernTextField(
-                      label: 'Nama Lengkap',
-                      hint: 'Masukkan nama lengkap',
-                      controller: _fullNameController,
-                      leading: const Icon(Icons.person_outlined),
-                      textInputAction: TextInputAction.next,
-                      textCapitalization: TextCapitalization.words,
-                      maxLength: 100,
-                      validator: _validateFullName,
-                      enabled: !isLoading,
-                    ),
-                    const SizedBox(height: AppDimensions.spacing16),
-
-                    // Email
-                    ModernTextField(
-                      label: 'Email',
-                      hint: 'contoh@email.com',
-                      controller: _emailController,
-                      leading: const Icon(Icons.email_outlined),
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      maxLength: 254,
-                      validator: _validateEmail,
-                      enabled: !isLoading,
-                    ),
-                    const SizedBox(height: AppDimensions.spacing16),
-
-                    // Phone (optional)
-                    ModernTextField(
-                      label: 'No. Telepon (opsional)',
-                      hint: '08xxxxxxxxxx',
-                      controller: _phoneController,
-                      leading: const Icon(Icons.phone_outlined),
-                      keyboardType: TextInputType.phone,
-                      textInputAction: TextInputAction.next,
-                      maxLength: 15,
-                      validator: _validatePhone,
-                      enabled: !isLoading,
-                    ),
-                    const SizedBox(height: AppDimensions.spacing16),
-
-                    // Password
-                    ModernTextField(
-                      label: 'Password',
-                      hint:
-                          'Minimal 8 karakter dengan huruf besar, kecil, dan angka',
-                      controller: _passwordController,
-                      leading: const Icon(Icons.lock_outlined),
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.next,
-                      maxLength: 128,
-                      validator: _validatePassword,
-                      enabled: !isLoading,
-                      trailing: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          color: AppColors.textSecondary,
-                          size: AppDimensions.iconMedium,
-                        ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: AppDimensions.spacing16),
-
-                    // Confirm password
-                    ModernTextField(
-                      label: 'Konfirmasi Password',
-                      hint: 'Ulangi password',
-                      controller: _confirmPasswordController,
-                      leading: const Icon(Icons.lock_outlined),
-                      obscureText: _obscureConfirmPassword,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _onRegister(),
-                      maxLength: 128,
-                      validator: _validateConfirmPassword,
-                      enabled: !isLoading,
-                      trailing: IconButton(
-                        icon: Icon(
-                          _obscureConfirmPassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          color: AppColors.textSecondary,
-                          size: AppDimensions.iconMedium,
-                        ),
-                        onPressed: () {
-                          setState(() => _obscureConfirmPassword =
-                              !_obscureConfirmPassword);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: AppDimensions.spacing24),
-
-                    // Register button
-                    ModernButton.primary(
-                      onPressed: isLoading ? null : _onRegister,
-                      isLoading: isLoading,
-                      size: ModernSize.large,
-                      fullWidth: true,
-                      child: const Text('Daftar'),
-                    ),
-                    const SizedBox(height: AppDimensions.spacing16),
-
-                    // Login link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Sudah punya akun? ',
+                        child: Text(
+                          'Masuk',
                           style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        ModernButton.text(
-                          onPressed: isLoading
-                              ? null
-                              : () => context.go(AppRoutes.login),
-                          child: Text(
-                            'Masuk',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),

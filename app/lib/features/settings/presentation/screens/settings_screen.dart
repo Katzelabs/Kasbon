@@ -36,104 +36,113 @@ class SettingsScreen extends ConsumerWidget {
           final bottomPadding =
               AppDimensions.spacing16 + context.shellBottomInset;
 
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.only(bottom: bottomPadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: AppDimensions.spacing16),
+          // A settings list is prose-shaped: a column of one-line rows that
+          // gets no easier to scan for being 2000px wide. The sections used to
+          // carry their own 16dp inset, which is now the column's job, so they
+          // are handed `EdgeInsets.zero` and the tier padding applies once.
+          return ModernContentColumn.reading(
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.only(bottom: bottomPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppDimensions.spacing16),
 
-                // TOKO Section
-                SettingsSection(
-                  title: 'Toko',
-                  children: [
-                    SettingsTile.navigation(
-                      icon: Icons.store_rounded,
-                      iconColor: AppColors.primary,
-                      title: 'Profil Toko',
-                      subtitle: settings.name,
-                      onTap: () => context.go(AppRoutes.settingsShopProfile),
-                    ),
-                    SettingsTile.navigation(
-                      icon: Icons.receipt_long_rounded,
-                      iconColor: AppColors.info,
-                      title: 'Pengaturan Struk',
-                      subtitle: 'Header & footer struk',
-                      onTap: () => context.go(AppRoutes.settingsReceipt),
-                    ),
-                  ],
-                ),
+                  // TOKO Section
+                  SettingsSection(
+                    padding: EdgeInsets.zero,
+                    title: 'Toko',
+                    children: [
+                      SettingsTile.navigation(
+                        icon: Icons.store_rounded,
+                        iconColor: AppColors.primary,
+                        title: 'Profil Toko',
+                        subtitle: settings.name,
+                        onTap: () => context.go(AppRoutes.settingsShopProfile),
+                      ),
+                      SettingsTile.navigation(
+                        icon: Icons.receipt_long_rounded,
+                        iconColor: AppColors.info,
+                        title: 'Pengaturan Struk',
+                        subtitle: 'Header & footer struk',
+                        onTap: () => context.go(AppRoutes.settingsReceipt),
+                      ),
+                    ],
+                  ),
 
-                const SizedBox(height: AppDimensions.spacing24),
+                  const SizedBox(height: AppDimensions.spacing24),
 
-                // APLIKASI Section
-                SettingsSection(
-                  title: 'Aplikasi',
-                  children: [
-                    SettingsTile.navigation(
-                      icon: Icons.tune_rounded,
-                      iconColor: AppColors.warning,
-                      title: 'Pengaturan Aplikasi',
-                      subtitle: 'Batas stok rendah: ${settings.lowStockThreshold}',
-                      onTap: () => context.go(AppRoutes.settingsApp),
-                    ),
-                  ],
-                ),
+                  // APLIKASI Section
+                  SettingsSection(
+                    padding: EdgeInsets.zero,
+                    title: 'Aplikasi',
+                    children: [
+                      SettingsTile.navigation(
+                        icon: Icons.tune_rounded,
+                        iconColor: AppColors.warning,
+                        title: 'Pengaturan Aplikasi',
+                        subtitle:
+                            'Batas stok rendah: ${settings.lowStockThreshold}',
+                        onTap: () => context.go(AppRoutes.settingsApp),
+                      ),
+                    ],
+                  ),
 
-                const SizedBox(height: AppDimensions.spacing24),
+                  const SizedBox(height: AppDimensions.spacing24),
 
-                // LAINNYA Section
-                SettingsSection(
-                  title: 'Lainnya',
-                  children: [
-                    SettingsTile.navigation(
-                      icon: Icons.backup_rounded,
-                      iconColor: AppColors.success,
-                      title: 'Backup & Restore',
-                      subtitle: 'Cadangkan dan pulihkan data',
-                      onTap: () => context.go(AppRoutes.settingsBackup),
-                    ),
-                    SettingsTile.navigation(
-                      icon: Icons.info_outline_rounded,
-                      iconColor: AppColors.textSecondary,
-                      title: 'Tentang Aplikasi',
-                      subtitle: 'Versi & informasi',
-                      onTap: () => context.go(AppRoutes.settingsAbout),
-                    ),
-                  ],
-                ),
+                  // LAINNYA Section
+                  SettingsSection(
+                    padding: EdgeInsets.zero,
+                    title: 'Lainnya',
+                    children: [
+                      SettingsTile.navigation(
+                        icon: Icons.backup_rounded,
+                        iconColor: AppColors.success,
+                        title: 'Backup & Restore',
+                        subtitle: 'Cadangkan dan pulihkan data',
+                        onTap: () => context.go(AppRoutes.settingsBackup),
+                      ),
+                      SettingsTile.navigation(
+                        icon: Icons.info_outline_rounded,
+                        iconColor: AppColors.textSecondary,
+                        title: 'Tentang Aplikasi',
+                        subtitle: 'Versi & informasi',
+                        onTap: () => context.go(AppRoutes.settingsAbout),
+                      ),
+                    ],
+                  ),
 
-                const SizedBox(height: AppDimensions.spacing24),
+                  const SizedBox(height: AppDimensions.spacing24),
 
-                // AKUN Section
-                SettingsSection(
-                  title: 'Akun',
-                  children: [
-                    SettingsTile.destructive(
-                      icon: Icons.logout_rounded,
-                      title: 'Keluar',
-                      subtitle: 'Keluar dari akun Anda',
-                      onTap: () async {
-                        final confirmed = await ModernDialog.confirm(
-                          context,
-                          title: 'Keluar dari Akun',
-                          message: 'Apakah Anda yakin ingin keluar?',
-                          confirmLabel: 'Keluar',
-                          isDestructive: true,
-                        );
-                        if (confirmed == true) {
-                          ref
-                              .read(authNotifierProvider.notifier)
-                              .logout();
-                        }
-                      },
-                    ),
-                  ],
-                ),
+                  // AKUN Section
+                  SettingsSection(
+                    padding: EdgeInsets.zero,
+                    title: 'Akun',
+                    children: [
+                      SettingsTile.destructive(
+                        icon: Icons.logout_rounded,
+                        title: 'Keluar',
+                        subtitle: 'Keluar dari akun Anda',
+                        onTap: () async {
+                          final confirmed = await ModernDialog.confirm(
+                            context,
+                            title: 'Keluar dari Akun',
+                            message: 'Apakah Anda yakin ingin keluar?',
+                            confirmLabel: 'Keluar',
+                            isDestructive: true,
+                          );
+                          if (confirmed == true) {
+                            ref.read(authNotifierProvider.notifier).logout();
+                          }
+                        },
+                      ),
+                    ],
+                  ),
 
-                const SizedBox(height: AppDimensions.spacing32),
-              ],
+                  const SizedBox(height: AppDimensions.spacing32),
+                ],
+              ),
             ),
           );
         },

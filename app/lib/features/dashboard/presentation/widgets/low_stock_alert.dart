@@ -22,78 +22,75 @@ class LowStockAlert extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.spacing16,
-      ),
-      child: GestureDetector(
-        onTap: onTap ?? () => context.go(AppRoutes.products),
-        child: Container(
-          padding: const EdgeInsets.all(AppDimensions.spacing12),
-          decoration: BoxDecoration(
-            color: AppColors.warning.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-            border: Border.all(
-              color: AppColors.warning.withValues(alpha: 0.3),
-            ),
+    // No inset of its own - see the note on SalesSummaryCard. At `expanded`
+    // and above this sits in a Row beside that card rather than under it.
+    return GestureDetector(
+      onTap: onTap ?? () => context.go(AppRoutes.products),
+      child: Container(
+        padding: const EdgeInsets.all(AppDimensions.spacing12),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+          border: Border.all(
+            color: AppColors.warning.withValues(alpha: 0.3),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppDimensions.spacing8),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(
-                    AppDimensions.radiusSmall,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.warning_amber,
-                  color: AppColors.warning,
-                  size: 20,
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppDimensions.spacing8),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(
+                  AppDimensions.radiusSmall,
                 ),
               ),
-              const SizedBox(width: AppDimensions.spacing12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$count produk stok menipis!',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Segera lakukan restok',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.warning.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ),
+              child: const Icon(
+                Icons.warning_amber,
+                color: AppColors.warning,
+                size: 20,
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+            ),
+            const SizedBox(width: AppDimensions.spacing12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Lihat',
-                    style: AppTextStyles.button.copyWith(
+                    '$count produk stok menipis!',
+                    style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.warning,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.warning,
-                    size: 20,
+                  const SizedBox(height: 2),
+                  Text(
+                    'Segera lakukan restok',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.warning.withValues(alpha: 0.8),
+                    ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Lihat',
+                  style: AppTextStyles.button.copyWith(
+                    color: AppColors.warning,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.warning,
+                  size: 20,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

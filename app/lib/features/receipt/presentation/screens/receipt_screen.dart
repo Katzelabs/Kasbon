@@ -50,35 +50,34 @@ class ReceiptScreen extends ConsumerWidget {
     WidgetRef ref,
     ReceiptData receiptData,
   ) {
-    final isTablet = context.isTabletOrDesktop;
-
+    // A receipt is a fixed 42 monospace characters wide - it does not get
+    // wider, only more centred - so the column replaces the hand-rolled 400dp
+    // clamp that used to sit around the preview.
+    //
+    // The action bar is deliberately *outside* it. The bar is chrome docked to
+    // the bottom of the screen, and its background and top shadow have to run
+    // edge to edge to read as one; only the buttons inside it are clamped, so
+    // they still line up with the receipt above.
     return Column(
       children: [
-        // Scrollable receipt preview
         Expanded(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(
-              isTablet ? AppDimensions.spacing24 : AppDimensions.spacing16,
-            ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: ReceiptPreviewWidget(
-                  receiptText: receiptData.receiptText,
-                ),
+          child: ModernContentColumn.form(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                vertical: AppDimensions.spacing16,
+              ),
+              child: ReceiptPreviewWidget(
+                receiptText: receiptData.receiptText,
               ),
             ),
           ),
         ),
-        // Action buttons
         _buildActionButtons(context, receiptData),
       ],
     );
   }
 
   Widget _buildActionButtons(BuildContext context, ReceiptData receiptData) {
-    final isTablet = context.isTabletOrDesktop;
-
     final copyButton = ModernButton.outline(
       size: ModernSize.medium,
       fullWidth: true,
@@ -113,8 +112,7 @@ class ReceiptScreen extends ConsumerWidget {
       child: const Text('Bagikan'),
     );
 
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.spacing16),
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         boxShadow: [
@@ -127,26 +125,36 @@ class ReceiptScreen extends ConsumerWidget {
       ),
       child: SafeArea(
         top: false,
-        child: isTablet
-            ? Row(
-                children: [
-                  Expanded(child: copyButton),
-                  const SizedBox(width: AppDimensions.spacing8),
-                  Expanded(child: whatsAppButton),
-                  const SizedBox(width: AppDimensions.spacing8),
-                  Expanded(child: shareButton),
-                ],
-              )
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  copyButton,
-                  const SizedBox(height: AppDimensions.spacing8),
-                  whatsAppButton,
-                  const SizedBox(height: AppDimensions.spacing8),
-                  shareButton,
-                ],
-              ),
+        child: ModernContentColumn.form(
+          verticalPadding: const EdgeInsets.symmetric(
+            vertical: AppDimensions.spacing16,
+          ),
+          child: Builder(
+            // Inside the column, so the tier reported here is the clamped
+            // width - which is what decides whether three buttons fit in a
+            // row, rather than how wide the window happens to be.
+            builder: (context) => context.isAtLeast(Breakpoint.medium)
+                ? Row(
+                    children: [
+                      Expanded(child: copyButton),
+                      const SizedBox(width: AppDimensions.spacing8),
+                      Expanded(child: whatsAppButton),
+                      const SizedBox(width: AppDimensions.spacing8),
+                      Expanded(child: shareButton),
+                    ],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      copyButton,
+                      const SizedBox(height: AppDimensions.spacing8),
+                      whatsAppButton,
+                      const SizedBox(height: AppDimensions.spacing8),
+                      shareButton,
+                    ],
+                  ),
+          ),
+        ),
       ),
     );
   }

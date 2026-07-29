@@ -191,8 +191,9 @@ class _ProductFilterCardState extends ConsumerState<ProductFilterCard> {
             icon: Icons.grid_view,
             isSelected: currentMode == ProductViewMode.grid,
             onTap: () {
-              ref.read(productViewModeProvider.notifier).state =
-                  ProductViewMode.grid;
+              ref
+                  .read(productViewModeProvider.notifier)
+                  .setMode(ProductViewMode.grid);
               // Clear selection when switching to grid
               ref.read(productSelectionProvider.notifier).clearSelection();
             },
@@ -202,8 +203,9 @@ class _ProductFilterCardState extends ConsumerState<ProductFilterCard> {
             icon: Icons.table_rows,
             isSelected: currentMode == ProductViewMode.table,
             onTap: () {
-              ref.read(productViewModeProvider.notifier).state =
-                  ProductViewMode.table;
+              ref
+                  .read(productViewModeProvider.notifier)
+                  .setMode(ProductViewMode.table);
             },
             tooltip: 'Tampilan Tabel',
           ),
@@ -402,8 +404,7 @@ class _FilterChipSections extends ConsumerWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppDimensions.radiusRound),
         ),
-        padding:
-            const EdgeInsets.symmetric(horizontal: AppDimensions.spacing8),
+        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.spacing8),
       ),
     );
   }

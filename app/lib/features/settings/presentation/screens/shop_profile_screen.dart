@@ -69,91 +69,98 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
                     final bottomPadding =
                         AppDimensions.spacing16 + context.shellBottomInset;
 
-                    return SingleChildScrollView(
-                      padding: EdgeInsets.only(
-                        left: AppDimensions.spacing16,
-                        right: AppDimensions.spacing16,
-                        top: AppDimensions.spacing16,
-                        bottom: bottomPadding,
-                      ),
-                      child: Form(
-                        key: _formKey,
-                        // Single column, so no reordering is needed - the group
-                        // is here to bound traversal to the form. Without it
-                        // Tab leaves the last field for the app bar's account
-                        // menu rather than reaching Simpan.
-                        child: FocusTraversalGroup(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Form fields card
-                              ModernCard.elevated(
-                                padding: const EdgeInsets.all(
-                                    AppDimensions.spacing16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Shop name field (required)
-                                    ModernTextField(
-                                      label: 'Nama Toko',
-                                      hint: 'Masukkan nama toko',
-                                      controller: _nameController,
-                                      leading: const Icon(Icons.store_rounded),
-                                      onChanged: (value) =>
-                                          formNotifier.setName(value),
-                                      validator: _validateName,
-                                      textCapitalization:
-                                          TextCapitalization.words,
-                                    ),
-                                    const SizedBox(
-                                        height: AppDimensions.spacing16),
+                    // Three fields and a save button. Form width, so the
+                    // inputs stay a length the eye can track from label to
+                    // value instead of spanning the whole window.
+                    return ModernContentColumn.form(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.only(
+                          top: AppDimensions.spacing16,
+                          bottom: bottomPadding,
+                        ),
+                        child: Form(
+                          key: _formKey,
+                          // Single column, so no reordering is needed - the group
+                          // is here to bound traversal to the form. Without it
+                          // Tab leaves the last field for the app bar's account
+                          // menu rather than reaching Simpan.
+                          child: FocusTraversalGroup(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Form fields card
+                                ModernCard.elevated(
+                                  padding: const EdgeInsets.all(
+                                      AppDimensions.spacing16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Shop name field (required)
+                                      ModernTextField(
+                                        label: 'Nama Toko',
+                                        hint: 'Masukkan nama toko',
+                                        controller: _nameController,
+                                        leading:
+                                            const Icon(Icons.store_rounded),
+                                        onChanged: (value) =>
+                                            formNotifier.setName(value),
+                                        validator: _validateName,
+                                        textCapitalization:
+                                            TextCapitalization.words,
+                                      ),
+                                      const SizedBox(
+                                          height: AppDimensions.spacing16),
 
-                                    // Shop address field (optional)
-                                    ModernTextField(
-                                      label: 'Alamat Toko',
-                                      hint: 'Masukkan alamat toko (opsional)',
-                                      controller: _addressController,
-                                      leading:
-                                          const Icon(Icons.location_on_rounded),
-                                      onChanged: (value) =>
-                                          formNotifier.setAddress(value),
-                                      maxLines: 2,
-                                      textCapitalization:
-                                          TextCapitalization.sentences,
-                                    ),
-                                    const SizedBox(
-                                        height: AppDimensions.spacing16),
+                                      // Shop address field (optional)
+                                      ModernTextField(
+                                        label: 'Alamat Toko',
+                                        hint: 'Masukkan alamat toko (opsional)',
+                                        controller: _addressController,
+                                        leading: const Icon(
+                                            Icons.location_on_rounded),
+                                        onChanged: (value) =>
+                                            formNotifier.setAddress(value),
+                                        maxLines: 2,
+                                        textCapitalization:
+                                            TextCapitalization.sentences,
+                                      ),
+                                      const SizedBox(
+                                          height: AppDimensions.spacing16),
 
-                                    // Shop phone field (optional)
-                                    ModernTextField(
-                                      label: 'Nomor Telepon',
-                                      hint: 'Masukkan nomor telepon (opsional)',
-                                      controller: _phoneController,
-                                      leading: const Icon(Icons.phone_rounded),
-                                      keyboardType: TextInputType.phone,
-                                      onChanged: (value) =>
-                                          formNotifier.setPhone(value),
-                                      validator: _validatePhone,
-                                      inputFormatters: [
-                                        FilteringTextInputFormatter.allow(
-                                          RegExp(r'[0-9+\-\s]'),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                      // Shop phone field (optional)
+                                      ModernTextField(
+                                        label: 'Nomor Telepon',
+                                        hint:
+                                            'Masukkan nomor telepon (opsional)',
+                                        controller: _phoneController,
+                                        leading:
+                                            const Icon(Icons.phone_rounded),
+                                        keyboardType: TextInputType.phone,
+                                        onChanged: (value) =>
+                                            formNotifier.setPhone(value),
+                                        validator: _validatePhone,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.allow(
+                                            RegExp(r'[0-9+\-\s]'),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: AppDimensions.spacing24),
+                                const SizedBox(height: AppDimensions.spacing24),
 
-                              // Save button
-                              ModernButton.primary(
-                                fullWidth: true,
-                                isLoading: formState.isSaving,
-                                onPressed: () =>
-                                    _saveProfile(context, formNotifier),
-                                child: const Text('Simpan'),
-                              ),
-                            ],
+                                // Save button
+                                ModernButton.primary(
+                                  fullWidth: true,
+                                  isLoading: formState.isSaving,
+                                  onPressed: () =>
+                                      _saveProfile(context, formNotifier),
+                                  child: const Text('Simpan'),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

@@ -43,43 +43,46 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           final bottomPadding =
               AppDimensions.spacing16 + context.shellBottomInset;
 
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.only(
-              left: AppDimensions.spacing16,
-              right: AppDimensions.spacing16,
-              top: AppDimensions.spacing16,
-              bottom: bottomPadding,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Backup Section
-                BackupSection(
-                  isCreatingBackup: backupState.isCreatingBackup,
-                  onCreateBackup: _handleCreateBackup,
-                ),
+          // Three stacked explanatory sections - prose, not a data view. A
+          // "this permanently deletes everything" warning stretched across a
+          // 2560px monitor is a worse warning, not a bigger one.
+          return ModernContentColumn.reading(
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.only(
+                top: AppDimensions.spacing16,
+                bottom: bottomPadding,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Backup Section
+                  BackupSection(
+                    isCreatingBackup: backupState.isCreatingBackup,
+                    onCreateBackup: _handleCreateBackup,
+                  ),
 
-                // Restore Section
-                //
-                // Hidden in a browser: restoring reads the file the user
-                // picks, and `file_picker` on web returns bytes with a null
-                // path - there is nothing for the restore path to open. The
-                // section would be a button that can only ever fail.
-                if (AppPlatform.hasFileSystem) ...[
+                  // Restore Section
+                  //
+                  // Hidden in a browser: restoring reads the file the user
+                  // picks, and `file_picker` on web returns bytes with a null
+                  // path - there is nothing for the restore path to open. The
+                  // section would be a button that can only ever fail.
+                  if (AppPlatform.hasFileSystem) ...[
+                    const SizedBox(height: AppDimensions.spacing24),
+                    RestoreSection(
+                      onSelectFile: _handleSelectFile,
+                    ),
+                  ],
+
                   const SizedBox(height: AppDimensions.spacing24),
-                  RestoreSection(
-                    onSelectFile: _handleSelectFile,
+
+                  // Danger Zone Section
+                  DangerZoneSection(
+                    onClearAllData: _handleClearAllData,
                   ),
                 ],
-
-                const SizedBox(height: AppDimensions.spacing24),
-
-                // Danger Zone Section
-                DangerZoneSection(
-                  onClearAllData: _handleClearAllData,
-                ),
-              ],
+              ),
             ),
           );
         },
@@ -116,7 +119,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
     }
 
     final notifier = ref.read(backupProvider.notifier);
-    final metadata = await notifier.createBackup(directoryPath: selectedDirectory);
+    final metadata =
+        await notifier.createBackup(directoryPath: selectedDirectory);
 
     if (metadata != null && mounted) {
       // Show success dialog
