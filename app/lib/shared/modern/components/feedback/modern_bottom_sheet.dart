@@ -339,12 +339,49 @@ class ModernBottomSheet extends StatelessWidget {
     );
   }
 
+  /// Space at the bottom of the screen the sheet must keep its content out of.
+  ///
+  /// `showModalBottomSheet(useSafeArea: true)` wraps the sheet in
+  /// `SafeArea(bottom: false)` - deliberately, so a sheet can paint its surface
+  /// into the bottom inset - and leaves the inset in the MediaQuery for the
+  /// sheet to consume. Nothing here consumed it, so the last row of every sheet
+  /// sat under the home indicator.
+  ///
+  /// On compact it is worse than an indicator's worth. Sheets open on the shell
+  /// navigator, whose overlay lives inside the shell `Scaffold`'s body, and that
+  /// scaffold sets `extendBody: true`; Flutter's `_BodyBuilder` reports the
+  /// bottom bar's height as body padding, so the value read here is
+  /// `max(systemInset, bottomNavHeight)` and the bar covered the sheet's lower
+  /// 80dp. That is why the export sheet's last format was unreachable.
+  ///
+  /// This is [ModernShellInsets.shellBottomInset]'s job done from inside the
+  /// sheet. The extension cannot be used: it reads the window width to guess
+  /// whether a bar is drawn, which is wrong for a sheet opened from a
+  /// full-screen route outside the shell - a receipt or the POS success screen -
+  /// where there is no bar to pad around. The measured inset is right in both
+  /// places.
+  static double _bottomInsetOf(BuildContext context) =>
+      MediaQuery.paddingOf(context).bottom;
+
   @override
   Widget build(BuildContext context) {
     // The scope, not MediaQuery: a sheet is built against the root navigator,
     // where the scope reports the window anyway, and this keeps one way of
     // asking how much room there is rather than two.
     final effectiveMaxHeight = maxHeight ?? context.breakpointData.height * 0.9;
+
+    // Added to the caller's padding rather than folded into it: a caller
+    // choosing `EdgeInsets.zero` is saying its child draws its own padding, not
+    // that the child may run under the navigation bar.
+    final contentPadding = (padding ??
+            const EdgeInsets.fromLTRB(
+              AppDimensions.spacing24,
+              AppDimensions.spacing16,
+              AppDimensions.spacing24,
+              AppDimensions.spacing24,
+            ))
+        .add(EdgeInsets.only(bottom: _bottomInsetOf(context)))
+        .resolve(Directionality.of(context));
 
     return Container(
       constraints: BoxConstraints(maxHeight: effectiveMaxHeight),
@@ -398,13 +435,7 @@ class ModernBottomSheet extends StatelessWidget {
           // Content
           Flexible(
             child: Padding(
-              padding: padding ??
-                  const EdgeInsets.fromLTRB(
-                    AppDimensions.spacing24,
-                    AppDimensions.spacing16,
-                    AppDimensions.spacing24,
-                    AppDimensions.spacing24,
-                  ),
+              padding: contentPadding,
               child: child,
             ),
           ),

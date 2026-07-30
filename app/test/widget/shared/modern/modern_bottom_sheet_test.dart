@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kasbon_pos/config/theme/app_dimensions.dart';
 import 'package:kasbon_pos/core/utils/responsive_utils.dart';
 import 'package:kasbon_pos/shared/modern/modern.dart';
 
@@ -23,6 +24,46 @@ Future<void> _pumpOpener(
             child: const Text('open'),
           ),
         ),
+      ),
+    ),
+  ));
+
+  await tester.tap(find.text('open'));
+  await tester.pumpAndSettle();
+}
+
+/// Pumps the compact shell's geometry: a bottom bar painted over a body that
+/// extends beneath it, with the sheet opened from a navigator inside that body.
+///
+/// This is what `ModernAppShell._buildCompactShell` builds, and reproducing it
+/// is the point - a sheet opened from a plain `Scaffold` never showed the bug.
+Future<void> _pumpShellOpener(
+  WidgetTester tester,
+  void Function(BuildContext context) open, {
+  double bottomInset = 0,
+}) async {
+  setViewWidth(tester, ResponsiveWidths.compact);
+  tester.view.viewInsets = FakeViewPadding.zero;
+  tester.view.padding = FakeViewPadding(
+    bottom: bottomInset * tester.view.devicePixelRatio,
+  );
+  addTearDown(tester.view.resetPadding);
+
+  await tester.pumpWidget(createTestableWidgetWithoutScaffold(
+    child: Scaffold(
+      extendBody: true,
+      body: Navigator(
+        onGenerateRoute: (settings) => MaterialPageRoute<void>(
+          builder: (context) => Center(
+            child: ElevatedButton(
+              onPressed: () => open(context),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: const SizedBox(
+        height: AppDimensions.bottomNavHeight,
       ),
     ),
   ));
@@ -162,6 +203,70 @@ void main() {
         expect(selected, 1);
       });
     }
+  });
+
+  group('bottom inset', () {
+    testWidgets('keeps content clear of the shell bottom bar', (tester) async {
+      await _pumpShellOpener(
+        tester,
+        (context) => ModernBottomSheet.show<void>(
+          context,
+          title: 'Ekspor Laporan',
+          child: content,
+        ),
+      );
+
+      // The sheet itself still runs to the bottom of the window - its surface
+      // is meant to sit behind the bar - but the last row of content stops
+      // above it. Before this, the bar covered 80dp of tappable tiles.
+      expect(tester.getRect(find.byType(ModernBottomSheet)).bottom,
+          closeTo(1200, 1));
+      expect(
+        tester.getRect(find.byKey(marker)).bottom,
+        lessThanOrEqualTo(1200 - AppDimensions.bottomNavHeight),
+      );
+    });
+
+    testWidgets('clears the home indicator with no bar to clear',
+        (tester) async {
+      // A sheet from a full-screen route outside the shell: no bottom bar, so
+      // only the system inset applies. Reading the window width instead - what
+      // `shellBottomInset` does - would reserve a phantom 80dp here.
+      setViewWidth(tester, ResponsiveWidths.compact);
+      tester.view.padding = FakeViewPadding(
+        bottom: 34 * tester.view.devicePixelRatio,
+      );
+      addTearDown(tester.view.resetPadding);
+
+      await _pumpOpener(
+        tester,
+        ResponsiveWidths.compact,
+        (context) => ModernBottomSheet.show<void>(context, child: content),
+      );
+
+      final contentBottom = tester.getRect(find.byKey(marker)).bottom;
+      expect(contentBottom, lessThanOrEqualTo(1200 - 34));
+      expect(contentBottom, greaterThan(1200 - AppDimensions.bottomNavHeight));
+    });
+
+    testWidgets('adds the inset to a caller that asked for zero padding',
+        (tester) async {
+      await _pumpShellOpener(
+        tester,
+        (context) => ModernBottomSheet.show<void>(
+          context,
+          padding: EdgeInsets.zero,
+          child: content,
+        ),
+      );
+
+      // The date range picker passes EdgeInsets.zero because its child draws
+      // its own padding - not because it may run under the navigation bar.
+      expect(
+        tester.getRect(find.byKey(marker)).bottom,
+        closeTo(1200 - AppDimensions.bottomNavHeight, 1),
+      );
+    });
   });
 
   group('showAdaptiveDraggable', () {

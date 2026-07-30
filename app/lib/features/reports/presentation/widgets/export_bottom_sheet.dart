@@ -112,48 +112,53 @@ class ExportBottomSheet extends ConsumerWidget {
     final exportState = ref.watch(exportControllerProvider);
     final dateRange = ref.watch(dateRangeProvider);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Data periode: ${dateRange.label}',
-          style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+    // Scrollable because four tiles, the period line and the sheet's own
+    // chrome do not fit the height budget on a 4.5" screen - and the sheet
+    // gives its content a bounded height, so what does not fit overflows
+    // rather than scrolling.
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Data periode: ${dateRange.label}',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
-        ),
-        const SizedBox(height: AppDimensions.spacing16),
-        if (exportState.isBusy)
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppDimensions.spacing32,
-            ),
-            child: Center(
-              child: Column(
-                children: [
-                  const ModernLoading(),
-                  const SizedBox(height: AppDimensions.spacing12),
-                  Text(
-                    exportState.progressLabel,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          )
-        else
-          for (final format in ExportFormat.values)
+          const SizedBox(height: AppDimensions.spacing16),
+          if (exportState.isBusy)
             Padding(
-              padding: const EdgeInsets.only(bottom: AppDimensions.spacing12),
-              child: _FormatTile(
-                format: format,
-                onTap: () => _run(context, ref, format),
+              padding: const EdgeInsets.symmetric(
+                vertical: AppDimensions.spacing32,
               ),
-            ),
-        const SizedBox(height: AppDimensions.spacing8),
-      ],
+              child: Center(
+                child: Column(
+                  children: [
+                    const ModernLoading(),
+                    const SizedBox(height: AppDimensions.spacing12),
+                    Text(
+                      exportState.progressLabel,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            for (final format in ExportFormat.values)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppDimensions.spacing12),
+                child: _FormatTile(
+                  format: format,
+                  onTap: () => _run(context, ref, format),
+                ),
+              ),
+        ],
+      ),
     );
   }
 }
