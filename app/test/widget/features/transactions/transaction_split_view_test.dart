@@ -8,7 +8,7 @@ import 'package:kasbon_pos/core/utils/responsive_utils.dart';
 import 'package:kasbon_pos/features/receipt/presentation/providers/receipt_provider.dart';
 import 'package:kasbon_pos/features/receipt/presentation/screens/receipt_screen.dart';
 import 'package:kasbon_pos/features/receipt/domain/entities/shop_settings.dart';
-import 'package:kasbon_pos/features/transactions/domain/entities/transaction.dart';
+import 'package:kasbon_pos/features/transactions/domain/usecases/get_transactions.dart';
 import 'package:kasbon_pos/features/transactions/presentation/providers/transactions_provider.dart';
 import 'package:kasbon_pos/features/transactions/presentation/screens/transaction_detail_screen.dart';
 import 'package:kasbon_pos/features/transactions/presentation/screens/transaction_list_screen.dart';
@@ -16,6 +16,7 @@ import 'package:kasbon_pos/config/theme/app_dimensions.dart';
 import 'package:kasbon_pos/shared/modern/modern.dart';
 
 import '../../../fixtures/mock_data.dart';
+import '../../../fixtures/mock_repositories.dart';
 import '../../../helpers/responsive_helpers.dart';
 
 /// The transactions list in the split view, and the detail screen doing double
@@ -29,7 +30,10 @@ import '../../../helpers/responsive_helpers.dart';
 void main() {
   // The date headers and the detail's timestamps go through DateFormatter,
   // which is built against the Indonesian locale.
-  setUpAll(() => initializeDateFormatting('id_ID', null));
+  setUpAll(() {
+    initializeDateFormatting('id_ID', null);
+    registerMocktailFallbackValues();
+  });
 
   final t1 = MockData.createTransaction(
     id: 't1',
@@ -42,17 +46,17 @@ void main() {
     total: 40000,
   );
 
+  // The list pages now, so it is fed through its use case rather than by
+  // overriding the grouping: `groupedTransactionsProvider` derives from the
+  // loaded pages and has nothing of its own to stub. Two rows is less than one
+  // page, so the notifier settles with `hasMore` false and the scroll listener
+  // stays out of the way.
+  final repository = MockTransactionRepository();
+
   final overrides = <Override>[
-    groupedTransactionsProvider.overrideWith((ref) async {
-      final day = DateTime(
-        t1.transactionDate.year,
-        t1.transactionDate.month,
-        t1.transactionDate.day,
-      );
-      return <DateTime, List<Transaction>>{
-        day: [t1, t2],
-      };
-    }),
+    transactionListProvider.overrideWith(
+      (ref) => TransactionListNotifier(GetTransactions(repository), ref),
+    ),
     transactionDetailProvider.overrideWith(
       (ref, id) async => id == 't2' ? t2 : t1,
     ),
@@ -113,6 +117,7 @@ void main() {
   }
 
   Future<GoRouter> pumpAt(WidgetTester tester, double width) async {
+    repository.stubGetTransactionsSuccess([t1, t2]);
     setViewWidth(tester, width);
     final router = buildRouter();
     await tester.pumpWidget(

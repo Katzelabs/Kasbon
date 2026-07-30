@@ -6,7 +6,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:kasbon_pos/config/routes/app_router.dart';
 import 'package:kasbon_pos/core/utils/responsive_utils.dart';
 import 'package:kasbon_pos/features/debt/domain/entities/debt_summary.dart';
+import 'package:kasbon_pos/features/debt/domain/usecases/get_unpaid_debts.dart';
 import 'package:kasbon_pos/features/debt/presentation/providers/debt_provider.dart';
+import 'package:kasbon_pos/features/transactions/domain/usecases/get_transactions.dart';
 import 'package:kasbon_pos/features/debt/presentation/screens/debt_list_screen.dart';
 import 'package:kasbon_pos/features/transactions/domain/entities/transaction.dart';
 import 'package:kasbon_pos/features/transactions/presentation/providers/transactions_provider.dart';
@@ -14,6 +16,7 @@ import 'package:kasbon_pos/features/transactions/presentation/screens/transactio
 import 'package:kasbon_pos/features/transactions/presentation/screens/transaction_list_screen.dart';
 
 import '../../../fixtures/mock_data.dart';
+import '../../../fixtures/mock_repositories.dart';
 import '../../../helpers/responsive_helpers.dart';
 
 /// The debt list in the split view, and the routing wart it was blocked on.
@@ -26,7 +29,12 @@ import '../../../helpers/responsive_helpers.dart';
 void main() {
   // The cards' relative timestamps go through DateFormatter, which is built
   // against the Indonesian locale.
-  setUpAll(() => initializeDateFormatting('id_ID', null));
+  setUpAll(() {
+    initializeDateFormatting('id_ID', null);
+    registerMocktailFallbackValues();
+  });
+
+  final transactionRepository = MockTransactionRepository();
 
   final debt = MockData.debtTransaction(
     id: 'd1',
@@ -36,7 +44,9 @@ void main() {
   );
 
   final overrides = <Override>[
-    unpaidDebtsProvider.overrideWith((ref) async => [debt]),
+    unpaidDebtsProvider.overrideWith(
+      (ref) async => UnpaidDebtsResult(debts: [debt]),
+    ),
     debtSummaryProvider.overrideWith(
       (ref) async => const DebtSummary(
         totalDebt: 75000,
@@ -51,9 +61,14 @@ void main() {
     ),
     transactionDetailProvider.overrideWith((ref, id) async => debt),
     // The other branch, so a tap that regressed to /transactions/:id renders
-    // something a finder can catch rather than an error page.
-    groupedTransactionsProvider.overrideWith(
-      (ref) async => <DateTime, List<Transaction>>{},
+    // something a finder can catch rather than an error page. The history list
+    // pages through its use case now, so it is stubbed at that seam - an empty
+    // result still gives the branch an empty state to draw.
+    transactionListProvider.overrideWith(
+      (ref) => TransactionListNotifier(
+        GetTransactions(transactionRepository),
+        ref,
+      ),
     ),
   ];
 
@@ -116,6 +131,7 @@ void main() {
   }
 
   Future<GoRouter> pumpAt(WidgetTester tester, double width) async {
+    transactionRepository.stubGetTransactionsSuccess(const []);
     setViewWidth(tester, width);
     final router = buildRouter();
     await tester.pumpWidget(

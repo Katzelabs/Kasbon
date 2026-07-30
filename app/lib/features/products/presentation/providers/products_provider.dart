@@ -6,20 +6,21 @@ import '../../domain/entities/product.dart';
 import '../../domain/entities/product_filter.dart';
 import '../../domain/usecases/create_product.dart';
 import '../../domain/usecases/delete_product.dart';
-import '../../domain/usecases/get_all_products.dart';
 import '../../domain/usecases/get_paginated_products.dart';
 import '../../domain/usecases/get_product.dart';
 import '../../domain/usecases/update_product.dart';
 
-/// Provider for all products
-final productsProvider = FutureProvider.autoDispose<List<Product>>((ref) async {
-  final useCase = getIt<GetAllProducts>();
-  final result = await useCase();
-  return result.fold(
-    (failure) => throw Exception(failure.message),
-    (products) => products,
-  );
-});
+// `productsProvider` used to sit here - one unbounded `FutureProvider` over the
+// whole product table. Nothing rendered it: the list and the POS grid both read
+// `paginatedProductsProvider` below. What kept it alive was five
+// `ref.invalidate(productsProvider)` calls in the edit, delete and bulk-action
+// paths, all aimed at a provider no screen was watching.
+//
+// So saving a product refreshed nothing. In the split view, where the list and
+// the detail panel are on screen together, an edit left the card behind it
+// showing the old name and price until something unrelated rebuilt the list.
+// Those calls now name the provider the list actually reads, and the unbounded
+// fetch is gone with the provider.
 
 /// Provider for a single product by ID
 final productProvider =

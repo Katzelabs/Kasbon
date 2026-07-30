@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 
+import '../../../../core/constants/query_limits.dart';
 import '../../../../core/errors/failures.dart';
 import '../entities/transaction.dart';
 import '../entities/transaction_item.dart';
@@ -28,9 +29,15 @@ abstract class TransactionRepository {
   Future<Either<Failure, int>> getTodayTransactionCount();
 
   /// Get transactions by payment status (e.g., 'debt' for unpaid debts)
+  ///
+  /// [limit] and [offset] are how a caller walks a status that can grow without
+  /// bound. Omitting them asks the server for everything, which PostgREST
+  /// answers by silently truncating at its `max_rows` - see [QueryLimits].
   Future<Either<Failure, List<Transaction>>> getTransactionsByPaymentStatus(
-    String status,
-  );
+    String status, {
+    int? limit,
+    int? offset,
+  });
 
   /// Update a transaction (e.g., mark debt as paid)
   Future<Either<Failure, Transaction>> updateTransaction(

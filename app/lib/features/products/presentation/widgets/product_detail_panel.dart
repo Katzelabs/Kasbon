@@ -47,7 +47,7 @@ class ProductDetailPanel extends ConsumerWidget {
     // Deleting is the one action that ends the panel's reason to exist.
     ref.listen(productFormProvider, (previous, next) {
       if (next.isSuccess && previous?.isLoading == true) {
-        ref.invalidate(productsProvider);
+        ref.invalidate(paginatedProductsProvider);
         ModernToast.success(context, 'Produk berhasil dihapus');
         onClose();
       } else if (next.errorMessage != null) {

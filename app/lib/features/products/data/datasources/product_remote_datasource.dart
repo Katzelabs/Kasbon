@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/constants/query_limits.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/services/supabase_client_provider.dart';
 import '../../domain/entities/product_filter.dart';
@@ -46,7 +47,8 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
           .from('products')
           .select()
           .eq('is_active', true)
-          .order('name');
+          .order('name')
+          .limit(QueryLimits.productFetchCap);
       return result.map((json) => ProductModel.fromJson(json)).toList();
     } catch (e) {
       throw DatabaseException(
@@ -86,7 +88,8 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
           .select()
           .eq('is_active', true)
           .ilike('name', '%$query%')
-          .order('name');
+          .order('name')
+          .limit(QueryLimits.productFetchCap);
       return result.map((json) => ProductModel.fromJson(json)).toList();
     } catch (e) {
       throw DatabaseException(
@@ -163,17 +166,21 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
   @override
   Future<List<ProductModel>> getLowStockProducts() async {
     try {
-      // Use RPC or raw filter - Supabase doesn't support column-to-column comparison directly
-      // So we fetch active products and filter in Dart
+      // Filtered by the database rather than in Dart. This used to fetch every
+      // active product and drop the ones above their minimum here, which meant
+      // reading the whole catalogue to find the handful that were running out.
+      //
+      // `is_low_stock` is `stock <= COALESCE(min_stock, 5)`, which is the same
+      // comparison this made in Dart - `ProductModel` reads a null `min_stock`
+      // as 5 too, so nothing changes category. Scarcest first, as before.
       final result = await _client
           .from('products')
           .select()
           .eq('is_active', true)
-          .order('stock');
-      return result
-          .map((json) => ProductModel.fromJson(json))
-          .where((p) => p.stock <= p.minStock)
-          .toList();
+          .eq('is_low_stock', true)
+          .order('stock')
+          .limit(QueryLimits.productFetchCap);
+      return result.map((json) => ProductModel.fromJson(json)).toList();
     } catch (e) {
       throw DatabaseException(
         message: 'Gagal mengambil produk stok rendah',
@@ -190,7 +197,8 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
           .select()
           .eq('category_id', categoryId)
           .eq('is_active', true)
-          .order('name');
+          .order('name')
+          .limit(QueryLimits.productFetchCap);
       return result.map((json) => ProductModel.fromJson(json)).toList();
     } catch (e) {
       throw DatabaseException(
@@ -210,27 +218,11 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
     required int offset,
   }) async {
     try {
-      PostgrestFilterBuilder query =
-          _client.from('products').select().eq('is_active', true);
-
-      if (searchQuery != null && searchQuery.isNotEmpty) {
-        query = query.ilike('name', '%$searchQuery%');
-      }
-      if (categoryId != null) {
-        query = query.eq('category_id', categoryId);
-      }
-
-      // Stock filter
-      switch (stockFilter) {
-        case StockFilter.outOfStock:
-          query = query.lte('stock', 0);
-          break;
-        case StockFilter.available:
-        case StockFilter.lowStock:
-        case StockFilter.all:
-          // handled post-query for column comparisons
-          break;
-      }
+      final query = _filteredQuery(
+        searchQuery: searchQuery,
+        categoryId: categoryId,
+        stockFilter: stockFilter,
+      );
 
       // Sort
       final (column, ascending) = _sortParams(sortOption);
@@ -239,18 +231,9 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
           .order(column, ascending: ascending)
           .range(offset, offset + limit - 1);
 
-      var products =
-          (result as List).map((json) => ProductModel.fromJson(json)).toList();
-
-      // Post-filter for stock filters that need column comparison
-      if (stockFilter == StockFilter.lowStock) {
-        products =
-            products.where((p) => p.stock > 0 && p.stock <= p.minStock).toList();
-      } else if (stockFilter == StockFilter.available) {
-        products = products.where((p) => p.stock > p.minStock).toList();
-      }
-
-      return products;
+      return (result as List)
+          .map((json) => ProductModel.fromJson(json))
+          .toList();
     } catch (e) {
       throw DatabaseException(
         message: 'Gagal mengambil daftar produk',
@@ -266,27 +249,11 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
     StockFilter stockFilter = StockFilter.all,
   }) async {
     try {
-      PostgrestFilterBuilder query =
-          _client.from('products').select().eq('is_active', true);
-
-      if (searchQuery != null && searchQuery.isNotEmpty) {
-        query = query.ilike('name', '%$searchQuery%');
-      }
-      if (categoryId != null) {
-        query = query.eq('category_id', categoryId);
-      }
-
-      switch (stockFilter) {
-        case StockFilter.outOfStock:
-          query = query.lte('stock', 0);
-          break;
-        case StockFilter.available:
-        case StockFilter.lowStock:
-        case StockFilter.all:
-          break;
-      }
-
-      final response = await query.count(CountOption.exact);
+      final response = await _filteredQuery(
+        searchQuery: searchQuery,
+        categoryId: categoryId,
+        stockFilter: stockFilter,
+      ).count(CountOption.exact);
       return response.count;
     } catch (e) {
       throw DatabaseException(
@@ -294,6 +261,53 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
         originalError: e,
       );
     }
+  }
+
+  /// The filter half of a product query - everything except sort and range.
+  ///
+  /// Shared by the page and its count on purpose. They used to build this
+  /// separately and had drifted apart: the page applied the low-stock and
+  /// available filters in Dart *after* `.range()` had already picked the rows,
+  /// while the count skipped those two filters entirely and reported every
+  /// active product. So "stok rendah" showed a handful of rows against a total
+  /// counting the whole catalogue, and pages in the middle could come back
+  /// empty. One builder is the only way those two stay in agreement.
+  ///
+  /// The stock comparisons are server-side now, via the `is_low_stock`
+  /// generated column - see
+  /// `supabase/migrations/20260730000002_product_low_stock_column.sql`.
+  PostgrestFilterBuilder _filteredQuery({
+    String? searchQuery,
+    String? categoryId,
+    required StockFilter stockFilter,
+  }) {
+    PostgrestFilterBuilder query =
+        _client.from('products').select().eq('is_active', true);
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      query = query.ilike('name', '%$searchQuery%');
+    }
+    if (categoryId != null) {
+      query = query.eq('category_id', categoryId);
+    }
+
+    switch (stockFilter) {
+      case StockFilter.outOfStock:
+        query = query.lte('stock', 0);
+        break;
+      case StockFilter.lowStock:
+        // `is_low_stock` alone also matches rows at zero, which belong to the
+        // out-of-stock filter instead - "menipis" means running low, not gone.
+        query = query.eq('is_low_stock', true).gt('stock', 0);
+        break;
+      case StockFilter.available:
+        query = query.eq('is_low_stock', false);
+        break;
+      case StockFilter.all:
+        break;
+    }
+
+    return query;
   }
 
   (String, bool) _sortParams(ProductSortOption option) {

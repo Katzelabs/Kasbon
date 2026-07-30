@@ -68,12 +68,51 @@ class _DetailPanePlaceholder extends StatelessWidget {
 /// Split out from [TransactionListScreen] so the date chips and the card
 /// padding measure themselves against the *pane*, not against the content area
 /// the header spans.
-class TransactionListPane extends ConsumerWidget {
+class TransactionListPane extends ConsumerStatefulWidget {
   const TransactionListPane({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final groupedAsync = ref.watch(groupedTransactionsProvider);
+  ConsumerState<TransactionListPane> createState() =>
+      _TransactionListPaneState();
+}
+
+class _TransactionListPaneState extends ConsumerState<TransactionListPane> {
+  final ScrollController _scrollController = ScrollController();
+
+  /// How close to the bottom the list gets before it asks for the next page.
+  ///
+  /// The same 200dp the POS grid uses. Comfortably less than the height of one
+  /// page of cards, so the trigger cannot fire on the frame a page lands and
+  /// walk the list forward on its own.
+  static const double _loadMoreThreshold = 200.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+
+    if (maxScroll - currentScroll <= _loadMoreThreshold) {
+      ref.read(transactionListProvider.notifier).loadMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(transactionListProvider);
+    final grouped = ref.watch(groupedTransactionsProvider);
 
     return Column(
       children: [
@@ -83,26 +122,39 @@ class TransactionListPane extends ConsumerWidget {
         // Transaction list
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(transactionsProvider);
-            },
-            child: groupedAsync.when(
-              loading: () => const Center(child: ModernLoading()),
-              error: (error, _) => ModernErrorState.generic(
-                message: 'Gagal memuat transaksi',
-                onRetry: () => ref.invalidate(transactionsProvider),
-              ),
-              data: (grouped) {
-                if (grouped.isEmpty) {
-                  return _buildEmptyState();
-                }
-                return _buildTransactionList(context, grouped);
-              },
-            ),
+            onRefresh: () => ref.read(transactionListProvider.notifier).reset(),
+            child: _buildBody(context, state, grouped),
           ),
         ),
       ],
     );
+  }
+
+  /// The list, or whichever state stands in for it.
+  ///
+  /// The error and loading branches are guarded on the list being empty: once
+  /// there are cards on screen, a failed or in-flight *later* page must not
+  /// replace them. Losing ten loaded pages because page eleven timed out is a
+  /// worse answer than leaving the list where it was.
+  Widget _buildBody(
+    BuildContext context,
+    TransactionListState state,
+    Map<DateTime, List<Transaction>> grouped,
+  ) {
+    if (state.transactions.isEmpty) {
+      if (state.isLoading) {
+        return const Center(child: ModernLoading());
+      }
+      if (state.error != null) {
+        return ModernErrorState.generic(
+          message: 'Gagal memuat transaksi',
+          onRetry: () => ref.read(transactionListProvider.notifier).reset(),
+        );
+      }
+      return _buildEmptyState();
+    }
+
+    return _buildTransactionList(context, state, grouped);
   }
 
   Widget _buildEmptyState() {
@@ -115,6 +167,7 @@ class TransactionListPane extends ConsumerWidget {
 
   Widget _buildTransactionList(
     BuildContext context,
+    TransactionListState state,
     Map<DateTime, List<Transaction>> grouped,
   ) {
     // The pane's padding, not the window's: as a master pane this list is much
@@ -163,12 +216,47 @@ class TransactionListPane extends ConsumerWidget {
       ];
     }).toList();
 
+    // The next page arriving, or the reason it did not.
+    //
+    // A failed *later* page reports itself here rather than through the error
+    // state, which would have thrown away every card already on screen.
+    if (state.isLoadingMore) {
+      slivers.add(
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: AppDimensions.spacing16),
+            child: Center(child: ModernLoading(size: ModernSize.small)),
+          ),
+        ),
+      );
+    } else if (state.error != null) {
+      slivers.add(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: AppDimensions.spacing16,
+            ),
+            child: Center(
+              child: ModernButton.text(
+                onPressed: () =>
+                    ref.read(transactionListProvider.notifier).loadMore(),
+                child: const Text('Gagal memuat. Coba lagi'),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     // Add bottom padding for mobile devices
     slivers.add(
       SliverPadding(padding: EdgeInsets.only(bottom: bottomPadding)),
     );
 
-    return CustomScrollView(slivers: slivers);
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: slivers,
+    );
   }
 }
 

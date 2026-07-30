@@ -6,9 +6,13 @@ import '../../domain/entities/debt_summary.dart';
 import '../../domain/usecases/get_unpaid_debts.dart';
 import '../../domain/usecases/mark_debt_paid.dart';
 
-/// Provider for unpaid debts
+/// Provider for unpaid debts, and whether the fetch reached its ceiling.
+///
+/// Carries [UnpaidDebtsResult] rather than a bare list so the truncation flag
+/// survives to the screen - a total summed from a partial list has to be
+/// labelled as partial, and a `List<Transaction>` has nowhere to say so.
 final unpaidDebtsProvider =
-    FutureProvider.autoDispose<List<Transaction>>((ref) async {
+    FutureProvider.autoDispose<UnpaidDebtsResult>((ref) async {
   final useCase = getIt<GetUnpaidDebts>();
   final result = await useCase(const NoParams());
 
@@ -18,10 +22,14 @@ final unpaidDebtsProvider =
   );
 });
 
+/// Whether the debt figures on screen are the full picture.
+final debtsTruncatedProvider = Provider.autoDispose<bool>((ref) {
+  return ref.watch(unpaidDebtsProvider).valueOrNull?.isTruncated ?? false;
+});
+
 /// Provider for debt summary statistics
 final debtSummaryProvider = FutureProvider.autoDispose<DebtSummary>((ref) async {
-  final debtsAsync = await ref.watch(unpaidDebtsProvider.future);
-  final debts = debtsAsync;
+  final debts = (await ref.watch(unpaidDebtsProvider.future)).debts;
 
   if (debts.isEmpty) {
     return const DebtSummary.empty();
@@ -57,7 +65,7 @@ final debtSummaryProvider = FutureProvider.autoDispose<DebtSummary>((ref) async 
 /// Provider for debts grouped by customer name
 final debtsByCustomerProvider =
     FutureProvider.autoDispose<Map<String, List<Transaction>>>((ref) async {
-  final debts = await ref.watch(unpaidDebtsProvider.future);
+  final debts = (await ref.watch(unpaidDebtsProvider.future)).debts;
 
   final grouped = <String, List<Transaction>>{};
   for (final debt in debts) {
@@ -74,7 +82,7 @@ final debtsByCustomerProvider =
 /// Provider for unpaid debt count (for badge display)
 final unpaidDebtCountProvider = FutureProvider.autoDispose<int>((ref) async {
   final debts = await ref.watch(unpaidDebtsProvider.future);
-  return debts.length;
+  return debts.debts.length;
 });
 
 /// State for marking debt as paid

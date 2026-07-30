@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/constants/query_limits.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/services/supabase_client_provider.dart';
 import '../models/transaction_item_model.dart';
@@ -21,7 +22,11 @@ abstract class TransactionRemoteDataSource {
   Future<List<TransactionItemModel>> getTransactionItems(String transactionId);
   Future<int> getTodayTransactionCount();
   Future<TransactionModel?> getTransactionByNumber(String transactionNumber);
-  Future<List<TransactionModel>> getTransactionsByPaymentStatus(String status);
+  Future<List<TransactionModel>> getTransactionsByPaymentStatus(
+    String status, {
+    int? limit,
+    int? offset,
+  });
   Future<TransactionModel> updateTransaction(
     String id, {
     String? paymentStatus,
@@ -81,7 +86,13 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
       }
 
       dynamic result;
-      var ordered = query.order('transaction_date', ascending: false);
+      // `id` as a tiebreaker, for the same reason as in
+      // `getTransactionsByPaymentStatus`: `transaction_date` is not unique, and
+      // rows tied on it have no stable position across the `.range()` requests
+      // the history list makes while scrolling.
+      var ordered = query
+          .order('transaction_date', ascending: false)
+          .order('id', ascending: false);
 
       if (limit != null && offset != null) {
         result = await ordered.range(offset, offset + limit - 1);
@@ -133,7 +144,8 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
       final result = await _provider.client
           .from('transaction_items')
           .select()
-          .eq('transaction_id', transactionId);
+          .eq('transaction_id', transactionId)
+          .limit(QueryLimits.transactionItemsCap);
 
       return result
           .map((json) => TransactionItemModel.fromJson(json))
@@ -191,7 +203,10 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
 
   @override
   Future<List<TransactionModel>> getTransactionsByPaymentStatus(
-      String status) async {
+    String status, {
+    int? limit,
+    int? offset,
+  }) async {
     try {
       var query = _provider.client
           .from('transactions')
@@ -202,7 +217,21 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
         query = query.isFilter('debt_paid_at', null);
       }
 
-      final result = await query.order('transaction_date', ascending: false);
+      // Ordered by date and then by id. The date alone is not a total order -
+      // two sales in the same second tie - and a tie has no defined position
+      // between two `.range()` requests, so a paging caller could see one row
+      // twice and miss another. `id` breaks the tie deterministically.
+      final ordered = query
+          .order('transaction_date', ascending: false)
+          .order('id', ascending: false);
+
+      final dynamic result;
+      if (limit != null) {
+        final start = offset ?? 0;
+        result = await ordered.range(start, start + limit - 1);
+      } else {
+        result = await ordered;
+      }
 
       return (result as List)
           .map((json) => TransactionModel.fromJson(json))

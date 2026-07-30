@@ -10,7 +10,7 @@ import '../button/modern_button.dart';
 /// Example:
 /// ```dart
 /// ModernErrorState.network(
-///   onRetry: () => ref.invalidate(productsProvider),
+///   onRetry: () => ref.invalidate(paginatedProductsProvider),
 /// )
 /// ```
 class ModernErrorState extends StatelessWidget {

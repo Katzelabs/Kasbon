@@ -93,11 +93,16 @@ class TransactionRepositoryImpl implements TransactionRepository {
 
   @override
   Future<Either<Failure, List<Transaction>>> getTransactionsByPaymentStatus(
-    String status,
-  ) async {
+    String status, {
+    int? limit,
+    int? offset,
+  }) async {
     try {
-      final models =
-          await _remoteDataSource.getTransactionsByPaymentStatus(status);
+      final models = await _remoteDataSource.getTransactionsByPaymentStatus(
+        status,
+        limit: limit,
+        offset: offset,
+      );
       return Right(models.map((m) => m.toEntity()).toList());
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));

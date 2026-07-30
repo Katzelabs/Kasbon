@@ -89,8 +89,8 @@ class DebtListPane extends ConsumerWidget {
           message: error.toString(),
           onRetry: () => ref.invalidate(unpaidDebtsProvider),
         ),
-        data: (debts) {
-          if (debts.isEmpty) {
+        data: (result) {
+          if (result.debts.isEmpty) {
             return const _EmptyDebtState();
           }
 
@@ -112,6 +112,18 @@ class DebtListPane extends ConsumerWidget {
                   ),
                 ),
               ),
+
+              // Said out loud only when it applies. The summary card above is
+              // summed from what was fetched, so once the fetch hits its
+              // ceiling every figure on it is a lower bound - and a total owed
+              // that is quietly too low is worse than no total at all.
+              if (result.isTruncated)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(padding, 0, padding, padding),
+                    child: _TruncationNotice(shown: result.debts.length),
+                  ),
+                ),
 
               // Debts grouped by customer
               debtsByCustomerAsync.when(
@@ -321,6 +333,45 @@ class _CustomerDebtSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Tells the user the debt figures above are a lower bound.
+///
+/// Shown only when [GetUnpaidDebts] hit [QueryLimits.debtCeiling]. The list and
+/// the summary card are both built from what was fetched, and neither can hint
+/// on its own that anything is missing - a total is a total whether or not it
+/// counted everything.
+class _TruncationNotice extends StatelessWidget {
+  const _TruncationNotice({required this.shown});
+
+  /// How many debts made it into the figures above.
+  final int shown;
+
+  @override
+  Widget build(BuildContext context) {
+    return ModernCard.filled(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline,
+            size: AppDimensions.iconSmall,
+            color: AppColors.warning,
+          ),
+          const SizedBox(width: AppDimensions.spacing12),
+          Expanded(
+            child: Text(
+              'Menampilkan $shown hutang terbaru. Masih ada hutang lain yang '
+              'belum dimuat, jadi total di atas belum termasuk semuanya.',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

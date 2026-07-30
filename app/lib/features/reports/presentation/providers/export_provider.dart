@@ -4,8 +4,10 @@ import '../../../../config/di/injection.dart';
 import '../../../../core/services/export/excel_exporter.dart';
 import '../../../../core/services/export/export_result.dart';
 import '../../../../core/services/export/pdf_exporter.dart';
+import '../../../../core/constants/query_limits.dart';
 import '../../../products/domain/entities/product.dart';
-import '../../../products/domain/usecases/get_all_products.dart';
+import '../../../products/domain/entities/product_filter.dart';
+import '../../../products/domain/usecases/get_paginated_products.dart';
 import '../../../receipt/domain/usecases/get_shop_settings.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/domain/usecases/get_transactions.dart';
@@ -264,12 +266,40 @@ class ExportController extends StateNotifier<ExportState> {
     );
   }
 
+  /// The whole catalogue, walked a page at a time.
+  ///
+  /// A catalogue export means every product, which is exactly what
+  /// [GetAllProducts] could not give: it issues one unbounded select, and
+  /// PostgREST answers those by truncating at [QueryLimits.supabaseMaxRows]
+  /// without a word. The workbook and the product PDF were both capped at a
+  /// thousand rows and said they were complete.
+  ///
+  /// [GetPaginatedProducts] is the same use case the product list screen pages
+  /// with, so an export sees the catalogue the app does.
+  /// [QueryLimits.productExportCeiling] is a memory guard rather than a page
+  /// size - a phone building a PDF holds every row at once.
   Future<List<Product>> _fetchProducts() async {
-    final result = await getIt<GetAllProducts>()();
-    return result.fold(
-      (failure) => throw Exception(failure.message),
-      (products) => products,
-    );
+    final useCase = getIt<GetPaginatedProducts>();
+    final products = <Product>[];
+
+    for (var page = 1;; page++) {
+      final result = await useCase(ProductFilter(
+        page: page,
+        pageSize: QueryLimits.chunkSize,
+      ));
+
+      final batch = result.fold(
+        (failure) => throw Exception(failure.message),
+        (paginated) => paginated,
+      );
+
+      products.addAll(batch.items);
+
+      if (!batch.hasNextPage) break;
+      if (products.length >= QueryLimits.productExportCeiling) break;
+    }
+
+    return products;
   }
 
   Future<SalesSummary> _fetchSummary({

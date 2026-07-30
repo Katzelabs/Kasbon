@@ -33,7 +33,7 @@ class ProductDetailScreen extends ConsumerWidget {
     // Listen for delete success
     ref.listen(productFormProvider, (previous, next) {
       if (next.isSuccess && previous?.isLoading == true) {
-        ref.invalidate(productsProvider);
+        ref.invalidate(paginatedProductsProvider);
         ModernToast.success(context, 'Produk berhasil dihapus');
         context.pop();
       } else if (next.errorMessage != null) {

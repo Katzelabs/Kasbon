@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/constants/query_limits.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/services/supabase_client_provider.dart';
 import '../models/category_model.dart';
@@ -23,7 +24,8 @@ class CategoryRemoteDataSourceImpl implements CategoryRemoteDataSource {
       final result = await _provider.client
           .from('categories')
           .select()
-          .order('sort_order');
+          .order('sort_order')
+          .limit(QueryLimits.categoryFetchCap);
       return result.map((json) => CategoryModel.fromJson(json)).toList();
     } catch (e) {
       throw DatabaseException(

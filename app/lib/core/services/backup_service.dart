@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../constants/query_limits.dart';
 import '../errors/exceptions.dart';
 
 /// Backup metadata structure
@@ -150,9 +151,48 @@ class BackupService {
     );
   }
 
+  /// Reads an entire table in chunks.
+  ///
+  /// A bare `.select()` here returned at most [QueryLimits.supabaseMaxRows]
+  /// rows and said nothing about it, so any shop past a thousand
+  /// `transaction_items` - a few hundred sales - was handed a backup file that
+  /// looked complete, carried a `counts` block agreeing with its own truncated
+  /// contents, and was missing everything older. That is the failure mode a
+  /// backup exists to prevent.
+  ///
+  /// Ordered by `id` because paging without an ORDER BY has no defined row
+  /// order between requests: Postgres may return the same row on two pages and
+  /// skip another entirely. `id` is the primary key, so it is both unique and
+  /// indexed, which keeps the deep pages cheap.
+  ///
+  /// A short page ends the walk. [QueryLimits.backupRowCeiling] throws rather
+  /// than returning early - a caller that asked for a backup gets a complete
+  /// one or an error, never a quiet subset.
   Future<List<Map<String, dynamic>>> _exportTable(String tableName) async {
-    final result = await _client.from(tableName).select();
-    return List<Map<String, dynamic>>.from(result);
+    final rows = <Map<String, dynamic>>[];
+
+    while (true) {
+      final page = await _client
+          .from(tableName)
+          .select()
+          .order('id')
+          .range(rows.length, rows.length + QueryLimits.chunkSize - 1);
+
+      rows.addAll(List<Map<String, dynamic>>.from(page));
+
+      if (page.length < QueryLimits.chunkSize) break;
+
+      if (rows.length >= QueryLimits.backupRowCeiling) {
+        throw BackupException(
+          message: 'Data $tableName terlalu besar untuk dibackup '
+              '(lebih dari ${QueryLimits.backupRowCeiling} baris). '
+              'Hubungi dukungan untuk ekspor bertahap.',
+          code: 'BACKUP_TOO_LARGE',
+        );
+      }
+    }
+
+    return rows;
   }
 
   Future<int> _countTable(String tableName) async {

@@ -186,7 +186,7 @@ class _ProductBulkActionsBarState extends ConsumerState<ProductBulkActionsBar> {
       }
 
       ref.read(productSelectionProvider.notifier).clearSelection();
-      ref.invalidate(productsProvider);
+      ref.invalidate(paginatedProductsProvider);
 
       if (mounted) {
         ModernToast.success(
@@ -216,7 +216,7 @@ class _ProductBulkActionsBarState extends ConsumerState<ProductBulkActionsBar> {
       }
 
       ref.read(productSelectionProvider.notifier).clearSelection();
-      ref.invalidate(productsProvider);
+      ref.invalidate(paginatedProductsProvider);
 
       if (mounted) {
         ModernToast.success(
