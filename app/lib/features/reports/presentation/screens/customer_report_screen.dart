@@ -35,6 +35,9 @@ class CustomerReportScreen extends ConsumerWidget {
             bottom: AppDimensions.spacing32 + context.shellBottomInset,
           ),
           child: ModernContentColumn(
+            // The rest of the report family clamps at wide; this screen was
+            // the odd one out at the 1080dp default.
+            width: ContentWidth.wide,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -124,7 +127,32 @@ class CustomerReportScreen extends ConsumerWidget {
               ),
           ],
         ),
+        _LoadMore(shown: customers.length),
       ],
+    );
+  }
+}
+
+/// Extends the customer list a page at a time.
+///
+/// A full page back means there is probably more; a short one means the list
+/// ended, so the footer settles into a plain count.
+class _LoadMore extends ConsumerWidget {
+  final int shown;
+
+  const _LoadMore({required this.shown});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final limit = ref.watch(customerReportLimitProvider);
+
+    return ReportLoadMoreFooter(
+      shown: shown,
+      itemLabel: 'pelanggan',
+      onLoadMore: shown < limit
+          ? null
+          : () => ref.read(customerReportLimitProvider.notifier).state =
+              limit + customerReportPageSize,
     );
   }
 }

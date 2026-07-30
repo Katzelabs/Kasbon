@@ -144,8 +144,8 @@ class _TrendSection extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: AppDimensions.spacing16),
-        ModernCard.outlined(
-          padding: const EdgeInsets.all(AppDimensions.spacing16),
+        ReportChartCard(
+          maxWidth: ReportChartWidths.trendLine,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -193,8 +193,8 @@ class _CategorySection extends ConsumerWidget {
       children: [
         const ModernSectionHeader(title: 'Distribusi Kategori'),
         const SizedBox(height: AppDimensions.spacing12),
-        ModernCard.outlined(
-          padding: const EdgeInsets.all(AppDimensions.spacing16),
+        ReportChartCard(
+          maxWidth: ReportChartWidths.pie,
           child: _AsyncBlock(
             value: categoriesAsync,
             onRetry: () => ref.invalidate(categoryDistributionProvider),
@@ -236,8 +236,8 @@ class _PaymentSection extends ConsumerWidget {
       children: [
         const ModernSectionHeader(title: 'Metode Pembayaran'),
         const SizedBox(height: AppDimensions.spacing12),
-        ModernCard.outlined(
-          padding: const EdgeInsets.all(AppDimensions.spacing16),
+        ReportChartCard(
+          maxWidth: ReportChartWidths.pie,
           child: _AsyncBlock(
             value: paymentsAsync,
             onRetry: () => ref.invalidate(paymentDistributionProvider),
@@ -312,8 +312,8 @@ class _HeatmapSection extends ConsumerWidget {
           subtitle: 'Ketuk kotak untuk melihat detail',
         ),
         const SizedBox(height: AppDimensions.spacing12),
-        ModernCard.outlined(
-          padding: const EdgeInsets.all(AppDimensions.spacing16),
+        ReportChartCard(
+          maxWidth: ReportChartWidths.heatmap,
           child: _AsyncBlock(
             value: heatmapAsync,
             onRetry: () => ref.invalidate(hourlyHeatmapProvider),
@@ -344,8 +344,8 @@ class _DayOfWeekSection extends ConsumerWidget {
       children: [
         const ModernSectionHeader(title: 'Perbandingan Hari'),
         const SizedBox(height: AppDimensions.spacing12),
-        ModernCard.outlined(
-          padding: const EdgeInsets.all(AppDimensions.spacing16),
+        ReportChartCard(
+          maxWidth: ReportChartWidths.dayOfWeekBar,
           child: _AsyncBlock(
             value: heatmapAsync,
             onRetry: () => ref.invalidate(hourlyHeatmapProvider),

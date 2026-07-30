@@ -176,8 +176,8 @@ class _ChartSection extends StatelessWidget {
           actionLabel: rangeLabel,
         ),
         const SizedBox(height: AppDimensions.spacing16),
-        ModernCard.outlined(
-          padding: const EdgeInsets.all(AppDimensions.spacing16),
+        ReportChartCard(
+          maxWidth: ReportChartWidths.dailyBar,
           child: dailySalesAsync.when(
             data: (sales) => SalesBarChart(
               dailySales: sales,

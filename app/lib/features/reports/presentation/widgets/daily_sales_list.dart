@@ -8,8 +8,16 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../domain/entities/daily_sales.dart';
 
+/// Days revealed per step in the [showAll] form.
+///
+/// `showAll` used to mean "build one tile per day in the range", so picking
+/// "Tahun Ini" laid out 365 tiles in a plain `Column` inside the report's
+/// scroll view - all of them built, none of them on screen. A month at a time
+/// is more than a reader takes in at once and cheap to extend.
+const int _dayPageSize = 30;
+
 /// List widget for displaying daily sales breakdown
-class DailySalesList extends StatelessWidget {
+class DailySalesList extends StatefulWidget {
   final List<DailySales> dailySales;
   final bool showAll;
   final VoidCallback? onViewAll;
@@ -22,7 +30,28 @@ class DailySalesList extends StatelessWidget {
   });
 
   @override
+  State<DailySalesList> createState() => _DailySalesListState();
+}
+
+class _DailySalesListState extends State<DailySalesList> {
+  int _visibleCount = _dayPageSize;
+
+  @override
+  void didUpdateWidget(DailySalesList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // A new period is a new list; keeping the old depth would open it
+    // part-scrolled for no reason the reader can see.
+    if (oldWidget.dailySales != widget.dailySales) {
+      _visibleCount = _dayPageSize;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final dailySales = widget.dailySales;
+    final showAll = widget.showAll;
+
     if (dailySales.isEmpty) {
       return const ModernEmptyState(
         icon: Icons.calendar_today_outlined,
@@ -35,7 +64,11 @@ class DailySalesList extends StatelessWidget {
     final sortedSales = List<DailySales>.from(dailySales)
       ..sort((a, b) => b.date.compareTo(a.date));
 
-    final displayedSales = showAll ? sortedSales : sortedSales.take(5).toList();
+    final displayedSales = showAll
+        ? sortedSales.take(_visibleCount).toList()
+        : sortedSales.take(5).toList();
+
+    final hasMore = showAll && displayedSales.length < sortedSales.length;
 
     return ModernCard.outlined(
       padding: EdgeInsets.zero,
@@ -50,10 +83,40 @@ class DailySalesList extends StatelessWidget {
               ],
             );
           }),
-          if (!showAll && sortedSales.length > 5 && onViewAll != null) ...[
+          if (hasMore) ...[
             const ModernDivider(),
             InkWell(
-              onTap: onViewAll,
+              onTap: () => setState(() => _visibleCount += _dayPageSize),
+              child: Padding(
+                padding: const EdgeInsets.all(AppDimensions.spacing16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Muat Lebih Banyak '
+                      '(${displayedSales.length}/${sortedSales.length} hari)',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: AppDimensions.spacing4),
+                    const Icon(
+                      Icons.expand_more,
+                      color: AppColors.primary,
+                      size: AppDimensions.iconMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (!showAll &&
+              sortedSales.length > 5 &&
+              widget.onViewAll != null) ...[
+            const ModernDivider(),
+            InkWell(
+              onTap: widget.onViewAll,
               child: Padding(
                 padding: const EdgeInsets.all(AppDimensions.spacing16),
                 child: Row(
@@ -112,7 +175,8 @@ class DailySalesList extends StatelessWidget {
                 Text(
                   DateFormat('MMM', 'id_ID').format(sales.date),
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: isToday ? AppColors.primary : AppColors.textSecondary,
+                    color:
+                        isToday ? AppColors.primary : AppColors.textSecondary,
                     fontSize: 10,
                   ),
                 ),

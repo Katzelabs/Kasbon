@@ -2,8 +2,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
+import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_utils.dart';
+import '../../../../shared/modern/modern.dart';
 
 /// Layout primitives shared by the seven report screens.
 ///
@@ -259,6 +262,151 @@ class ReportChartFrame extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: ModernBreakpointScope.fromLayout(child: child),
+      ),
+    );
+  }
+}
+
+/// Footer for a report list that is showing only part of what it could.
+///
+/// The failure this exists to remove is the silent cut. Every one of these
+/// reports fetched a fixed number of rows - 100 products, 20 customers - and
+/// then said nothing about it, so a shop with 300 products read "Laporan
+/// Produk", saw 100 rows, and had no way to tell that the figures did not
+/// reconcile against its own totals. Being slower is recoverable; being quietly
+/// wrong is not.
+///
+/// Deliberately a "load more" rather than page numbers. A report is read as a
+/// ranked list from the top, and paging one breaks both the ranking and the
+/// export - the reader loses the ability to scan.
+///
+/// [onLoadMore] is null when there is nothing further to load, which is also
+/// the state after a load returns fewer rows than were asked for. The one
+/// wrinkle: a list of *exactly* the current limit is indistinguishable from a
+/// longer one, so the button shows once more and then disappears when the next
+/// fetch comes back short. Offering one extra tap is the cheaper error.
+class ReportLoadMoreFooter extends StatelessWidget {
+  /// How many rows are on screen.
+  final int shown;
+
+  /// Plural noun for the rows, in Bahasa - 'produk', 'pelanggan'.
+  final String itemLabel;
+
+  /// Null when everything has been loaded.
+  final VoidCallback? onLoadMore;
+
+  /// True while the next batch is in flight.
+  final bool isLoading;
+
+  /// True when the list stops at a ceiling the reader cannot lift - a report
+  /// whose query caps its own result set.
+  ///
+  /// Without this the exhausted state would claim "semua", which is exactly the
+  /// silent cut this widget exists to prevent, just one page further down.
+  final bool atServerLimit;
+
+  const ReportLoadMoreFooter({
+    super.key,
+    required this.shown,
+    required this.itemLabel,
+    this.onLoadMore,
+    this.isLoading = false,
+    this.atServerLimit = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Everything fits: say so plainly rather than leaving the reader to wonder
+    // whether the list stops because it ended or because it was cut.
+    if (onLoadMore == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppDimensions.spacing16,
+        ),
+        child: Center(
+          child: Text(
+            atServerLimit
+                ? 'Menampilkan $shown $itemLabel teratas (batas laporan)'
+                : 'Menampilkan semua $shown $itemLabel',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppDimensions.spacing16),
+      child: Column(
+        children: [
+          Text(
+            'Menampilkan $shown $itemLabel teratas',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppDimensions.spacing8),
+          if (isLoading)
+            const ModernLoading()
+          else
+            ModernButton.outline(
+              onPressed: onLoadMore,
+              child: const Text('Muat Lebih Banyak'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A chart in its card, with the *card* capped at the width the chart reads
+/// best at.
+///
+/// The cap has to land on the card, not on the chart inside it. A chart capped
+/// on its own inside a full-width card floats in the middle of it with dead
+/// bordered surface either side - a 640dp weekday chart marooned in an 1100dp
+/// card, which reads as a broken layout. A card that has shrunk to its content
+/// reads as a deliberate one.
+///
+/// [maxWidth] is the chart's own ceiling from [ReportChartWidths]; the padding
+/// is added on top, so the chart inside is offered exactly that much. Its own
+/// [ReportChartFrame] therefore never binds here - that stays as the safety net
+/// for a chart used outside a card, which is also how the chart tests pump
+/// them.
+///
+/// Aligned to the start rather than centred, because the card sits under a
+/// left-aligned section header: a narrow card indented from its own title looks
+/// like a mistake in a way a narrow card does not.
+class ReportChartCard extends StatelessWidget {
+  /// The chart's width ceiling, before padding.
+  final double maxWidth;
+
+  final EdgeInsets padding;
+
+  final Widget child;
+
+  const ReportChartCard({
+    super.key,
+    required this.maxWidth,
+    required this.child,
+    this.padding = const EdgeInsets.all(AppDimensions.spacing16),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: AlignmentDirectional.topStart,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth + padding.horizontal),
+        child: ModernCard.outlined(
+          padding: padding,
+          // Inside the padding, so the content measures the room it actually
+          // has rather than the card's outer width.
+          child: ModernBreakpointScope.fromLayout(child: child),
+        ),
       ),
     );
   }

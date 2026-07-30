@@ -89,11 +89,31 @@ final topProductsByProfitProvider =
   );
 });
 
+/// How many product rows a first load asks for, and how many each
+/// "Muat Lebih Banyak" adds.
+///
+/// 100 was already the hard ceiling here; the difference is that it is now a
+/// page rather than a cliff, and the screen says which it is showing.
+const int productReportPageSize = 100;
+
+/// Row ceiling for the product report, grown by the load-more footer.
+///
+/// Rebuilt - and so reset to a single page - whenever the period or the sort
+/// changes, because both reorder the list: keeping a reader three pages deep
+/// after they switch from "terlaris" to "paling untung" would show them page
+/// three of a ranking they have never seen page one of.
+final productReportLimitProvider = StateProvider.autoDispose<int>((ref) {
+  ref.watch(dateRangeProvider);
+  ref.watch(productReportFilterProvider);
+  return productReportPageSize;
+});
+
 /// Provider for sorted product report based on selected sort option
 final filteredProductReportProvider =
     FutureProvider.autoDispose<List<ProductReport>>((ref) async {
   final dateRange = ref.watch(dateRangeProvider);
   final filter = ref.watch(productReportFilterProvider);
+  final limit = ref.watch(productReportLimitProvider);
   final useCase = getIt<GetTopProducts>();
 
   // Determine SQL sort type - use quantity for margin sort (handle client-side)
@@ -105,7 +125,7 @@ final filteredProductReportProvider =
     from: dateRange.from,
     to: dateRange.to,
     sortBy: sqlSortType,
-    limit: 100,
+    limit: limit,
   ));
 
   return result.fold(

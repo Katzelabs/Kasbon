@@ -110,15 +110,29 @@ final hourlyHeatmapProvider =
   );
 });
 
+/// How many customers a first load asks for, and how many each
+/// "Muat Lebih Banyak" adds.
+const int customerReportPageSize = 20;
+
+/// Row ceiling for the customer report, grown by the load-more footer.
+///
+/// Rebuilt - and so reset to a single page - whenever the period changes,
+/// since a new period is a new ranking.
+final customerReportLimitProvider = StateProvider.autoDispose<int>((ref) {
+  ref.watch(dateRangeProvider);
+  return customerReportPageSize;
+});
+
 /// Highest-spending customers for the selected range.
 final topCustomersProvider =
     FutureProvider.autoDispose<List<CustomerAnalytics>>((ref) async {
   final dateRange = ref.watch(dateRangeProvider);
+  final limit = ref.watch(customerReportLimitProvider);
 
   final result = await getIt<GetTopCustomers>()(TopCustomersParams(
     from: dateRange.from,
     to: dateRange.to,
-    limit: 20,
+    limit: limit,
   ));
 
   return result.fold(
@@ -126,6 +140,13 @@ final topCustomersProvider =
     (customers) => customers,
   );
 });
+
+/// Ceiling the movement RPC applies to its own result set.
+///
+/// Mirrors `p_limit`'s default in `get_product_movement`. Held here so the
+/// screen can tell "this shop has 40 products" from "this report stopped
+/// counting at 500" and say which.
+const int productMovementFetchLimit = 500;
 
 /// Inventory movement for every active product. The turnover and slow-moving
 /// views both read from this one provider.

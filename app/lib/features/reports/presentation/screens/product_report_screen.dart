@@ -12,6 +12,7 @@ import '../../domain/entities/product_report.dart';
 import '../providers/report_provider.dart';
 import '../widgets/date_range_selector.dart';
 import '../widgets/product_report_filter_card.dart';
+import '../widgets/report_layout.dart';
 import '../../../../config/routes/app_router.dart';
 
 /// Screen displaying product sales report in a data table format
@@ -69,8 +70,20 @@ class _ProductReportScreenState extends ConsumerState<ProductReportScreen> {
                   // A table needs room for six columns before it beats the
                   // cards; below expanded it would be a horizontal scroll
                   // hiding half the figures.
+                  //
+                  // The footer goes inside the card list but below the table:
+                  // the list can carry it as a last item, while the table owns
+                  // its own scroller and would have to give up lazy rows to do
+                  // the same. Under the table it reads as a status bar anyway.
                   return context.isAtLeast(Breakpoint.expanded)
-                      ? _buildProductTable(context, products)
+                      ? Column(
+                          children: [
+                            Expanded(
+                              child: _buildProductTable(context, products),
+                            ),
+                            _LoadMore(shown: products.length),
+                          ],
+                        )
                       : _buildProductList(context, products);
                 },
               ),
@@ -87,10 +100,15 @@ class _ProductReportScreenState extends ConsumerState<ProductReportScreen> {
         top: AppDimensions.spacing8,
         bottom: AppDimensions.spacing16 + context.shellBottomInset,
       ),
-      itemCount: products.length,
+      // One past the products, for the footer.
+      itemCount: products.length + 1,
       separatorBuilder: (_, __) =>
           const SizedBox(height: AppDimensions.spacing8),
       itemBuilder: (context, index) {
+        if (index == products.length) {
+          return _LoadMore(shown: products.length);
+        }
+
         final product = products[index];
         return _buildProductCard(context, product, index + 1);
       },
@@ -352,6 +370,33 @@ class _ProductReportScreenState extends ConsumerState<ProductReportScreen> {
     if (margin >= 15) return AppColors.warning;
     if (margin >= 0) return AppColors.info;
     return AppColors.error;
+  }
+}
+
+/// Extends the product list a page at a time.
+///
+/// The margin sort is worth knowing about here: it is applied client-side over
+/// whatever the server returned sorted by quantity, so loading another page
+/// widens the pool it sorts rather than continuing a server-side ranking. That
+/// predates this footer, but the button makes it reachable, so it is the one
+/// sort where "muat lebih banyak" can reorder rows already on screen.
+class _LoadMore extends ConsumerWidget {
+  final int shown;
+
+  const _LoadMore({required this.shown});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final limit = ref.watch(productReportLimitProvider);
+
+    return ReportLoadMoreFooter(
+      shown: shown,
+      itemLabel: 'produk',
+      onLoadMore: shown < limit
+          ? null
+          : () => ref.read(productReportLimitProvider.notifier).state =
+              limit + productReportPageSize,
+    );
   }
 }
 

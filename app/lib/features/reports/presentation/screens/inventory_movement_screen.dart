@@ -25,9 +25,34 @@ class InventoryMovementScreen extends ConsumerStatefulWidget {
       _InventoryMovementScreenState();
 }
 
+/// Rows rendered before the reader has to ask for more.
+///
+/// This screen is one long `SingleChildScrollView`, and both of its forms build
+/// eagerly - the table because `shrinkWrap: true` hands its `ListView` a
+/// viewport as tall as every row it has, the card form because it is a plain
+/// `Column`. So all 500 rows the RPC can return were built and held in the
+/// tree on every visit, which is where the jank came from: the fetch is a few
+/// milliseconds, the 500 rows are not.
+///
+/// Capping what is rendered fixes that without changing what is fetched, and
+/// keeps the "read it top to bottom" shape a report wants.
+const int _renderPageSize = 50;
+
 class _InventoryMovementScreenState
     extends ConsumerState<InventoryMovementScreen> {
   _MovementView _view = _MovementView.turnover;
+
+  int _visibleCount = _renderPageSize;
+
+  void _setView(_MovementView view) {
+    setState(() {
+      _view = view;
+      // The two views are different lists; carrying a depth from one into the
+      // other would drop the reader into the middle of a list they have not
+      // seen the top of.
+      _visibleCount = _renderPageSize;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,13 +105,13 @@ class _InventoryMovementScreenState
         ModernChip(
           label: 'Perputaran',
           selected: _view == _MovementView.turnover,
-          onSelected: (_) => setState(() => _view = _MovementView.turnover),
+          onSelected: (_) => _setView(_MovementView.turnover),
         ),
         const SizedBox(width: AppDimensions.spacing8),
         ModernChip(
           label: 'Kurang Laku',
           selected: _view == _MovementView.slowMoving,
-          onSelected: (_) => setState(() => _view = _MovementView.slowMoving),
+          onSelected: (_) => _setView(_MovementView.slowMoving),
         ),
       ],
     );
@@ -102,8 +127,12 @@ class _InventoryMovementScreenState
     }
 
     final isSlowView = _view == _MovementView.slowMoving;
-    final visible =
+    final matching =
         isSlowView ? movements.slowMoving : movements.byTurnoverDesc;
+
+    // Only this slice is built. `matching` stays whole so the footer can say
+    // how much of it is on screen.
+    final visible = matching.take(_visibleCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,22 +176,36 @@ class _InventoryMovementScreenState
             title: 'Semua Produk Bergerak',
             message: 'Tidak ada produk yang menumpuk pada periode ini.',
           )
-        else if (context.isAtLeast(Breakpoint.expanded))
-          _buildMovementTable(visible, isSlowView)
-        else
-          Column(
-            children: [
-              for (final movement in visible)
-                Padding(
-                  padding:
-                      const EdgeInsets.only(bottom: AppDimensions.spacing12),
-                  child: ProductMovementTile(
-                    movement: movement,
-                    showTurnover: !isSlowView,
+        else ...[
+          if (context.isAtLeast(Breakpoint.expanded))
+            _buildMovementTable(visible, isSlowView)
+          else
+            Column(
+              children: [
+                for (final movement in visible)
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(bottom: AppDimensions.spacing12),
+                    child: ProductMovementTile(
+                      movement: movement,
+                      showTurnover: !isSlowView,
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
+          ReportLoadMoreFooter(
+            shown: visible.length,
+            itemLabel: 'produk',
+            // The RPC caps itself at 500, so a full payload means the report
+            // stopped counting rather than the shop running out of products.
+            atServerLimit: movements.length >= productMovementFetchLimit,
+            onLoadMore: visible.length < matching.length
+                ? () => setState(
+                      () => _visibleCount += _renderPageSize,
+                    )
+                : null,
           ),
+        ],
       ],
     );
   }

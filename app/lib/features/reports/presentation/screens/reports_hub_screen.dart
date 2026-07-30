@@ -54,6 +54,10 @@ class ReportsHubScreen extends ConsumerWidget {
             bottom: AppDimensions.spacing32 + context.shellBottomInset,
           ),
           child: ModernContentColumn(
+            // Matches the six screens this hub routes to. Left at the 1080dp
+            // default, stepping into any report widened the content by 360dp
+            // on a desktop window - the family looked like two families.
+            width: ContentWidth.wide,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
