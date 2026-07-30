@@ -1,12 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:kasbon_pos/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:kasbon_pos/features/dashboard/presentation/providers/dashboard_provider.dart';
 import 'package:kasbon_pos/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:kasbon_pos/config/routes/app_router.dart';
+import 'package:kasbon_pos/features/dashboard/presentation/widgets/category_grid_card.dart';
 import 'package:kasbon_pos/features/dashboard/presentation/widgets/low_stock_alert.dart';
 import 'package:kasbon_pos/features/dashboard/presentation/widgets/sales_summary_card.dart';
+import 'package:kasbon_pos/shared/modern/modern.dart';
 
 import '../../../helpers/responsive_helpers.dart';
+import 'dashboard_fixtures.dart';
 
 /// The dashboard's rule is that a wider window never shows *less*.
 ///
@@ -16,6 +21,10 @@ import '../../../helpers/responsive_helpers.dart';
 /// direction of the relationship rather than the pixel layout - each tier must
 /// show everything the tier below it showed.
 void main() {
+  // The header band names the trading day in Bahasa, and `DateFormat` throws
+  // rather than falling back when the locale has not been loaded.
+  setUpAll(() => initializeDateFormatting('id_ID', null));
+
   const summary = DashboardSummary(
     todaySales: 250000,
     todayProfit: 90000,
@@ -34,13 +43,17 @@ void main() {
     lowStockCount: 0,
   );
 
+  // The analytics band reaches into `getIt` for three report use cases, which a
+  // widget test has no container for; every case here is about the *layout*, so
+  // the band is fed from fixtures rather than left to render error cards.
   List<Override> overridesFor(DashboardSummary value) => [
         dashboardSummaryProvider.overrideWith((ref) async => value),
+        ...dashboardAnalyticsOverrides(),
       ];
 
   for (final width in ResponsiveWidths.all) {
     testWidgets(
-      'shows the banner, the summary and the menu at ${ResponsiveWidths.label(width)}',
+      'shows the banner and the summary at ${ResponsiveWidths.label(width)}',
       (tester) async {
         await pumpScreenAtWidth(
           tester,
@@ -57,20 +70,82 @@ void main() {
         // for it, not an addition, so the headline figure and the profit and
         // transaction breakdown all disappeared at 900dp.
         expect(find.byType(SalesSummaryCard), findsOneWidget);
-
-        expect(find.text('Menu Kategori'), findsOneWidget);
       },
     );
   }
 
-  // The acceptance criterion, stated directly: count the same four sections at
-  // every tier and assert the counts never go down as the window grows.
+  group('the category menu is a duplicate route, not content', () {
+    testWidgets('is shown on a phone, where nothing else reaches Hutang',
+        (tester) async {
+      await pumpScreenAtWidth(
+        tester,
+        ResponsiveWidths.compact,
+        const DashboardScreen(),
+        providerOverrides: overridesFor(summary),
+      );
+
+      expect(find.text('Menu Kategori'), findsOneWidget);
+    });
+
+    for (final width in [
+      ResponsiveWidths.medium,
+      ResponsiveWidths.expanded,
+      ResponsiveWidths.large,
+    ]) {
+      testWidgets(
+        'is dropped at ${ResponsiveWidths.label(width)}, where the rail carries it',
+        (tester) async {
+          await pumpScreenAtWidth(
+            tester,
+            width,
+            const DashboardScreen(),
+            providerOverrides: overridesFor(summary),
+          );
+
+          expect(find.text('Menu Kategori'), findsNothing);
+        },
+      );
+    }
+
+    // This is the assertion that makes dropping the grid legitimate rather than
+    // a regression, and it is the refinement of "wider never shows less": the
+    // rule is about *capability*, not widget count. Every destination the grid
+    // offered has to be reachable from the chrome that replaces it, or removing
+    // the grid strands a feature.
+    test('every menu destination is reachable from the rail', () {
+      final railRoutes =
+          defaultRailNavItems.map((item) => item.routePath).toSet();
+
+      final stranded = DefaultMenuCategories.items
+          .map((category) => category.routePath)
+          // `/dev` is the known and deliberate exception - a development route
+          // that arguably should not be in a release build's menu at all.
+          .where((route) => route != AppRoutes.dev)
+          .where((route) => !railRoutes.contains(route))
+          .toList();
+
+      expect(
+        stranded,
+        isEmpty,
+        reason: 'dropping Menu Kategori at medium and above leaves these '
+            'destinations unreachable: $stranded',
+      );
+    });
+  });
+
+  // The acceptance criterion, stated directly: count the same sections at every
+  // tier and assert the counts never go down as the window grows.
+  //
+  // The category menu is deliberately *not* in this census - see the group
+  // above. It is navigation chrome, and the tier where it disappears is exactly
+  // the tier where the shell's rail makes it redundant.
   testWidgets('never shows less as the window gets wider', (tester) async {
     Map<String, int> census() => {
           'banner': find.text('Selamat Datang!').evaluate().length,
           'summary': find.byType(SalesSummaryCard).evaluate().length,
           'alert': find.byType(LowStockAlert).evaluate().length,
-          'menu': find.text('Menu Kategori').evaluate().length,
+          'trend': find.text('Tren Penjualan').evaluate().length,
+          'topProducts': find.text('Produk Terlaris').evaluate().length,
         };
 
     // One tree, resized - a real window drag rather than four separate pumps,
