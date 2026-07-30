@@ -191,4 +191,78 @@ void main() {
       expect(find.byType(ModernLoading), findsOneWidget);
     });
   });
+
+  /// The image column takes a widget, not a URL.
+  ///
+  /// It used to take the URL and call `Image.network` itself, which cannot be
+  /// right in a shared component: what a row stores is a reference - for
+  /// products, an object path inside a storage bucket - and turning that into a
+  /// URL needs the environment's host. A column that loads it directly renders
+  /// a placeholder for every product photo in the app and reports nothing.
+  group('image column', () {
+    Future<void> pumpImageColumn(
+      WidgetTester tester,
+      Widget? Function(_Row row) imageBuilder,
+    ) {
+      return pumpAtWidth(
+        tester,
+        ResponsiveWidths.large,
+        ModernDataTable<_Row>(
+          columns: [
+            ModernTableColumnFactories.image<_Row>(
+              id: 'image',
+              imageBuilder: imageBuilder,
+            ),
+            ..._columns(),
+          ],
+          items: _rows,
+          idGetter: (row) => row.id,
+          shrinkWrap: true,
+        ),
+      );
+    }
+
+    testWidgets('renders the widget the caller supplies', (tester) async {
+      await pumpImageColumn(tester, (row) => Text('foto ${row.name}'));
+
+      expect(find.text('foto Kopi'), findsOneWidget);
+      expect(find.text('foto Teh'), findsOneWidget);
+    });
+
+    testWidgets('never loads an image itself', (tester) async {
+      await pumpImageColumn(tester, (row) => Text('foto ${row.name}'));
+
+      expect(find.byType(Image), findsNothing);
+    });
+
+    testWidgets('falls back to a placeholder for a row with no image',
+        (tester) async {
+      await pumpImageColumn(tester, (row) => null);
+
+      expect(find.byIcon(Icons.image_outlined), findsNWidgets(_rows.length));
+    });
+
+    testWidgets('prefers the caller\'s placeholder', (tester) async {
+      await pumpAtWidth(
+        tester,
+        ResponsiveWidths.large,
+        ModernDataTable<_Row>(
+          columns: [
+            ModernTableColumnFactories.image<_Row>(
+              id: 'image',
+              imageBuilder: (row) => null,
+              placeholder: const Text('tidak ada foto'),
+            ),
+            ..._columns(),
+          ],
+          items: _rows,
+          idGetter: (row) => row.id,
+          shrinkWrap: true,
+        ),
+      );
+
+      expect(find.text('tidak ada foto'), findsNWidgets(_rows.length));
+      expect(find.byIcon(Icons.image_outlined), findsNothing);
+    });
+  });
 }

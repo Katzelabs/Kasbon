@@ -89,12 +89,10 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
   List<ModernTableColumn<Product>> _buildColumns() {
     return [
       // Image column
-      ModernTableColumn<Product>(
+      ModernTableColumnFactories.image<Product>(
         id: 'image',
-        header: const SizedBox.shrink(),
-        width: 64,
-        alignment: Alignment.center,
-        cellBuilder: (product) => _buildProductImage(product),
+        size: 48,
+        imageBuilder: _buildProductImage,
       ),
       // Name column
       ModernTableColumn<Product>(
@@ -200,9 +198,14 @@ class _ProductTableViewState extends ConsumerState<ProductTableView> {
     ];
   }
 
-  Widget _buildProductImage(Product product) {
+  /// The photo cell, or null for a product without one - which lets the column
+  /// place its own placeholder rather than this deciding twice.
+  Widget? _buildProductImage(Product product) {
+    final reference = product.imageUrl;
+    if (reference == null || reference.isEmpty) return null;
+
     return ProductImage(
-      imagePath: product.imageUrl,
+      imagePath: reference,
       size: 48,
       borderRadius: BorderRadius.circular(AppDimensions.radiusSmall),
       placeholderIconSize: 24,

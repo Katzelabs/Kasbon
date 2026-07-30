@@ -13,6 +13,12 @@ import 'image_storage_service.dart';
 /// which is why product images have never synced: the path was meaningful on
 /// exactly one phone, and meaningless in a browser.
 ///
+/// What a row holds is the object's path inside the bucket. Storing the public
+/// URL instead - which this did at first - repeated the same mistake one level
+/// up: the row was then only valid against the host that happened to write it,
+/// so the emulator's `10.0.2.2`, a LAN address and production each invalidated
+/// the others. The path is the part that is actually about the image.
+///
 /// Objects are laid out as `<user_id>/<product_id>/<timestamp>.jpg`. The
 /// leading user id is not decoration - the bucket's RLS policies read it with
 /// `storage.foldername(name)[1]` to decide who may write, the same way the
@@ -27,6 +33,10 @@ class SupabaseImageStorageService implements ImageStorageService {
 
   /// The marker that separates a Supabase public URL from the object path
   /// inside it: `<project>/storage/v1/object/public/<bucket>/<path>`.
+  ///
+  /// Still needed after the move to storing paths: rows written before that
+  /// hold a whole URL, and both reads and deletes have to keep working against
+  /// them without a data migration having to have run first.
   static const String _publicUrlMarker = '/object/public/$bucketName/';
 
   final SupabaseClientProvider _clientProvider;
@@ -57,7 +67,7 @@ class SupabaseImageStorageService implements ImageStorageService {
         ),
       );
 
-      return _bucket.getPublicUrl(objectPath);
+      return objectPath;
     } on ImageStorageException {
       rethrow;
     } on StorageException catch (e) {
@@ -76,11 +86,22 @@ class SupabaseImageStorageService implements ImageStorageService {
   }
 
   @override
+  String publicUrlFor(String reference) {
+    final objectPath = objectPathFrom(reference);
+    if (objectPath == null) return reference;
+
+    // Note this re-derives the URL for a reference that already was one, which
+    // is the point: an unmigrated row written against `127.0.0.1` renders in
+    // the emulator, and against production, without being rewritten first.
+    return _bucket.getPublicUrl(objectPath);
+  }
+
+  @override
   Future<void> deleteImage(String imagePath) async {
     // Legacy rows carry an absolute device path from the old local storage.
     // There is no object to remove, and nothing to report: whatever that path
     // pointed at is beyond this app's reach on every device but one.
-    final objectPath = objectPathFromUrl(imagePath);
+    final objectPath = objectPathFrom(imagePath);
     if (objectPath == null) return;
 
     try {
@@ -108,7 +129,7 @@ class SupabaseImageStorageService implements ImageStorageService {
   /// fetch, which for a device path is never the right answer.
   @override
   Future<bool> imageExists(String imagePath) async {
-    final objectPath = objectPathFromUrl(imagePath);
+    final objectPath = objectPathFrom(imagePath);
     if (objectPath == null) return false;
 
     try {
@@ -127,17 +148,28 @@ class SupabaseImageStorageService implements ImageStorageService {
   /// The object path inside the bucket for a stored [reference], or null when
   /// the reference is not one of ours.
   ///
-  /// Null covers both legacy device paths and any other URL, which is the same
-  /// answer for callers: this service has nothing to do with it.
+  /// Takes either shape a row can hold - a bare object path, or a full public
+  /// URL from before those were stored - and normalises to the path. Null
+  /// covers legacy device paths and any other URL, which is the same answer for
+  /// callers: this service has nothing to do with it.
   ///
   /// Visible for testing - the round trip through `getPublicUrl` and back is
   /// the one piece of string handling here that can silently rot if Supabase
   /// ever changes its URL shape.
-  static String? objectPathFromUrl(String reference) {
+  static String? objectPathFrom(String reference) {
     final markerAt = reference.indexOf(_publicUrlMarker);
-    if (markerAt == -1) return null;
 
-    final path = reference.substring(markerAt + _publicUrlMarker.length);
+    final String path;
+    if (markerAt != -1) {
+      path = reference.substring(markerAt + _publicUrlMarker.length);
+    } else if (reference.contains('://') || reference.startsWith('/')) {
+      // A URL that is not ours - another bucket, another host - or an absolute
+      // device path from the retired local storage. Neither names an object
+      // here, and guessing would mean deleting against a path we invented.
+      return null;
+    } else {
+      path = reference;
+    }
 
     // A trailing `?` query (cache busting, image transforms) is not part of
     // the object name.

@@ -11,6 +11,9 @@ import '../../../helpers/responsive_helpers.dart';
 
 class _NoopImageStorage implements ImageStorageService {
   @override
+  String publicUrlFor(String reference) => reference;
+
+  @override
   Future<void> deleteImage(String imagePath) async {}
 
   @override

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,7 @@ import '../../../../config/di/injection.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/services/image_storage/image_storage_service.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/modern/modern.dart';
@@ -46,6 +49,26 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   String _selectedUnit = 'pcs';
   String? _imagePath;
+
+  /// The objects this form has uploaded, in pick order.
+  ///
+  /// Every non-null path the picker reports is a new object in the bucket - it
+  /// only reports one after an upload succeeds. At most one of them ends up
+  /// referenced by the row; picking twice makes the first one garbage.
+  final List<String> _uploadedImagePaths = [];
+
+  /// What `image_url` held when the form was populated.
+  ///
+  /// Kept because the row still points at it for as long as the form is open,
+  /// which is what makes it unsafe to delete before the save lands.
+  String? _originalImagePath;
+
+  /// Whether a save landed.
+  ///
+  /// This is the whole question that decides which stored object is live and
+  /// which is garbage, and it cannot be answered until the form is leaving.
+  bool _saved = false;
+
   Product? _existingProduct;
   CategorySelection _categorySelection = const NoCategory();
   String? _initialCategoryId;
@@ -116,6 +139,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   /// meant an `addPostFrameCallback` plus a `setState` a frame later, which is
   /// a setState-during-build hazard wearing a delay.
   void _watchProduct() {
+    // Whatever this form uploaded belongs to the record it is leaving behind,
+    // and nothing references it.
+    _releaseUnusedImages();
+
     _productSubscription?.close();
     _productSubscription = null;
     _populatedForId = null;
@@ -140,6 +167,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   @override
   void dispose() {
+    _releaseUnusedImages();
     _nameController.dispose();
     _descriptionController.dispose();
     _costPriceController.dispose();
@@ -148,6 +176,38 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _minStockController.dispose();
     _barcodeController.dispose();
     super.dispose();
+  }
+
+  /// Deletes the stored objects the database does not point at.
+  ///
+  /// Called on the way out - a product switch, or dispose - because until then
+  /// it is not known which object is the live one. If the save landed, the row
+  /// names [_imagePath] and the photo the form opened with is now garbage; if it
+  /// did not, the row still names [_originalImagePath] and everything uploaded
+  /// here is.
+  ///
+  /// Not awaited, and failures are dropped: the row is already correct by this
+  /// point, so the worst case is an object nobody references - which is the
+  /// cheap direction to fail in. Deleting eagerly was the expensive one.
+  void _releaseUnusedImages() {
+    final live = _saved ? _imagePath : _originalImagePath;
+    final orphans = <String>{
+      ..._uploadedImagePaths,
+      if (_originalImagePath != null) _originalImagePath!,
+    };
+    if (live != null) orphans.remove(live);
+
+    _uploadedImagePaths.clear();
+    _originalImagePath = null;
+    if (orphans.isEmpty) return;
+
+    // Resolved here rather than held as a field: this runs after dispose, and
+    // an unregistered locator in a widget test should not fail a teardown.
+    if (!getIt.isRegistered<ImageStorageService>()) return;
+    final service = getIt<ImageStorageService>();
+    for (final path in orphans) {
+      service.deleteImage(path).ignore();
+    }
   }
 
   String _formatCurrency(int number) {
@@ -179,6 +239,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     // Safely set unit - default to 'pcs' if unit not in list
     _selectedUnit = _units.contains(product.unit) ? product.unit : 'pcs';
     _imagePath = product.imageUrl;
+    _originalImagePath = product.imageUrl;
     _initialCategoryId = product.categoryId;
   }
 
@@ -231,6 +292,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         barcode: barcode.isNotEmpty ? barcode : null,
         unit: _selectedUnit,
         imageUrl: _imagePath,
+        // Without the flag a removed photo writes `null` into a `??` and comes
+        // back out as the URL it was meant to erase.
+        clearImageUrl: _imagePath == null,
       );
       await formNotifier.updateProduct(updatedProduct);
     } else {
@@ -258,7 +322,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     // Listen for form state changes
     ref.listen(productFormProvider, (previous, next) {
       if (next.isSuccess) {
-        ref.invalidate(productsProvider);
+        // The row now names `_imagePath`, which is what makes the photo this
+        // form replaced safe to delete on the way out.
+        _saved = true;
+        ref.invalidate(paginatedProductsProvider);
         ModernToast.success(
           context,
           widget.isEditing
@@ -460,7 +527,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               currentImagePath: _imagePath,
               productId: _imageOwnerId,
               onImageChanged: (path) {
-                setState(() => _imagePath = path);
+                setState(() {
+                  // A non-null path is always a brand new object - the picker
+                  // reports only what it has just uploaded. Recording it here
+                  // is what lets the save decide, later, which one to keep.
+                  if (path != null) _uploadedImagePaths.add(path);
+                  _imagePath = path;
+                });
               },
             ),
           ),

@@ -25,6 +25,19 @@ enum _ImageSourceAction {
 
 /// Widget for picking and displaying product images.
 /// Handles camera/gallery selection, compression, and storage.
+///
+/// Uploads, and never deletes. Removing the old object is the form's job, once
+/// the row that references it has actually been written - see
+/// `ProductFormScreen._releaseUnusedImages`.
+///
+/// It used to delete first and upload second, on the theory that a product has
+/// one photo so the old one is garbage the moment a new one is picked. Two
+/// things are wrong with that. The row is written when the form is *saved*, so
+/// picking a photo and then leaving without saving deleted the live photo and
+/// left the row pointing at nothing - a product whose image silently became a
+/// placeholder, with the file gone and the URL still in the database. And the
+/// upload can fail (over the bucket's 5 MiB limit, a rejected MIME type, no
+/// network), which destroyed the existing photo in exchange for an error toast.
 class ProductImagePicker extends StatefulWidget {
   const ProductImagePicker({
     super.key,
@@ -109,7 +122,7 @@ class _ProductImagePickerState extends State<ProductImagePicker> {
       case _ImageSourceAction.gallery:
         await _pickImage(ImageSource.gallery);
       case _ImageSourceAction.remove:
-        await _removeImage();
+        _removeImage();
     }
   }
 
@@ -143,16 +156,11 @@ class _ProductImagePickerState extends State<ProductImagePicker> {
 
       setState(() => _isLoading = true);
 
-      // Delete old image if exists
-      if (_imagePath != null) {
-        try {
-          await _imageService.deleteImage(_imagePath!);
-        } catch (_) {
-          // Ignore errors when deleting old image
-        }
-      }
-
       // Save and compress the new image.
+      //
+      // The old object stays where it is. It is still what the row points at
+      // until the form saves, and if this upload throws it is still the
+      // product's photo.
       //
       // readAsBytes rather than XFile.path: on web the path is a `blob:` URL
       // that no file API can open, while readAsBytes behaves identically on
@@ -183,14 +191,13 @@ class _ProductImagePickerState extends State<ProductImagePicker> {
     }
   }
 
-  Future<void> _removeImage() async {
+  /// Drops the photo from the form.
+  ///
+  /// Nothing is removed from storage: the row still references this object, and
+  /// will until the form is saved with a null `image_url`. Deleting here is how
+  /// a cancelled removal used to leave a product with a dead URL.
+  void _removeImage() {
     if (_imagePath == null) return;
-
-    try {
-      await _imageService.deleteImage(_imagePath!);
-    } catch (_) {
-      // Ignore errors when deleting
-    }
 
     setState(() => _imagePath = null);
     widget.onImageChanged(null);

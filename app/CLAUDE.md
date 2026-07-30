@@ -382,6 +382,18 @@ Web specifics worth knowing:
   hard refresh on `/products/abc` 404s.
 - Product images go to **Supabase Storage** on every platform. A device
   filesystem path in `products.image_url` never synced across devices.
+- `products.image_url` holds the **object path** inside the bucket, not a URL.
+  The host belongs to the environment (`127.0.0.1` in a browser, `10.0.2.2` in
+  the emulator, a LAN IP on a device, production), so render sites resolve it
+  through `productImageUrl()` in `product_image.dart` - never
+  `Image.network(product.imageUrl!)`. Rows written before
+  `20260730000001_product_image_object_paths.sql` hold a full URL and are
+  re-pointed at the current host on read.
+- Storage is written when a photo is **picked**, the row when the form is
+  **saved**. `ProductImagePicker` therefore only ever uploads; deleting what is
+  no longer referenced is `ProductFormScreen._releaseUnusedImages`, on the way
+  out. Deleting at pick time destroyed live photos whenever an edit was
+  abandoned or an upload failed.
 - Exports are in-memory `ExportResult` values; only delivery splits io/web.
 - `flutter build web` targets JS. Wasm is blocked by third-party `dart:ffi`
   imports (`win32`, `image`), not by our code.

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../../config/theme/app_colors.dart';
+import '../../../../config/theme/app_dimensions.dart';
+
 /// Definition for a single table column in ModernDataTable
 ///
 /// Example usage:
@@ -107,9 +110,22 @@ extension ModernTableColumnFactories<T> on ModernTableColumn<T> {
   }
 
   /// Creates a column for displaying images/avatars
+  ///
+  /// Takes the image *widget* for a row, not a URL. It used to take a
+  /// `imageUrlGetter` and call `Image.network` on whatever came back, which is
+  /// wrong in this library twice over. A stored image reference is not
+  /// necessarily a URL - `products.image_url` holds an object path inside a
+  /// storage bucket, and resolving it needs a host this component has no
+  /// business knowing - and the loading, error and legacy-path handling a photo
+  /// needs already exists in the feature widgets. So the caller passes
+  /// `ProductImage(...)`, or whatever its equivalent is, and this column does
+  /// what a column can: reserve the width, centre it, clip the corners.
+  ///
+  /// Returning null from [imageBuilder] means the row has no image, and gets
+  /// [placeholder].
   static ModernTableColumn<T> image<T>({
     required String id,
-    required String? Function(T item) imageUrlGetter,
+    required Widget? Function(T item) imageBuilder,
     double size = 40.0,
     Widget? placeholder,
     BorderRadius? borderRadius,
@@ -117,42 +133,19 @@ extension ModernTableColumnFactories<T> on ModernTableColumn<T> {
     return ModernTableColumn<T>(
       id: id,
       header: const SizedBox.shrink(),
-      width: size + 16,
+      width: size + AppDimensions.spacing16,
       alignment: Alignment.center,
-      cellBuilder: (item) {
-        final imageUrl = imageUrlGetter(item);
-        return ClipRRect(
-          borderRadius: borderRadius ?? BorderRadius.circular(4),
-          child: SizedBox(
-            width: size,
-            height: size,
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                        placeholder ??
-                        Container(
-                          color: Colors.grey[200],
-                          child: Icon(
-                            Icons.image_not_supported_outlined,
-                            size: size * 0.5,
-                            color: Colors.grey[400],
-                          ),
-                        ),
-                  )
-                : placeholder ??
-                    Container(
-                      color: Colors.grey[200],
-                      child: Icon(
-                        Icons.image_outlined,
-                        size: size * 0.5,
-                        color: Colors.grey[400],
-                      ),
-                    ),
-          ),
-        );
-      },
+      cellBuilder: (item) => ClipRRect(
+        borderRadius:
+            borderRadius ?? BorderRadius.circular(AppDimensions.radiusSmall),
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: imageBuilder(item) ??
+              placeholder ??
+              _ImageCellPlaceholder(size: size),
+        ),
+      ),
     );
   }
 
@@ -171,6 +164,25 @@ extension ModernTableColumnFactories<T> on ModernTableColumn<T> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: actionsBuilder(item),
+      ),
+    );
+  }
+}
+
+/// What an image cell shows for a row with no image.
+class _ImageCellPlaceholder extends StatelessWidget {
+  const _ImageCellPlaceholder({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppColors.surfaceVariant,
+      child: Icon(
+        Icons.image_outlined,
+        size: size * 0.5,
+        color: AppColors.textTertiary,
       ),
     );
   }

@@ -7,6 +7,11 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/adaptive_local_image.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../products/domain/entities/product.dart';
+// The POS grid paints its own photo tile rather than using ProductImage, which
+// is square-sized, but how a stored reference becomes a URL is the products
+// feature's answer to give - resolving it here as well is how two render paths
+// drift.
+import '../../../products/presentation/widgets/product_image.dart';
 
 /// Product card widget for POS grid display
 ///
@@ -150,10 +155,8 @@ class ProductGridItem extends StatelessWidget {
 
   Widget _buildImageContent() {
     final imagePath = product.imageUrl!;
-    final isLocalFile =
-        imagePath.startsWith('/') || imagePath.startsWith('file://');
 
-    if (isLocalFile) {
+    if (isLocalImageFile(imagePath)) {
       return SizedBox(
         width: double.infinity,
         height: double.infinity,
@@ -165,7 +168,7 @@ class ProductGridItem extends StatelessWidget {
     }
 
     return Image.network(
-      imagePath,
+      productImageUrl(imagePath),
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,

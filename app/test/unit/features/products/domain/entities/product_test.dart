@@ -182,6 +182,38 @@ void main() {
         expect(identical(product, updated), false);
         expect(product.name, 'Test Product');
       });
+
+      test('a null imageUrl on its own leaves the existing one alone', () {
+        final withPhoto =
+            MockData.createProduct(imageUrl: 'https://example.com/a.jpg');
+        expect(
+          withPhoto.copyWith(imageUrl: null).imageUrl,
+          'https://example.com/a.jpg',
+        );
+      });
+
+      test('clearImageUrl removes the photo', () {
+        // "Hapus Foto" deletes the object from storage and then saves a null
+        // `imageUrl`, which without this flag fell through the `??` and put the
+        // URL of the deleted file straight back into the row.
+        final withPhoto =
+            MockData.createProduct(imageUrl: 'https://example.com/a.jpg');
+        expect(withPhoto.copyWith(clearImageUrl: true).imageUrl, isNull);
+      });
+
+      test('clearImageUrl wins over a replacement path', () {
+        final withPhoto =
+            MockData.createProduct(imageUrl: 'https://example.com/a.jpg');
+        expect(
+          withPhoto
+              .copyWith(
+                imageUrl: 'https://example.com/b.jpg',
+                clearImageUrl: true,
+              )
+              .imageUrl,
+          isNull,
+        );
+      });
     });
 
     group('equality', () {

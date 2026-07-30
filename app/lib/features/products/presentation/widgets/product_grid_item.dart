@@ -11,6 +11,7 @@ import '../../../../core/widgets/adaptive_local_image.dart';
 import '../../../../shared/modern/components/card/modern_card.dart';
 import '../../../../shared/modern/utils/modern_hover.dart';
 import '../../domain/entities/product.dart';
+import 'product_image.dart';
 import 'stock_indicator.dart';
 
 /// A product as a card in the grid: square photo, name, SKU, price and stock.
@@ -269,10 +270,7 @@ class ProductGridItem extends StatelessWidget {
     final imagePath = product.imageUrl;
     if (imagePath == null || imagePath.isEmpty) return _buildPlaceholderIcon();
 
-    final isLocalFile =
-        imagePath.startsWith('/') || imagePath.startsWith('file://');
-
-    if (isLocalFile) {
+    if (isLocalImageFile(imagePath)) {
       return SizedBox(
         width: double.infinity,
         height: double.infinity,
@@ -284,7 +282,7 @@ class ProductGridItem extends StatelessWidget {
     }
 
     return Image.network(
-      imagePath,
+      productImageUrl(imagePath),
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,

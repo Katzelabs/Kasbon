@@ -50,6 +50,13 @@ class Product extends Equatable {
   bool get isOutOfStock => stock <= 0;
 
   /// Create a copy of the product with updated fields
+  ///
+  /// The nullable fields need a companion flag to be *cleared*, because `null`
+  /// on its own means "leave alone" here. [clearImageUrl] was missing until a
+  /// removed photo proved it: "Hapus Foto" deleted the object from storage and
+  /// then saved `imageUrl: null`, which fell through to the existing URL. The
+  /// row kept pointing at a file that was no longer there, and every render of
+  /// that product showed the placeholder with no error to explain it.
   Product copyWith({
     String? id,
     String? categoryId,
@@ -64,6 +71,7 @@ class Product extends Equatable {
     int? minStock,
     String? unit,
     String? imageUrl,
+    bool clearImageUrl = false,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -80,7 +88,7 @@ class Product extends Equatable {
       stock: stock ?? this.stock,
       minStock: minStock ?? this.minStock,
       unit: unit ?? this.unit,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

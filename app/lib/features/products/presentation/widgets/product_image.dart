@@ -1,9 +1,36 @@
 import 'package:flutter/material.dart';
 
+import '../../../../config/di/injection.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
+import '../../../../core/services/image_storage/image_storage_service.dart';
 import '../../../../core/widgets/adaptive_local_image.dart';
 import '../../../../shared/modern/modern.dart';
+
+/// Whether [reference] is a path on this device rather than in the bucket.
+///
+/// Legacy data: rows written by the retired local storage. No new ones are
+/// created, and they were never valid anywhere but the phone that took the
+/// photo.
+bool isLocalImageFile(String reference) =>
+    reference.startsWith('/') || reference.startsWith('file://');
+
+/// The URL that renders a stored `products.image_url` [reference].
+///
+/// A row holds the object's path inside the bucket, so the host is not in the
+/// data - which is the whole point, since it differs between a browser
+/// (`127.0.0.1`), the Android emulator (`10.0.2.2`), a LAN device and
+/// production. Every render site resolves through here rather than handing
+/// `image_url` to `Image.network` and hoping the environment matches whichever
+/// one wrote the row.
+///
+/// The reference comes back unchanged if the storage service is not available -
+/// only true in a widget test that never registered one, where the value is
+/// already an absolute URL or nothing renders either way.
+String productImageUrl(String reference) {
+  if (!getIt.isRegistered<ImageStorageService>()) return reference;
+  return getIt<ImageStorageService>().publicUrlFor(reference);
+}
 
 /// Widget for displaying product images.
 /// Handles local file paths, network URLs, and placeholder fallback.
@@ -37,17 +64,8 @@ class ProductImage extends StatelessWidget {
   final double? placeholderIconSize;
 
   /// Check if the path is a local file
-  bool get _isLocalFile {
-    if (imagePath == null) return false;
-    return imagePath!.startsWith('/') || imagePath!.startsWith('file://');
-  }
-
-  /// Check if the path is a network URL
-  bool get _isNetworkUrl {
-    if (imagePath == null) return false;
-    return imagePath!.startsWith('http://') ||
-        imagePath!.startsWith('https://');
-  }
+  bool get _isLocalFile =>
+      imagePath != null && isLocalImageFile(imagePath!);
 
   @override
   Widget build(BuildContext context) {
@@ -78,12 +96,11 @@ class ProductImage extends StatelessWidget {
       return _buildLocalImage(iconSize);
     }
 
-    if (_isNetworkUrl) {
-      return _buildNetworkImage(iconSize);
-    }
-
-    // Treat as local file path if not recognized
-    return _buildLocalImage(iconSize);
+    // Everything else is a reference into the bucket - a path, or one of the
+    // full URLs stored before paths were. This used to fall back to a local
+    // file for anything it could not recognise as `http`, which is exactly what
+    // an object path looks like.
+    return _buildNetworkImage(iconSize);
   }
 
   Widget _buildLocalImage(double iconSize) {
@@ -96,7 +113,7 @@ class ProductImage extends StatelessWidget {
 
   Widget _buildNetworkImage(double iconSize) {
     return Image.network(
-      imagePath!,
+      productImageUrl(imagePath!),
       fit: fit,
       errorBuilder: (_, __, ___) => _buildPlaceholder(iconSize),
       loadingBuilder: (context, child, loadingProgress) {
