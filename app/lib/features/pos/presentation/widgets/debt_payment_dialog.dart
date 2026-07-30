@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
@@ -9,7 +8,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import '../../../../shared/modern/modern.dart';
 import '../providers/cart_provider.dart';
 import '../providers/payment_provider.dart';
-import '../../../../config/routes/app_router.dart';
+import 'transaction_success_dialog.dart';
 
 /// Debt payment dialog for recording hutang transactions
 ///
@@ -76,11 +75,14 @@ class _DebtPaymentDialogState extends ConsumerState<DebtPaymentDialog> {
     final paymentState = ref.read(paymentProvider);
 
     if (paymentState.isSuccess && mounted) {
-      // Close dialog and navigate to success screen
-      Navigator.pop(context, true);
+      // Close this dialog, then confirm the sale in a modal over the POS grid.
+      // The root navigator's context is captured first: after the pop, this
+      // State's context is defunct and cannot host a dialog.
+      final navigator = Navigator.of(context, rootNavigator: true);
+      final transaction = paymentState.completedTransaction!;
 
-      final transactionId = paymentState.completedTransaction!.id;
-      context.go(AppRoutes.posSuccessPath(transactionId));
+      Navigator.pop(context, true);
+      await TransactionSuccessDialog.show(navigator.context, transaction);
     } else if (paymentState.hasError && mounted) {
       ModernToast.error(context, paymentState.errorMessage!);
     }

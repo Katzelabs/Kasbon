@@ -271,7 +271,7 @@ class CartPanel extends ConsumerWidget {
 
   Future<void> _checkout(BuildContext context) async {
     // The sheet gets out of the way first: leaving it up would stack a dialog
-    // on a sheet, and the success route it pushes would land behind both.
+    // on a sheet, and the success modal that follows would open over both.
     if (_isSheet) Navigator.pop(context);
     await PaymentDialog.show(context);
   }

@@ -13,7 +13,6 @@ import '../../features/dev_tools/presentation/screens/design_system_showcase_scr
 import '../../features/dev_tools/presentation/screens/dev_seed_screen.dart';
 import '../../features/dev_tools/presentation/screens/dev_tools_screen.dart';
 import '../../features/pos/presentation/screens/pos_screen.dart';
-import '../../features/pos/presentation/screens/transaction_success_screen.dart';
 import '../../features/products/presentation/screens/product_detail_screen.dart';
 import '../../features/products/presentation/screens/product_form_screen.dart';
 import '../../features/products/presentation/screens/product_list_screen.dart';
@@ -44,7 +43,6 @@ class AppRoutes {
   static const String splash = '/';
   static const String dashboard = '/dashboard';
   static const String pos = '/pos';
-  static const String posSuccess = '/pos/success/:transactionId';
   static const String products = '/products';
   static const String productDetail = '/products/:id';
   static const String productAdd = '/products/add';
@@ -99,8 +97,6 @@ class AppRoutes {
   static String debtDetailPath(String id) => '/debts/$id';
   static String receiptPath(String transactionId) =>
       '/transactions/$transactionId/receipt';
-  static String posSuccessPath(String transactionId) =>
-      '/pos/success/$transactionId';
 
   // Selection parsers for the split views.
   //
@@ -547,19 +543,6 @@ class AppRouter {
             ],
           ),
         ],
-      ),
-
-      // Full-screen routes (outside shell)
-      GoRoute(
-        path: AppRoutes.posSuccess,
-        name: 'pos-success',
-        pageBuilder: (context, state) {
-          final transactionId = state.pathParameters['transactionId']!;
-          return _slidePage(
-            state: state,
-            child: TransactionSuccessScreen(transactionId: transactionId),
-          );
-        },
       ),
     ],
 

@@ -14,7 +14,6 @@ void main() {
       expect(AppRoutes.transactionDetailPath('t1'), '/transactions/t1');
       expect(AppRoutes.debtDetailPath('t1'), '/debts/t1');
       expect(AppRoutes.receiptPath('t1'), '/transactions/t1/receipt');
-      expect(AppRoutes.posSuccessPath('t1'), '/pos/success/t1');
     });
 
     // The route constants are the patterns GoRouter matches on; the builders
@@ -31,8 +30,6 @@ void main() {
         AppRoutes.debtDetail.replaceAll(':id', 't1'):
             AppRoutes.debtDetailPath('t1'),
         AppRoutes.receipt.replaceAll(':id', 't1'): AppRoutes.receiptPath('t1'),
-        AppRoutes.posSuccess.replaceAll(':transactionId', 't1'):
-            AppRoutes.posSuccessPath('t1'),
       };
 
       cases.forEach((fromPattern, fromBuilder) {
