@@ -39,6 +39,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.bottom,
     this.variant = ModernAppBarVariant.elevated,
     this.systemOverlayStyle,
+    this.showDivider,
   });
 
   /// Creates a primary-colored app bar
@@ -55,6 +56,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.surfaceTintColor,
     this.bottom,
     this.systemOverlayStyle,
+    this.showDivider,
   })  : variant = ModernAppBarVariant.primary,
         backgroundColor = AppColors.primary,
         foregroundColor = AppColors.onPrimary;
@@ -73,6 +75,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.surfaceTintColor,
     this.bottom,
     this.systemOverlayStyle,
+    this.showDivider,
   })  : variant = ModernAppBarVariant.transparent,
         backgroundColor = Colors.transparent,
         elevation = 0;
@@ -87,6 +90,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     Color? backgroundColor,
     Color? foregroundColor,
     ModernAppBarVariant variant = ModernAppBarVariant.flat,
+    bool? showDivider,
   }) {
     return ModernAppBar(
       key: key,
@@ -98,6 +102,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
       variant: variant,
+      showDivider: showDivider,
     );
   }
 
@@ -110,6 +115,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     Color? backgroundColor,
     Color? foregroundColor,
     ModernAppBarVariant variant = ModernAppBarVariant.flat,
+    bool? showDivider,
   }) {
     return ModernAppBar(
       key: key,
@@ -121,6 +127,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
       variant: variant,
+      showDivider: showDivider,
     );
   }
 
@@ -147,6 +154,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     Color? backgroundColor,
     Color? foregroundColor,
     ModernAppBarVariant variant = ModernAppBarVariant.flat,
+    bool? showDivider,
   }) {
     return ModernAppBar(
       key: key,
@@ -161,6 +169,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
       variant: variant,
+      showDivider: showDivider,
     );
   }
 
@@ -169,7 +178,14 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
   ///
   /// For parent/main screens like Dashboard, Products list, etc.
   ///
-  /// Renders identically at every breakpoint: title + avatar.
+  /// [additionalActions] land to the *left* of the avatar, which is where a
+  /// screen's own primary action belongs off a phone: the header is the one
+  /// piece of chrome that spans the whole content area, so an action placed
+  /// there is in the same corner on every screen instead of hovering over
+  /// whatever the body happens to be showing. Actions that only make sense with
+  /// a pointer and a toolbar hide themselves at `compact` and leave the phone's
+  /// floating button alone - see `ProductAddAction` and `PosCartAction`.
+  ///
   /// Uses Riverpod providers for user info.
   ///
   /// Example:
@@ -177,6 +193,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// ModernAppBar.withActions(
   ///   title: 'Produk',
   ///   onProfileTap: () => context.go('/profile'),
+  ///   additionalActions: const [ProductAddAction()],
   /// )
   /// ```
   factory ModernAppBar.withActions({
@@ -187,6 +204,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     Color? backgroundColor,
     Color? foregroundColor,
     ModernAppBarVariant variant = ModernAppBarVariant.flat,
+    bool? showDivider,
   }) {
     return ModernAppBar(
       key: key,
@@ -200,6 +218,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
       variant: variant,
+      showDivider: showDivider,
     );
   }
 
@@ -225,6 +244,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
     Color? backgroundColor,
     Color? foregroundColor,
     ModernAppBarVariant variant = ModernAppBarVariant.flat,
+    bool? showDivider,
   }) {
     return ModernAppBar(
       key: key,
@@ -243,6 +263,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
       variant: variant,
+      showDivider: showDivider,
     );
   }
 
@@ -287,6 +308,35 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// The system overlay style for status bar
   final SystemUiOverlayStyle? systemOverlayStyle;
+
+  /// Whether to draw a hairline along the bar's bottom edge.
+  ///
+  /// Null resolves per variant - see [_showsDivider].
+  final bool? showDivider;
+
+  /// Whether this bar closes itself off from the body with a hairline.
+  ///
+  /// On by default for the two variants that sit on [AppColors.surface]. Those
+  /// bars are white, and so is every card directly under them, so without an
+  /// edge the header and the first row of content read as one surface - most
+  /// visibly on a wide window, where the bar is 1300dp of white with a title in
+  /// the corner. The `flat` variant carries no shadow at all (see [_elevation]),
+  /// which is precisely why it needs the line.
+  ///
+  /// Off for `primary` and `transparent`: a coloured bar already separates by
+  /// hue, and a transparent one is drawn over a gradient header it is meant to
+  /// disappear into - a hairline across that is a seam, not a separator.
+  bool get _showsDivider {
+    if (showDivider != null) return showDivider!;
+    switch (variant) {
+      case ModernAppBarVariant.elevated:
+      case ModernAppBarVariant.flat:
+        return true;
+      case ModernAppBarVariant.primary:
+      case ModernAppBarVariant.transparent:
+        return false;
+    }
+  }
 
   Color get _backgroundColor {
     if (backgroundColor != null) return backgroundColor!;
@@ -380,6 +430,14 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: _elevation,
       shadowColor: shadowColor ?? AppColors.shadow,
       surfaceTintColor: surfaceTintColor ?? Colors.transparent,
+      // A border on the bar's own shape rather than a divider widget in
+      // [bottom]: `bottom` adds to `preferredSize`, so a 1dp line there would
+      // push every screen's content down by a pixel and make the header 65dp on
+      // some screens and 64dp on others. The shape paints inside the height the
+      // bar already has, below `bottom` when one is present.
+      shape: _showsDivider
+          ? const Border(bottom: BorderSide(color: AppColors.border))
+          : null,
       bottom: bottom,
       systemOverlayStyle: _effectiveSystemOverlayStyle,
       iconTheme: IconThemeData(

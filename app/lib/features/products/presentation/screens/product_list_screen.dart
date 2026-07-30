@@ -9,6 +9,7 @@ import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../providers/product_selection_provider.dart';
 import '../providers/products_provider.dart';
+import '../widgets/product_add_action.dart';
 import '../widgets/product_bulk_actions_bar.dart';
 import '../widgets/product_detail_panel.dart';
 import '../widgets/product_filter_card.dart';
@@ -36,6 +37,9 @@ class ProductListScreen extends StatelessWidget {
         onProfileTap: () {
           // TODO: Navigate to profile
         },
+        // Hides itself on a phone, where the FAB in the list pane below does
+        // this job instead.
+        additionalActions: const [ProductAddAction()],
       ),
       body: MasterDetailScaffold(
         basePath: AppRoutes.products,
@@ -141,39 +145,35 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
     );
   }
 
-  /// Where "Tambah Produk" lives: floating over the grid, or in the toolbar.
+  /// Where "Tambah Produk" lives: floating over the grid, or in the header.
   ///
   /// A FAB is a phone affordance. Given a pointer and a toolbar it is the wrong
   /// shape twice over - it hovers over the last row of products, and it puts
   /// the screen's primary action in the one corner a mouse is never already
-  /// near. So anything wider than a phone gets a real button in the filter bar
-  /// instead, and only a compact window keeps the FAB.
+  /// near. So anything wider than a phone gets a real button in the header
+  /// (`ProductAddAction`) and only a compact window keeps the FAB.
   ///
   /// [isInPane] is part of the test because a master pane squeezed below 600dp
-  /// is *not* a phone: the window around it is a desktop, and its narrow filter
-  /// bar carries an add button of its own.
+  /// is *not* a phone: the window around it is a desktop, and the header
+  /// spanning it - which is not this pane, and does not narrow with it - is
+  /// still carrying the add button.
+  ///
+  /// The two conditions are complements by construction: `ProductAddAction`
+  /// hides at `compact` measured against the content area, and a pane can only
+  /// be `compact` while not in a pane when the content area is too.
   static bool _usesFab(BuildContext context) =>
       context.isCompact && !context.isInPane;
 
-  /// Opens the add-product form, for whichever control is showing it.
-  void _addProduct(BuildContext context) => context.go(AppRoutes.productAdd);
-
-  /// The filter bar, told whether it also owns the add button.
-  Widget _buildFilterBar(BuildContext context) {
-    return ProductFilterCard(
-      onAddProduct: _usesFab(context) ? null : () => _addProduct(context),
-    );
-  }
-
-  Widget _buildContent(
-      BuildContext context, WidgetRef ref, ProductViewMode viewMode, bool hasSelection) {
+  Widget _buildContent(BuildContext context, WidgetRef ref,
+      ProductViewMode viewMode, bool hasSelection) {
     if (viewMode == ProductViewMode.table) {
       return _buildTableContent(context, ref, hasSelection);
     }
     return _buildGridContent(context, ref, hasSelection);
   }
 
-  Widget _buildGridContent(BuildContext context, WidgetRef ref, bool hasSelection) {
+  Widget _buildGridContent(
+      BuildContext context, WidgetRef ref, bool hasSelection) {
     final padding = context.horizontalPadding;
 
     // Get keyboard height to avoid content being covered
@@ -185,7 +185,7 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
         SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.all(padding),
-            child: _buildFilterBar(context),
+            child: const ProductFilterCard(),
           ),
         ),
         // Bulk Actions Bar (shown when items are selected)
@@ -202,7 +202,8 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
     );
   }
 
-  Widget _buildTableContent(BuildContext context, WidgetRef ref, bool hasSelection) {
+  Widget _buildTableContent(
+      BuildContext context, WidgetRef ref, bool hasSelection) {
     final paginatedAsync = ref.watch(paginatedProductsProvider);
     final paginationInfo = ref.watch(paginationInfoProvider);
     final filter = ref.watch(productFilterProvider);
@@ -221,7 +222,7 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
         SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.all(padding),
-            child: _buildFilterBar(context),
+            child: const ProductFilterCard(),
           ),
         ),
         // Bulk Actions Bar (shown when items are selected)
@@ -306,8 +307,8 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
     );
   }
 
-  Widget _buildProductGrid(
-      BuildContext context, WidgetRef ref, bool hasSelection, double keyboardHeight) {
+  Widget _buildProductGrid(BuildContext context, WidgetRef ref,
+      bool hasSelection, double keyboardHeight) {
     final paginatedAsync = ref.watch(paginatedProductsProvider);
     final paginationInfo = ref.watch(paginationInfoProvider);
     final filter = ref.watch(productFilterProvider);
@@ -340,9 +341,8 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
         final padding = context.horizontalPadding;
 
         // Calculate bottom padding for shell nav + spacing + keyboard
-        final bottomPadding = AppDimensions.spacing16 +
-            context.shellBottomInset +
-            keyboardHeight;
+        final bottomPadding =
+            AppDimensions.spacing16 + context.shellBottomInset + keyboardHeight;
 
         return SliverMainAxisGroup(
           slivers: [
@@ -411,11 +411,13 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
                     onPageChanged: (page) =>
                         ref.read(productFilterProvider.notifier).goToPage(page),
                     onPreviousPage: paginationInfo.hasPrevious
-                        ? () =>
-                            ref.read(productFilterProvider.notifier).previousPage()
+                        ? () => ref
+                            .read(productFilterProvider.notifier)
+                            .previousPage()
                         : null,
                     onNextPage: paginationInfo.hasNext
-                        ? () => ref.read(productFilterProvider.notifier).nextPage()
+                        ? () =>
+                            ref.read(productFilterProvider.notifier).nextPage()
                         : null,
                   ),
                 ),
@@ -440,7 +442,8 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
   }
 
   /// Toggle selection for a product
-  void _toggleSelection(WidgetRef ref, String productId, bool isCurrentlySelected) {
+  void _toggleSelection(
+      WidgetRef ref, String productId, bool isCurrentlySelected) {
     if (isCurrentlySelected) {
       ref.read(productSelectionProvider.notifier).deselect(productId);
     } else {

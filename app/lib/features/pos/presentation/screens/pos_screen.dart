@@ -15,6 +15,7 @@ import '../providers/pos_search_provider.dart';
 import '../widgets/cart_panel.dart';
 import '../widgets/cart_summary_bar.dart';
 import '../widgets/payment_dialog.dart';
+import '../widgets/pos_cart_action.dart';
 import '../widgets/pos_shortcuts.dart';
 import '../widgets/product_grid_item.dart';
 
@@ -26,7 +27,10 @@ import '../widgets/product_grid_item.dart';
 /// - **Overlay** (below `expanded`): full-width product grid, a floating cart
 ///   summary bar, and the cart as a modal sheet.
 /// - **Split** (`expanded` and above): product grid beside a docked
-///   [CartPanel], collapsible to a FAB.
+///   [CartPanel], collapsible from the header.
+///
+/// Off a phone the header carries the cart control ([PosCartAction]) - the
+/// toggle in the split layout, the way into the modal sheet at `medium`.
 ///
 /// The grid itself has no column count. It is scoped to the space it occupies
 /// and sized by [PosLayout.productTileMaxExtent], so the rail expanding, the
@@ -173,6 +177,9 @@ class _PosScreenState extends ConsumerState<PosScreen> {
           onProfileTap: () {
             // TODO: Navigate to profile
           },
+          // Toggles the docked cart in the split layout and opens the modal one
+          // at `medium`; hides itself on a phone, which keeps the summary bar.
+          additionalActions: const [PosCartAction()],
         ),
         body: PosLayout.showsCartSidebar(layout.breakpoint)
             ? _buildSplitLayout(layout)
@@ -221,35 +228,32 @@ class _PosScreenState extends ConsumerState<PosScreen> {
   /// Neither side is given a column count or a fixed width by anything outside
   /// this method: the cart takes its share of [layout], the grid gets the rest
   /// and re-scopes to it, and the tile extent does the rest.
+  ///
+  /// A collapsed cart is reopened from the header ([PosCartAction]), not from a
+  /// floating button over the products - see that widget for why the FAB went.
   Widget _buildSplitLayout(BreakpointData layout) {
     final isCartExpanded = ref.watch(posCartExpandedProvider);
     final cartWidth = PosLayout.cartSidebarWidth(layout);
 
-    return Stack(
+    return Row(
       children: [
-        Row(
-          children: [
-            Expanded(
-              // The grid pane measures itself. Collapsing the cart widens this
-              // by ~350dp and the grid gains columns from that alone, which is
-              // what deleted the cart-and-rail-state column ladder.
-              child: ModernBreakpointScope.fromLayout(
-                child: Column(
-                  children: [
-                    _buildSearchAndFilterCard(),
-                    Expanded(child: _buildProductGrid()),
-                  ],
-                ),
-              ),
+        Expanded(
+          // The grid pane measures itself. Collapsing the cart widens this
+          // by ~350dp and the grid gains columns from that alone, which is
+          // what deleted the cart-and-rail-state column ladder.
+          child: ModernBreakpointScope.fromLayout(
+            child: Column(
+              children: [
+                _buildSearchAndFilterCard(),
+                Expanded(child: _buildProductGrid()),
+              ],
             ),
-            _buildCartSidebar(
-              isExpanded: isCartExpanded,
-              width: cartWidth,
-            ),
-          ],
+          ),
         ),
-        // FAB when cart is collapsed - hidden when keyboard is visible
-        if (!isCartExpanded && !_isKeyboardVisible) _buildCartFab(),
+        _buildCartSidebar(
+          isExpanded: isCartExpanded,
+          width: cartWidth,
+        ),
       ],
     );
   }
@@ -462,51 +466,6 @@ class _PosScreenState extends ConsumerState<PosScreen> {
             onTap: () => _addToCart(product),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildCartFab() {
-    final itemCount = ref.watch(cartItemCountProvider);
-
-    return Positioned(
-      right: AppDimensions.spacing16,
-      bottom: AppDimensions.spacing16,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          FloatingActionButton(
-            onPressed: () =>
-                ref.read(posCartExpandedProvider.notifier).state = true,
-            backgroundColor: AppColors.primary,
-            child: const Icon(Icons.shopping_cart, color: Colors.white),
-          ),
-          if (itemCount > 0)
-            Positioned(
-              right: -4,
-              top: -4,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(
-                  color: AppColors.error,
-                  shape: BoxShape.circle,
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 20,
-                  minHeight: 20,
-                ),
-                child: Text(
-                  itemCount > 99 ? '99+' : '$itemCount',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }
