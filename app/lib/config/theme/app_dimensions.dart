@@ -14,20 +14,18 @@ class AppDimensions {
   static const double spacing40 = 40.0;
   static const double spacing48 = 48.0;
 
-  // Responsive Breakpoints
+  // Responsive breakpoints do not live here.
   //
-  // DEPRECATED as a set. New code uses `Breakpoint` / `AppBreakpoints` from
-  // core/responsive, which has four tiers instead of three and can express the
-  // 600-899dp band an iPad portrait lands in.
+  // They are `AppBreakpoints.compactMax` / `mediumMax` / `expandedMax` in
+  // core/responsive/breakpoint.dart, next to the `Breakpoint` enum they
+  // classify into. Keeping the thresholds beside their meaning is what stopped
+  // the previous arrangement recurring: three loose doubles here, one of them
+  // (`breakpointTablet = 1100`) declared and never read by anything, and the
+  // other two carrying a three-tier split that could not express the 600-899dp
+  // band an iPad portrait lands in.
   //
-  // These two remain only because the deprecated ResponsiveUtils forwarders
-  // read them, and those forwarders are what keep RESP_03 a zero-visual-change
-  // commit. Both go in RESP_10.
-  //
-  // `breakpointTablet = 1100` was deleted in RESP_03: declared, never read by
-  // anything, and actively misleading next to two constants that are.
-  static const double breakpointMobile = 900.0;
-  static const double breakpointDesktop = 1300.0;
+  // `breakpointMobile` and `breakpointDesktop` were deleted in RESP_10 with the
+  // deprecated `ResponsiveUtils` family that read them.
 
   // Border Radius (modern rounded design)
   //

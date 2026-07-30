@@ -102,21 +102,28 @@ void main() {
       );
     });
 
-    test('the legacy breakpoint constants gain no new readers', () {
-      // Only the deprecated forwarders may read these. Everything else uses
-      // Breakpoint. Both constants and the forwarders go in RESP_10.
+    test('the deprecated window-based API stays deleted', () {
+      // RESP_10 removed `ResponsiveUtils`, `DeviceType`, the
+      // `AppDimensions.breakpoint*` constants, and the window-based getters on
+      // BuildContext. The analyzer catches a reference to a symbol that no
+      // longer exists, but not someone reintroducing one - which is the real
+      // risk, because a window read is the obvious way to write a layout and
+      // silently wrong inside a pane.
       final found = violations(
-        RegExp(r'AppDimensions\.breakpoint(Mobile|Desktop)'),
-        allow: (path) =>
-            path.endsWith('responsive_utils.dart') ||
-            path.endsWith('app_dimensions.dart') ||
-            path.endsWith('modern_shell_insets.dart'),
+        RegExp(
+          r'AppDimensions\.breakpoint(Mobile|Desktop)'
+          r'|\bResponsiveUtils\b'
+          r'|\bDeviceType\b'
+          r'|context\.(isMobile|isTablet|isDesktop|isTabletOrDesktop'
+          r'|deviceType|horizontalPadding|gridColumns)\b',
+        ),
       );
 
       expect(
         found,
         isEmpty,
-        reason: 'Use Breakpoint / context.breakpoint:\n${found.join('\n')}',
+        reason: 'Use Breakpoint / context.breakpoint / context.contentPadding:\n'
+            '${found.join('\n')}',
       );
     });
   });

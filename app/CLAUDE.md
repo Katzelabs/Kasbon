@@ -14,9 +14,12 @@ flutter pub get              # Install dependencies
 # One-time setup: copy env.example.json to env.json (and env.android.json for
 # the Android emulator, using SUPABASE_URL=http://10.0.2.2:54321). Gitignored.
 flutter run --dart-define-from-file=env.json
+flutter run -d chrome --dart-define-from-file=env.json   # Web (must-ship target)
+flutter run -d macos --dart-define-from-file=env.json    # Drag through breakpoints
 flutter analyze              # Analyze code for issues
 flutter test                 # Run all tests
 flutter test test/path/      # Run specific test
+flutter test --update-goldens test/widget/shared/modern/layout/  # Re-record shell goldens
 dart run build_runner build  # Generate code (freezed, riverpod, json)
 dart format lib/             # Format code
 
@@ -34,13 +37,16 @@ lib/
 ├── core/                         # Shared infrastructure
 │   ├── constants/                # App constants
 │   ├── errors/                   # Failure classes (AuthFailure, NetworkFailure, etc.)
+│   ├── platform/                 # AppPlatform capabilities, scroll behaviour
+│   ├── responsive/               # Breakpoint, scope, content column, master-detail
 │   ├── services/                 # SupabaseClientProvider, BackupService, ImageStorage
 │   ├── usecase/                  # Base UseCase<T, Params> class
-│   └── utils/                    # Currency/date formatters, validators
+│   └── utils/                    # Formatters, validators, ResponsiveContext extension
 ├── config/
 │   ├── app_config.dart           # Supabase URL & publishable key (from dart-define)
 │   ├── di/injection.dart         # GetIt service locator setup
 │   ├── routes/app_router.dart    # GoRouter with auth redirect
+│   ├── routes/url_strategy*.dart # Path URLs on web, no-op elsewhere
 │   └── theme/                    # AppColors, AppTextStyles, AppTheme
 ├── features/<feature>/           # Feature modules
 │   ├── data/
@@ -129,6 +135,23 @@ import 'package:kasbon_pos/shared/modern/modern.dart';
 | `CircularProgressIndicator` | `ModernLoading()` |
 | `AlertDialog` | `ModernDialog` |
 | `SnackBar` | `ModernToast` |
+| `showModalBottomSheet` | `ModernBottomSheet.showAdaptive()` |
+| `DataTable` | `ModernDataTable` |
+| `showDateRangePicker` | `ModernDateRangePicker` |
+
+**Full component list** — the table above covers only the raw-Flutter swaps. These have no Flutter equivalent to replace:
+
+| Category | Components |
+|----------|------------|
+| Buttons | `ModernButton`, `ModernIconButton` |
+| Cards | `ModernCard`, `ModernGradientCard` |
+| Inputs | `ModernTextField`, `ModernCurrencyField`, `ModernSearchField`, `ModernDropdown`, `ModernQuantityStepper`, `ModernCalendar`, `ModernDateRangePicker` |
+| Layout | `ModernScaffold`, `ModernAppShell`, `ModernAppBar`, `ModernContentHeader`, `ModernSectionHeader`, `ModernDivider` |
+| Feedback | `ModernDialog`, `ModernToast`, `ModernLoading`, `ModernSkeleton`, `ModernBottomSheet`, `ModernEmptyState`, `ModernErrorState` |
+| Data display | `ModernBadge`, `ModernChip`, `ModernAvatar`, `ModernListTile`, `ModernSummaryRow`, `ModernDataTable` + `ModernTableColumn`, `ModernPaginationControls` |
+| Hover (`utils/`) | `ModernHoverBuilder` — for components that paint their own background instead of using `InkWell` |
+
+`ModernContentColumn`, `SliverContentColumn` and `MasterDetailScaffold` live in `core/responsive/`, not here — see **Responsive Layout** below.
 
 ### Buttons
 ```dart
@@ -188,6 +211,214 @@ ModernListTile(title: 'Produk', subtitle: 'Rp 50.000', leading: avatar, trailing
 ModernSummaryRow(label: 'Subtotal', value: 'Rp 150.000')
 ModernSummaryRow.total(label: 'TOTAL', value: 'Rp 150.000')
 ```
+
+## Responsive Layout
+
+The app runs from a 320dp phone to a 2560dp monitor and in Chrome, from one
+codebase. Four rules carry that; the rest of this section is detail.
+
+1. **Four tiers, named after the space — not the hardware.**
+2. **Measure the container, never the window.**
+3. **Clamp content width.** No screen may span 2560dp edge to edge.
+4. **Never hand-roll the shell's insets.**
+
+### The four tiers
+
+`Breakpoint` in `core/responsive/breakpoint.dart`:
+
+| Tier | Width | Typical | Shell chrome |
+|------|-------|---------|--------------|
+| `compact` | < 600dp | phone portrait | bottom bar (4 items) + notched FAB |
+| `medium` | 600–899dp | phone landscape, iPad portrait, half-screen window | 80dp rail, 7 items, no toggle |
+| `expanded` | 900–1299dp | landscape tablet | 80dp rail, toggles to 280dp |
+| `large` | ≥ 1300dp | desktop window | 280dp rail, labelled |
+
+The thresholds (`AppBreakpoints.compactMax/mediumMax/expandedMax`) live beside
+the enum, not in `AppDimensions`. 900 and 1300 are inherited from the app's
+original three-tier split so the extra tiers landed without moving any existing
+layout — `medium` is the only band where behaviour changed.
+
+`medium` is why the system exists: an iPad portrait at 834dp used to get the
+phone build, with POS, Hutang and Laporan simply absent from the nav.
+
+### Container, not window
+
+```dart
+context.breakpoint        // tier of the space THIS widget has  ← use this
+context.availableWidth    // that space, in logical pixels
+context.isCompact / isMedium / isExpanded / isLarge
+context.isAtLeast(Breakpoint.expanded) / isBelow(...)
+context.isInPane          // true inside a split-view pane
+context.windowBreakpoint  // tier of the whole window          ← shell chrome only
+```
+
+A 400dp master pane in a 1600dp window is `compact`. Reading the window there
+lays a desktop layout into a phone-width column — the single bug the whole
+subsystem exists to prevent. `MediaQuery.sizeOf(context).width` in
+`lib/features/` fails `architecture_test.dart` for this reason.
+
+`windowBreakpoint` has two legitimate callers: `ModernAppShell`, which picks the
+nav for the window, and `shellBottomInset`. Anything else reading it is a bug.
+
+**Pick per-tier values with `responsive<T>()`**, which cascades upward — supply
+only the tiers you care about:
+
+```dart
+// 2 columns at compact AND medium, 3 at expanded AND large
+final columns = context.responsive<int>(compact: 2, expanded: 3);
+
+final padding = context.contentPadding;   // 16 / 20 / 24 / 32 per tier
+```
+
+When a count should follow an exact width rather than a tier, measure it —
+`large` covers everything from 1300dp to 2560dp, so a tier is not a width. See
+the `SliverLayoutBuilder` in `product_list_screen.dart`.
+
+**Re-scope when you constrain.** Anything that narrows its child must publish a
+fresh `ModernBreakpointScope` at the new width, or children keep hearing the old
+tier. `ModernContentColumn` and `MasterDetailScaffold` already do.
+
+### Content width
+
+`ModernContentColumn` centres, clamps and pads. It aligns to the **top**, not
+the centre — only the auth forms pass `alignment` to override that.
+
+```dart
+ModernContentColumn.form(child: ...)      //  560dp — single-column forms
+ModernContentColumn.reading(child: ...)   //  720dp — prose, settings lists
+ModernContentColumn(child: ...)           // 1080dp — default: lists, details
+ModernContentColumn.wide(child: ...)      // 1440dp — dashboards, reports
+// ContentWidth.full — screens managing their own width (POS, split views)
+SliverContentColumn(sliver: ...)          // the sliver form
+```
+
+### Shell insets
+
+The shell sets `extendBody: true` on compact, so the bottom bar floats *over*
+the content. Scrollables must pad for it:
+
+```dart
+final bottomPadding = AppDimensions.spacing16 + context.shellBottomInset;
+```
+
+Never write `AppDimensions.bottomNavHeight + ...` by hand. Twenty-five sites did;
+two forgot the tier guard and reserved 112px of dead space on tablet, one
+invented its own `80.0`, and the count grew from 19 to 25 unnoticed.
+`architecture_test.dart` now fails the build on a twenty-sixth.
+
+`shellBottomInset` reads the **window** deliberately — a screen in a narrow pane
+still has no bottom bar under it if the window chose a rail.
+
+### Master–detail split views
+
+Products, Transactions and Debt become two-pane at `expanded` and up, URL-driven
+so the URLs stay shareable. The route table is untouched: the list route wraps in
+`MasterDetailScaffold`, the detail route wraps in `SplitDetailRoute`.
+
+Two rules if you add a third:
+- **Read the tier in `build`, never in a `pageBuilder`.** A resize does not
+  rebuild the route table, so a split decided there leaves a permanently blank
+  pane after dragging 1400 → 700.
+- Each pane installs its own `isPane: true` scope. Panes size from their own
+  width, with no column ladder that has to know the pane exists.
+
+### Testing responsive code
+
+`test/helpers/responsive_helpers.dart` — resize the **view**, not a `MediaQuery`
+wrapper (an override there is invisible to anything reading the view directly and
+does not survive `MaterialApp`'s own `MediaQuery`):
+
+```dart
+for (final width in ResponsiveWidths.all) {   // 375 / 700 / 1100 / 1600
+  testWidgets('renders at ${ResponsiveWidths.label(width)}', (tester) async {
+    await pumpAtWidth(tester, width, const MyWidget());       // wraps in Scaffold
+    // pumpScreenAtWidth — for screens providing their own Scaffold/ModernAppBar
+  });
+}
+
+setViewWidth(tester, 700);   // mid-test resize, then await tester.pump()
+await tester.pumpAndSettle();
+```
+
+Shell chrome also has pixel baselines in
+`test/widget/shared/modern/layout/goldens/`. Re-record intentional changes with
+`flutter test --update-goldens test/widget/shared/modern/layout/` and commit the
+PNGs alongside. They were recorded on macOS and are not portable to other hosts.
+
+Hover tests must set `debugDefaultTargetPlatformOverride` to a desktop platform
+first — `ModernHoverBuilder` short-circuits on touch platforms, and `flutter
+test` reports `TargetPlatform.android`.
+
+## Platform Capabilities & Web
+
+The app ships to Android, iOS, macOS and **Chrome**. Web is a must-ship target,
+not a nice-to-have.
+
+**Ask what the app can do, never what OS it is on.** `AppPlatform`
+(`core/platform/app_platform.dart`):
+
+```dart
+AppPlatform.isWeb                    AppPlatform.supportsHaptics
+AppPlatform.isMobileOs               AppPlatform.usesSystemOverlayStyle
+AppPlatform.isDesktopOs              AppPlatform.needsRuntimePermissions
+AppPlatform.isPointerFirst           AppPlatform.supportsCameraCapture
+AppPlatform.hasFileSystem
+```
+
+`supportsHaptics` says why the branch exists; `Platform.isIOS ||
+Platform.isAndroid` makes the next reader work it out, and gets copied wrongly.
+`kIsWeb` and `Platform.isX` outside this file fail `architecture_test.dart`.
+
+**`dart:io` never appears in a file the web build can reach.** Put it behind a
+conditional import — `foo.dart` (facade) → `foo_io.dart` / `foo_web.dart`. Only
+`_io.dart` files may import `dart:io`, and only a facade may import an
+`_io.dart`. Naming an `_io` implementation directly from `injection.dart` is how
+`dart:io` first reached the web build: every import looked innocent and the
+failure only surfaced at build time.
+
+Web specifics worth knowing:
+- **Path URLs, not hash URLs** (`config/routes/url_strategy_web.dart`), so detail
+  URLs are shareable. The host must rewrite unknown paths to `index.html` or a
+  hard refresh on `/products/abc` 404s.
+- Product images go to **Supabase Storage** on every platform. A device
+  filesystem path in `products.image_url` never synced across devices.
+- Exports are in-memory `ExportResult` values; only delivery splits io/web.
+- `flutter build web` targets JS. Wasm is blocked by third-party `dart:ffi`
+  imports (`win32`, `image`), not by our code.
+
+```bash
+flutter run -d chrome --dart-define-from-file=env.json
+flutter build web --dart-define-from-file=env.json
+```
+
+## Architecture Rules (enforced by test)
+
+`test/architecture_test.dart` encodes eleven rules the analyzer cannot express.
+Each one already went wrong at least once. They run in milliseconds and fail with
+the offending file and line, so treat a failure as the rule talking, not as a
+flaky test.
+
+| Rule | Use instead |
+|------|-------------|
+| No `MediaQuery...width` in `lib/features/` | `context.breakpoint` / `responsive()` |
+| Nothing adds `bottomNavHeight` by hand | `context.shellBottomInset` |
+| The deprecated window-based API stays deleted | `Breakpoint`, `contentPadding` |
+| `dart:io` only in `_io.dart` files | a conditional-import facade |
+| `_io.dart` imported only by its facade | the facade |
+| No raw `Platform.isX` | `AppPlatform` capabilities |
+| No raw `kIsWeb` | a named `AppPlatform` capability |
+| No raw `showModalBottomSheet` | `ModernBottomSheet.showAdaptive` |
+| `HapticFeedback` guarded | `AppPlatform.supportsHaptics` |
+| No raw `CircularProgressIndicator` | `ModernLoading` |
+| No raw `fontSize:` in the Modern library | an `AppTextStyles` entry |
+
+The third rule is a tombstone. `ResponsiveUtils`, `DeviceType`,
+`AppDimensions.breakpointMobile`/`breakpointDesktop` and the window-based
+`context.isMobile` family were deleted in RESP_10 after a
+deprecate-and-forward migration. The analyzer catches a reference to a symbol
+that no longer exists; it cannot catch someone reintroducing one, which is the
+real risk — reading the window is the obvious way to write a layout and silently
+wrong inside a pane.
 
 ## Dependency Injection
 

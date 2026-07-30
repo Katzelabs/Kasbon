@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kasbon_pos/config/theme/app_dimensions.dart';
 import 'package:kasbon_pos/core/responsive/breakpoint.dart';
 
 void main() {
@@ -33,35 +32,42 @@ void main() {
     });
   });
 
-  group('the new tiers subdivide the legacy bands', () {
-    // This is the property that makes RESP_03 non-breaking: every legacy
-    // getter can be expressed exactly in terms of the new tiers, so the
-    // forwarders lose no information. If someone edits a threshold and breaks
-    // this, the deprecate-and-forward migration silently starts changing
-    // layouts - so assert it rather than trusting the comment.
+  group('the thresholds themselves', () {
+    // The two upper thresholds are 900 and 1300 because the app shipped a
+    // three-tier system with those boundaries first, and reusing them is what
+    // let four tiers land without moving any existing layout: `expanded` plus
+    // `large` cover exactly the old tablet-or-desktop band, so `medium` was the
+    // only place behaviour changed.
+    //
+    // The old `AppDimensions.breakpointMobile` / `breakpointDesktop` constants
+    // that used to be asserted against here were deleted in RESP_10 along with
+    // the deprecated getters that read them. The thresholds are still
+    // load-bearing, so pin the literals: a 950dp window must keep getting the
+    // rail-and-tablet treatment it has always had.
 
-    test('legacy mobile (<900) is exactly compact + medium', () {
-      expect(AppBreakpoints.mediumMax, AppDimensions.breakpointMobile);
+    test('600 / 900 / 1300 are the boundaries', () {
+      expect(AppBreakpoints.compactMax, 600);
+      expect(AppBreakpoints.mediumMax, 900);
+      expect(AppBreakpoints.expandedMax, 1300);
+    });
 
+    test('everything below 900 is compact or medium', () {
       for (final width in [320.0, 375.0, 599.0, 600.0, 834.0, 899.0]) {
-        final tier = AppBreakpoints.fromWidth(width);
         expect(
-          tier.below(Breakpoint.expanded),
+          AppBreakpoints.fromWidth(width).below(Breakpoint.expanded),
           isTrue,
-          reason: '$width is legacy-mobile so must be compact or medium',
+          reason: '$width must be compact or medium',
         );
       }
     });
 
-    test('legacy tablet (900-1300) is exactly expanded', () {
-      expect(AppBreakpoints.expandedMax, AppDimensions.breakpointDesktop);
-
+    test('900-1299 is exactly expanded', () {
       for (final width in [900.0, 1100.0, 1299.0]) {
         expect(AppBreakpoints.fromWidth(width), Breakpoint.expanded);
       }
     });
 
-    test('legacy desktop (>=1300) is exactly large', () {
+    test('1300 and up is exactly large', () {
       for (final width in [1300.0, 1600.0, 2560.0]) {
         expect(AppBreakpoints.fromWidth(width), Breakpoint.large);
       }

@@ -174,7 +174,7 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
 
   Widget _buildGridContent(
       BuildContext context, WidgetRef ref, bool hasSelection) {
-    final padding = context.horizontalPadding;
+    final padding = context.contentPadding;
 
     // Get keyboard height to avoid content being covered
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
@@ -207,7 +207,7 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
     final paginatedAsync = ref.watch(paginatedProductsProvider);
     final paginationInfo = ref.watch(paginationInfoProvider);
     final filter = ref.watch(productFilterProvider);
-    final padding = context.horizontalPadding;
+    final padding = context.contentPadding;
 
     // Get keyboard height to avoid content being covered
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
@@ -338,7 +338,7 @@ class _ProductListPaneState extends ConsumerState<ProductListPane> {
 
         final products = result.items;
 
-        final padding = context.horizontalPadding;
+        final padding = context.contentPadding;
 
         // Calculate bottom padding for shell nav + spacing + keyboard
         final bottomPadding =

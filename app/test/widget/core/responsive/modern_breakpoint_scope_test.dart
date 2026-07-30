@@ -169,17 +169,20 @@ void main() {
     });
   });
 
-  group('legacy forwarders stay window-based', () {
-    testWidgets('a pane does not flip isMobile for its children',
-        (tester) async {
-      // RESP_03 is a zero-visual-change commit. Had the deprecated getters
-      // been repointed at the scope, every screen inside the shell would start
-      // measuring the content area instead of the window - and with an 80dp
-      // rail, a 900-980dp window would push content under the legacy 900
-      // threshold and flip ~24 screens to their phone layout. Screens migrate
-      // deliberately in RESP_04 onward instead.
-      late bool legacyIsMobile;
-      late Breakpoint scoped;
+  group('contentPadding', () {
+    // This group replaces one that asserted the opposite. Through RESP_03-09b a
+    // deprecated window-based family (`isMobile`, `horizontalPadding` and
+    // friends) sat alongside the scope-aware API so screens could migrate one at
+    // a time, and a test here pinned the guarantee that a pane did *not* flip
+    // those getters - that was what made the foundation commit visually inert.
+    // RESP_10 deleted the family, so the guarantee is gone and its inverse is
+    // now the contract worth pinning.
+
+    testWidgets('follows the pane, not the window', (tester) async {
+      // The concrete consequence of retiring `horizontalPadding`: a 400dp master
+      // pane in a 1600dp window used to inset its content by the desktop 32dp,
+      // which is 8% of the pane gone to margin on each side.
+      late double padding;
 
       await pumpAtWidth(
         tester,
@@ -189,21 +192,38 @@ void main() {
           child: ModernBreakpointScope.fromLayout(
             isPane: true,
             child: Builder(builder: (context) {
-              // ignore: deprecated_member_use_from_same_package
-              legacyIsMobile = context.isMobile;
-              scoped = context.breakpoint;
+              padding = context.contentPadding;
               return const SizedBox.shrink();
             }),
           ),
         ),
       );
 
-      expect(scoped, Breakpoint.compact, reason: 'the pane really is 400dp');
-      expect(
-        legacyIsMobile,
-        isFalse,
-        reason: 'the legacy getter still reports the 1600dp window',
-      );
+      expect(padding, 16, reason: 'a 400dp pane is compact');
+    });
+
+    testWidgets('steps once per tier', (tester) async {
+      late BuildContext ctx;
+
+      Future<double> paddingAt(double width) async {
+        await pumpAtWidth(
+          tester,
+          width,
+          Builder(builder: (context) {
+            ctx = context;
+            return const SizedBox.shrink();
+          }),
+        );
+        return ctx.contentPadding;
+      }
+
+      // 20 at medium is the one value the old three-tier family could not
+      // express: it had a single boundary at 900, so everything from a 375dp
+      // phone to an 899dp iPad portrait got the same 16.
+      expect(await paddingAt(375), 16);
+      expect(await paddingAt(700), 20);
+      expect(await paddingAt(1100), 24);
+      expect(await paddingAt(1600), 32);
     });
   });
 }

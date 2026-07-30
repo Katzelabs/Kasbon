@@ -9,15 +9,16 @@ enum Breakpoint {
 
   /// 600-899dp. Phone landscape, small tablet portrait, half-screen window.
   ///
-  /// This band is the reason the epic exists: an iPad portrait at 834dp lands
-  /// here and currently gets the phone build, because the legacy
-  /// `breakpointMobile` threshold is 900.
+  /// This band is the reason the responsive overhaul happened: the old
+  /// three-tier split put its only boundary at 900, so an iPad portrait at
+  /// 834dp got the phone build - a four-item bottom bar with POS, Hutang and
+  /// Laporan simply absent.
   medium,
 
-  /// 900-1299dp. Landscape tablet. Matches today's `isTablet` exactly.
+  /// 900-1299dp. Landscape tablet.
   expanded,
 
-  /// >= 1300dp. Desktop window. Matches today's `isDesktop` exactly.
+  /// >= 1300dp. Desktop window.
   large;
 
   /// True when this tier is [other] or wider.
@@ -45,14 +46,17 @@ class AppBreakpoints {
 
   /// Upper bound of [Breakpoint.medium], exclusive.
   ///
-  /// Deliberately equal to the legacy `AppDimensions.breakpointMobile`. That
-  /// equality is what makes this migration non-breaking: see [Breakpoint] and
-  /// the table in `modern_breakpoint_scope.dart`.
+  /// 900 rather than a rounder number because it was the old
+  /// `AppDimensions.breakpointMobile`. Reusing the value is what let the four
+  /// tiers land without a visual change: `expanded` and `large` together cover
+  /// exactly what the old two-way split called tablet-or-desktop, so the new
+  /// `medium` band is the only place behaviour moved. See the table in
+  /// `modern_breakpoint_scope.dart`.
   static const double mediumMax = 900;
 
   /// Upper bound of [Breakpoint.expanded], exclusive.
   ///
-  /// Equal to the legacy `AppDimensions.breakpointDesktop`.
+  /// Likewise the old `AppDimensions.breakpointDesktop`.
   static const double expandedMax = 1300;
 
   /// Classify a width in logical pixels.
