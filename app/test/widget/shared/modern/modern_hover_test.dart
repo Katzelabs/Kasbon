@@ -204,13 +204,17 @@ void _cardHoverTests() {
           ),
         ));
 
-        final resting = surfaceOf(tester).decoration! as BoxDecoration;
+        // The border lives in the foreground decoration - see the card's own
+        // note - so that is where the hover tint has to show up.
+        final resting =
+            surfaceOf(tester).foregroundDecoration! as BoxDecoration;
         await _hover(tester, find.text('produk'));
-        final hovered = surfaceOf(tester).decoration! as BoxDecoration;
+        final hovered =
+            surfaceOf(tester).foregroundDecoration! as BoxDecoration;
 
         expect(
-          hovered,
-          isNot(equals(resting)),
+          (hovered.border! as Border).top.color,
+          isNot(equals((resting.border! as Border).top.color)),
           reason: 'an explicit borderColor swallowed the hover state',
         );
       });

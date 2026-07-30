@@ -235,21 +235,43 @@ class ModernCard extends StatelessWidget {
       );
     }
 
-    Widget buildCard(bool isHovered) => AnimatedContainer(
-          duration: ModernHoverBuilder.duration,
-          curve: Curves.easeOut,
-          width: width,
-          height: height,
-          margin: margin,
-          decoration: BoxDecoration(
-            color: _backgroundColor,
-            borderRadius: effectiveBorderRadius,
-            border: _borderFor(isHovered: isHovered),
-            boxShadow: _shadowFor(isHovered: isHovered),
-          ),
-          clipBehavior: clipBehavior,
-          child: surface(isHovered),
-        );
+    // The border paints *over* the content, not under it.
+    //
+    // A Container clips its child to the outer rounded rect - the same path the
+    // border's outer edge follows - and paints its decoration underneath. So a
+    // child that fills the card, like a product photo bleeding to the top edge,
+    // painted straight over the 1px border. Along a straight edge that only
+    // costs a pixel; at the corners the child's antialiased curve and the
+    // border's antialiased curve are drawn one over the other, and the border
+    // dissolves into a ragged notch - which is exactly what the grid's top two
+    // corners looked like once a selected or hovered card coloured that border.
+    //
+    // As a foreground decoration it is drawn after the child and after the ink
+    // splash, so all four corners close whatever the card contains.
+    Widget buildCard(bool isHovered) {
+      final border = _borderFor(isHovered: isHovered);
+
+      return AnimatedContainer(
+        duration: ModernHoverBuilder.duration,
+        curve: Curves.easeOut,
+        width: width,
+        height: height,
+        margin: margin,
+        decoration: BoxDecoration(
+          color: _backgroundColor,
+          borderRadius: effectiveBorderRadius,
+          boxShadow: _shadowFor(isHovered: isHovered),
+        ),
+        foregroundDecoration: border == null
+            ? null
+            : BoxDecoration(
+                borderRadius: effectiveBorderRadius,
+                border: border,
+              ),
+        clipBehavior: clipBehavior,
+        child: surface(isHovered),
+      );
+    }
 
     if (!isInteractive) return buildCard(false);
 
