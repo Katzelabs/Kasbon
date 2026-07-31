@@ -100,7 +100,8 @@ void main() {
           ),
         ));
 
-        final textField = tester.widget<TextFormField>(find.byType(TextFormField));
+        final textField =
+            tester.widget<TextFormField>(find.byType(TextFormField));
         expect(textField.enabled, false);
       });
 
@@ -217,7 +218,11 @@ void main() {
     });
 
     group('max length', () {
-      testWidgets('renders with max length constraint', (tester) async {
+      // `maxLength` is used here as a defensive cap on what reaches the
+      // database, not as a budget the user is meant to spend, so it no longer
+      // drags Flutter's counter along with it. Every bounded field on the auth
+      // screens carried a `0/254` purely as a side effect of being bounded.
+      testWidgets('caps input without showing a counter', (tester) async {
         await tester.pumpWidget(createTestableWidget(
           child: const ModernTextField(
             maxLength: 10,
@@ -225,7 +230,19 @@ void main() {
         ));
 
         expect(find.byType(TextFormField), findsOneWidget);
-        // Max length shows a counter when set
+        expect(tester.widget<TextField>(find.byType(TextField)).maxLength, 10);
+        expect(find.textContaining('0/10'), findsNothing);
+      });
+
+      testWidgets('shows one when the remaining count is the point',
+          (tester) async {
+        await tester.pumpWidget(createTestableWidget(
+          child: const ModernTextField(
+            maxLength: 10,
+            showCounter: true,
+          ),
+        ));
+
         expect(find.textContaining('0/10'), findsOneWidget);
       });
     });
@@ -240,7 +257,8 @@ void main() {
       ));
 
       // Find the underlying TextField and check obscureText
-      final textField = tester.widget<ModernTextField>(find.byType(ModernTextField));
+      final textField =
+          tester.widget<ModernTextField>(find.byType(ModernTextField));
       expect(textField.obscureText, true);
     });
 

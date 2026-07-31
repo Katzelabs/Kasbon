@@ -50,6 +50,9 @@ class ModernTextField extends StatefulWidget {
     this.autofocus = false,
     this.focusNode,
     this.initialValue,
+    this.autofillHints,
+    this.showCounter = false,
+    this.autovalidateMode,
   });
 
   /// Creates a password text field with visibility toggle
@@ -77,6 +80,8 @@ class ModernTextField extends StatefulWidget {
     this.autofocus = false,
     this.focusNode,
     this.initialValue,
+    this.autofillHints,
+    this.autovalidateMode,
   })  : obscureText = true,
         maxLines = 1,
         minLines = null,
@@ -84,7 +89,8 @@ class ModernTextField extends StatefulWidget {
         keyboardType = TextInputType.visiblePassword,
         textCapitalization = TextCapitalization.none,
         inputFormatters = null,
-        readOnly = false;
+        readOnly = false,
+        showCounter = false;
 
   /// Creates a multiline text field
   factory ModernTextField.multiline({
@@ -103,6 +109,7 @@ class ModernTextField extends StatefulWidget {
     bool enabled = true,
     bool autofocus = false,
     FocusNode? focusNode,
+    bool showCounter = false,
   }) {
     return ModernTextField(
       key: key,
@@ -121,6 +128,7 @@ class ModernTextField extends StatefulWidget {
       enabled: enabled,
       autofocus: autofocus,
       focusNode: focusNode,
+      showCounter: showCounter,
     );
   }
 
@@ -151,6 +159,38 @@ class ModernTextField extends StatefulWidget {
   final bool autofocus;
   final FocusNode? focusNode;
   final String? initialValue;
+
+  /// What the platform's autofill service should offer for this field.
+  ///
+  /// Without this a password manager has nothing to match on, so it silently
+  /// offers nothing - the failure looks like the OS not supporting autofill
+  /// rather than like a missing parameter. Wrap the fields of one credential
+  /// in an `AutofillGroup` so they are saved together.
+  final Iterable<String>? autofillHints;
+
+  /// Whether to show the `12/128` character counter [maxLength] adds.
+  ///
+  /// Off by default, because [maxLength] is almost always used here as an
+  /// input *cap* - a defensive bound on what reaches the database - and not as
+  /// a budget the user is meant to spend. Every auth field carried one of
+  /// these counters purely as a side effect of being bounded. Turn it on for
+  /// the rare field where the remaining count is genuinely useful, such as a
+  /// multiline note.
+  final bool showCounter;
+
+  /// When this field re-runs its [validator].
+  ///
+  /// Null leaves it to the enclosing `Form`, which is the historical behaviour
+  /// and means "only when something calls `validate()`".
+  ///
+  /// Prefer setting [AutovalidateMode.onUserInteraction] *here*, per field,
+  /// over setting it on the `Form`. They sound equivalent and are not:
+  /// `FormState` re-validates **every** field as soon as **any** field has
+  /// been touched, so typing the first character of a password decorates the
+  /// two fields below it with "wajib diisi" before the user has reached them.
+  /// Set on the field, it does what the name suggests - this field validates
+  /// once this field has been used.
+  final AutovalidateMode? autovalidateMode;
 
   @override
   State<ModernTextField> createState() => _ModernTextFieldState();
@@ -264,6 +304,19 @@ class _ModernTextFieldState extends State<ModernTextField> {
       readOnly: widget.readOnly,
       autofocus: widget.autofocus,
       focusNode: widget.focusNode,
+      autofillHints: widget.autofillHints,
+      autovalidateMode: widget.autovalidateMode,
+      // `buildCounter` returning null is what suppresses the counter; leaving
+      // it unset is what renders one. See [ModernTextField.showCounter].
+      buildCounter: widget.showCounter
+          ? null
+          : (
+              context, {
+              required currentLength,
+              required isFocused,
+              required maxLength,
+            }) =>
+              null,
       style: AppTextStyles.bodyMedium.copyWith(
         color: widget.enabled ? AppColors.textPrimary : AppColors.textDisabled,
       ),
@@ -301,6 +354,9 @@ class ModernPasswordField extends StatefulWidget {
     this.enabled = true,
     this.autofocus = false,
     this.focusNode,
+    this.autofillHints,
+    this.maxLength,
+    this.autovalidateMode,
   });
 
   final TextEditingController? controller;
@@ -318,6 +374,18 @@ class ModernPasswordField extends StatefulWidget {
   final bool enabled;
   final bool autofocus;
   final FocusNode? focusNode;
+
+  /// Usually `[AutofillHints.password]` to sign in, or
+  /// `[AutofillHints.newPassword]` to register - the second is what prompts a
+  /// password manager to *generate* and then save one.
+  final Iterable<String>? autofillHints;
+
+  /// Defensive cap on the stored value. Never shows a counter.
+  final int? maxLength;
+
+  /// See [ModernTextField.autovalidateMode] - including why this belongs on
+  /// the field rather than on the enclosing `Form`.
+  final AutovalidateMode? autovalidateMode;
 
   @override
   State<ModernPasswordField> createState() => _ModernPasswordFieldState();
@@ -343,20 +411,33 @@ class _ModernPasswordFieldState extends State<ModernPasswordField> {
       variant: widget.variant,
       size: widget.size,
       leading: widget.leading,
-      trailing: Icon(
-        _obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-        color: AppColors.textSecondary,
+      // Semantics, not decoration: an icon that flips between two eyes is
+      // meaningless to a screen reader without a label saying which way it
+      // will flip.
+      trailing: Semantics(
+        button: true,
+        label: _obscureText ? 'Tampilkan password' : 'Sembunyikan password',
+        child: Icon(
+          _obscureText
+              ? Icons.visibility_outlined
+              : Icons.visibility_off_outlined,
+          color: AppColors.textSecondary,
+          size: AppDimensions.iconMedium,
+        ),
       ),
-      onTrailingTap: _toggleVisibility,
+      onTrailingTap: widget.enabled ? _toggleVisibility : null,
       obscureText: _obscureText,
       keyboardType: TextInputType.visiblePassword,
       textInputAction: widget.textInputAction,
+      maxLength: widget.maxLength,
       validator: widget.validator,
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
       enabled: widget.enabled,
       autofocus: widget.autofocus,
       focusNode: widget.focusNode,
+      autofillHints: widget.autofillHints,
+      autovalidateMode: widget.autovalidateMode,
     );
   }
 }

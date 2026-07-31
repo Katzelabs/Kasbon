@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../config/routes/app_router.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
-import '../../../../core/utils/responsive_utils.dart';
-import '../../../../shared/modern/modern.dart';
 import '../../../../core/utils/validators.dart';
+import '../../../../shared/modern/modern.dart';
 import '../providers/auth_provider.dart';
-import '../../../../config/routes/app_router.dart';
+import '../widgets/auth_brand_header.dart';
+import '../widgets/auth_error_banner.dart';
+import '../widgets/auth_scaffold.dart';
 
 /// Login screen with email and password authentication.
+///
+/// Layout, background and width clamp all live in [AuthScaffold], which
+/// register shares - see the notes there.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -23,16 +29,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+
+  // Held explicitly rather than left to `nextFocus`, which walks the traversal
+  // order and will happily land on the visibility toggle - a focusable button
+  // sitting between the two fields.
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
   Future<void> _onLogin() async {
+    // Dismiss the keyboard first, so a failure banner is not rendered behind
+    // it on a phone.
+    FocusScope.of(context).unfocus();
+
     if (!_formKey.currentState!.validate()) return;
 
     final success = await ref.read(authNotifierProvider.notifier).login(
@@ -43,13 +60,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
+      // Tells the platform the credential was accepted, which is what prompts
+      // the offer to save it. Without this the autofill hints below let a
+      // password manager *fill* the form but never learn a new login.
+      TextInput.finishAutofillContext();
       context.go(AppRoutes.dashboard);
-    } else {
-      final errorMessage = ref.read(authNotifierProvider).errorMessage;
-      if (errorMessage != null) {
-        ModernToast.error(context, errorMessage);
-      }
     }
+    // A failure stays on screen in the banner instead of a toast - see
+    // [AuthErrorBanner].
   }
 
   @override
@@ -57,152 +75,102 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState.status == AuthStatus.loading;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      // The auth screens sit outside the shell, so nothing above them caps
-      // their width. `ContentWidth.form` replaces the hand-rolled 400dp clamp
-      // that was here: same intent, but it also re-scopes the breakpoint to the
-      // clamped width and picks up tier padding, which a bare ConstrainedBox
-      // cannot do.
-      body: SafeArea(
-        child: ModernContentColumn.form(
-          // A centred card, deliberately - the one shape that wants the
-          // vertical centring the column stopped doing by default. Everywhere
-          // else, content shorter than the viewport belongs at the top.
-          alignment: Alignment.center,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppDimensions.spacing24,
-            ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+    return AuthScaffold(
+      child: AutofillGroup(
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const AuthBrandHeader(),
+              const SizedBox(height: AppDimensions.spacing40),
+              const AuthFormTitle(
+                title: 'Masuk ke Akun Anda',
+                subtitle: 'Kelola penjualan dan keuntungan toko Anda',
+              ),
+              const SizedBox(height: AppDimensions.spacing24),
+              ModernTextField(
+                label: 'Email',
+                hint: 'contoh@email.com',
+                controller: _emailController,
+                focusNode: _emailFocus,
+                leading: const Icon(Icons.email_outlined),
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => _passwordFocus.requestFocus(),
+                autofillHints: const [
+                  AutofillHints.username,
+                  AutofillHints.email,
+                ],
+                maxLength: 254,
+                validator: Validators.email,
+                enabled: !isLoading,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+              ),
+              const SizedBox(height: AppDimensions.spacing16),
+              ModernPasswordField(
+                label: 'Password',
+                hint: 'Masukkan password',
+                controller: _passwordController,
+                focusNode: _passwordFocus,
+                leading: const Icon(Icons.lock_outlined),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _onLogin(),
+                autofillHints: const [AutofillHints.password],
+                maxLength: 128,
+                // Deliberately *not* Validators.password: the strength rules
+                // belong on registration. Applying them here rejects every
+                // account created before they existed, at the one screen where
+                // the user cannot do anything about it.
+                validator: _validatePassword,
+                enabled: !isLoading,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+              ),
+              const SizedBox(height: AppDimensions.spacing24),
+              AuthErrorBanner(
+                message: authState.status == AuthStatus.error
+                    ? authState.errorMessage
+                    : null,
+              ),
+              ModernButton.primary(
+                onPressed: isLoading ? null : _onLogin,
+                isLoading: isLoading,
+                size: ModernSize.large,
+                fullWidth: true,
+                child: const Text('Masuk'),
+              ),
+              const SizedBox(height: AppDimensions.spacing16),
+              // A Wrap, not a Row: at a large text scale the sentence and the
+              // link together are wider than a phone, and a Row overflows
+              // where this drops the link onto its own line.
+              Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  // Logo / Branding
-                  const Icon(
-                    Icons.point_of_sale_rounded,
-                    size: 64,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(height: AppDimensions.spacing12),
                   Text(
-                    'KASBON',
-                    style: AppTextStyles.h1.copyWith(
-                      color: AppColors.primary,
-                      letterSpacing: 2,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppDimensions.spacing4),
-                  Text(
-                    'Kasir Bisnis Online',
+                    'Belum punya akun? ',
                     style: AppTextStyles.bodyMedium.copyWith(
                       color: AppColors.textSecondary,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AppDimensions.spacing48),
-
-                  // Title
-                  const Text(
-                    'Masuk ke Akun Anda',
-                    style: AppTextStyles.h3,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppDimensions.spacing24),
-
-                  // Email field
-                  ModernTextField(
-                    label: 'Email',
-                    hint: 'contoh@email.com',
-                    controller: _emailController,
-                    leading: const Icon(Icons.email_outlined),
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    maxLength: 254,
-                    validator: _validateEmail,
-                    enabled: !isLoading,
-                  ),
-                  const SizedBox(height: AppDimensions.spacing16),
-
-                  // Password field
-                  ModernTextField(
-                    label: 'Password',
-                    hint: 'Masukkan password',
-                    controller: _passwordController,
-                    leading: const Icon(Icons.lock_outlined),
-                    obscureText: _obscurePassword,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _onLogin(),
-                    maxLength: 128,
-                    validator: _validatePassword,
-                    enabled: !isLoading,
-                    trailing: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        color: AppColors.textSecondary,
-                        size: AppDimensions.iconMedium,
+                  ModernButton.text(
+                    onPressed:
+                        isLoading ? null : () => context.go(AppRoutes.register),
+                    child: Text(
+                      'Daftar',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
                       ),
-                      onPressed: () {
-                        setState(() => _obscurePassword = !_obscurePassword);
-                      },
                     ),
-                  ),
-                  const SizedBox(height: AppDimensions.spacing24),
-
-                  // Login button
-                  ModernButton.primary(
-                    onPressed: isLoading ? null : _onLogin,
-                    isLoading: isLoading,
-                    size: ModernSize.large,
-                    fullWidth: true,
-                    child: const Text('Masuk'),
-                  ),
-                  const SizedBox(height: AppDimensions.spacing16),
-
-                  // Register link
-                  // A Wrap, not a Row: at a large text scale the sentence
-                  // and the link together are wider than a phone, and a Row
-                  // overflows where this drops the link onto its own line.
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        'Belum punya akun? ',
-                        style: AppTextStyles.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      ModernButton.text(
-                        onPressed: isLoading
-                            ? null
-                            : () => context.go(AppRoutes.register),
-                        child: Text(
-                          'Daftar',
-                          style: AppTextStyles.bodyMedium.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
-            ),
+            ],
           ),
         ),
       ),
     );
-  }
-
-  String? _validateEmail(String? value) {
-    return Validators.email(value);
   }
 
   String? _validatePassword(String? value) {
