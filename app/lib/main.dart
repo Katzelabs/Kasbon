@@ -8,6 +8,7 @@ import 'config/app_config.dart';
 import 'config/di/injection.dart';
 import 'config/routes/app_router.dart';
 import 'config/routes/url_strategy.dart';
+import 'config/session/session_reset.dart';
 import 'config/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/platform/app_platform.dart';
@@ -62,7 +63,11 @@ void main() async {
   // Run the app
   runApp(
     const ProviderScope(
-      child: KasbonApp(),
+      // Above the router deliberately: an account change has to be able to
+      // clear the previous account's state no matter which screen triggered it.
+      child: SessionGate(
+        child: KasbonApp(),
+      ),
     ),
   );
 }

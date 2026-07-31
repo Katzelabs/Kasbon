@@ -53,6 +53,20 @@ class UserInfo {
       avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
+
+  /// Value equality, so a token refresh - which re-emits the same identity
+  /// through [authStateProvider] - does not count as a change and does not
+  /// rebuild every app bar and the navigation rail's footer.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UserInfo &&
+          other.name == name &&
+          other.email == email &&
+          other.avatarUrl == avatarUrl;
+
+  @override
+  int get hashCode => Object.hash(name, email, avatarUrl);
 }
 
 /// The signed-in user, derived from the Supabase session.
@@ -108,4 +122,24 @@ final userInfoProvider = Provider<UserInfo>((ref) {
     email: email,
     avatarUrl: user.userMetadata?['avatar_url'] as String?,
   );
+});
+
+/// Which account is signed in, as an id - null when none is.
+///
+/// The signal the app resets its per-account state on. It is deliberately the
+/// *id* rather than [userInfoProvider]: a name change is still the same
+/// account and must not throw away a cart, while `null -> uid` and
+/// `uid -> other uid` are exactly the transitions that must. A token refresh
+/// re-emits the same string, and Riverpod suppresses a notification for an
+/// unchanged value, so listeners hear only real account changes.
+final currentUserIdProvider = Provider<String?>((ref) {
+  // Same guard as [userInfoProvider]: creating the stream provider touches
+  // `Supabase.instance`, which throws before `initialize`.
+  try {
+    ref.watch(authStateProvider);
+  } catch (_) {
+    return null;
+  }
+
+  return _currentUserOrNull()?.id;
 });
