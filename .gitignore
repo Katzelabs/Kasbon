@@ -10,3 +10,6 @@ app/env.*.json
 .claude/settings.local.json
 
 .DS_Store
+
+# Python bytecode from the brand asset generator.
+__pycache__/

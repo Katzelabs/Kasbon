@@ -8,6 +8,7 @@ import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/constants/support_contacts.dart';
 import '../../../../core/utils/responsive_utils.dart';
+import '../../../../shared/brand/kasbon_mark.dart';
 import '../../../../shared/modern/modern.dart';
 import '../providers/about_provider.dart';
 import '../widgets/settings_section.dart';
@@ -130,20 +131,9 @@ class AboutScreen extends ConsumerWidget {
   ) {
     return Column(
       children: [
-        // App icon
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: AppColors.primaryContainer,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
-          ),
-          child: const Icon(
-            Icons.point_of_sale_rounded,
-            size: 40,
-            color: AppColors.primary,
-          ),
-        ),
+        // The app icon, drawn the way it ships. No glow: on a settings page the
+        // tile is an identifying detail, not the product introducing itself.
+        const KasbonLogoTile(size: 80, glow: false),
         const SizedBox(height: AppDimensions.spacing16),
 
         // App name

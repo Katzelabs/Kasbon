@@ -19,6 +19,8 @@ KASBON (Kasir Bisnis Online) is a cloud-based POS application for Indonesian sma
 Kasbon/
 ├── app/                # Flutter mobile app (has its own CLAUDE.md)
 ├── supabase/           # Supabase config, migrations, seed data
+├── brand/              # The logo, and the generator for every app icon
+│                       # (icons under app/ are OUTPUTS - see brand/README.md)
 ├── docs/               # HISTORICAL planning docs (see warning below)
 │   ├── CURRENT_STATE.md           # Snapshot of project state
 │   ├── PROJECT_BRIEF.md           # Business vision (tech sections outdated)
@@ -42,6 +44,7 @@ The project migrated from offline-first SQLite to **Supabase-only** (Feb–Mar 2
 | Seed / test data | `supabase/seed.sql` (test user: `test@kasbon.id` / `password123`) |
 | Development progress | ClickUp Kasbon space (link above) |
 | Frontend conventions | `app/CLAUDE.md` |
+| Logo, app icons, brand rules | `docs/BRAND.md` + `brand/` (`docs/BRAND.md` is current, not historical) |
 | Business vision | `docs/PROJECT_BRIEF.md` (business sections still valid) |
 
 ## Claude Code Setup (Required Plugins)

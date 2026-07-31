@@ -4,6 +4,18 @@ import 'package:flutter/material.dart';
 class AppGradients {
   AppGradients._();
 
+  // The brand mark's gradient.
+  //
+  // This one is not a design choice a screen gets to make - it is the exact
+  // gradient baked into every shipped app icon by `brand/generate.py`, so a
+  // logo tile drawn in the app and the icon on the home screen are the same
+  // object. `primaryCard` runs blue to purple and would quietly make them two.
+  static const LinearGradient brandMark = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+  );
+
   // Primary gradient (blue to purple) for summary cards
   static const LinearGradient primaryCard = LinearGradient(
     begin: Alignment.topLeft,

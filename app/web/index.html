@@ -28,10 +28,16 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="KASBON">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <!-- Square and opaque: iOS rounds a touch icon itself and does not
+       composite alpha, so handing it the already-rounded PWA icon produced
+       black corners on a home screen. -->
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <!-- Favicon. The SVG is preferred where supported - it stays crisp on a
+       retina tab strip and re-renders at whatever size the browser wants. The
+       PNG stays for Safari and anything else that ignores the vector. -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png"/>
 
   <title>KASBON — Kasir Digital</title>
   <link rel="manifest" href="manifest.json">
