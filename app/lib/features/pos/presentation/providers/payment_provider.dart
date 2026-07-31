@@ -1,19 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../config/di/injection.dart';
+import '../../../../core/services/payment_proof/payment_proof_storage.dart';
 import '../../../transactions/domain/entities/transaction.dart';
+import '../../../transactions/domain/usecases/attach_payment_proof.dart';
 import '../../../transactions/domain/usecases/create_transaction.dart';
 import 'cart_provider.dart';
 
 /// Selected payment method for the current transaction
 enum SelectedPaymentMethod {
   cash,
+  qris,
   debt;
 
   String get label {
     switch (this) {
       case SelectedPaymentMethod.cash:
         return 'Tunai';
+      case SelectedPaymentMethod.qris:
+        return 'QRIS';
       case SelectedPaymentMethod.debt:
         return 'Hutang';
     }
@@ -115,6 +122,98 @@ class PaymentNotifier extends StateNotifier<PaymentState> {
         state = PaymentState(completedTransaction: transaction);
       },
     );
+  }
+
+  /// Record a QRIS payment taken on a printed sticker.
+  ///
+  /// There is no amount to check. On QRIS statis the customer scans the sticker
+  /// and types the total into their own wallet app, so nothing here ever sees
+  /// what they typed - this app is recording that a cashier looked at a success
+  /// screen and said yes, which is the only verification a sticker affords.
+  ///
+  /// [proof] is optional and, when present, deliberately **not awaited**.
+  ///
+  /// The sale is already recorded by the time the upload starts. Compressing
+  /// and sending a photo takes seconds on a warung connection, and making the
+  /// cashier watch a spinner for money that has already changed hands - with a
+  /// queue at the counter - is the one thing this flow must not do. So the
+  /// upload is launched and abandoned.
+  ///
+  /// Abandoned, not ignored: if it fails the row simply has no
+  /// `payment_proof_path`, which the transaction detail screen renders as
+  /// "bukti belum dilampirkan" with a button to attach one. The recovery path
+  /// is a place the cashier can go back to, rather than a toast that would pop
+  /// over whatever sale they had already started.
+  ///
+  /// Nothing in the continuation touches [state]. This provider is autoDispose
+  /// and the dialog that owns it closes immediately after a sale, so by the
+  /// time the upload finishes this notifier is usually gone - and a StateNotifier
+  /// throws if you write to it after disposal.
+  Future<void> processQrisPayment({
+    PickedImage? proof,
+    String? customerName,
+    String? notes,
+  }) async {
+    state = const PaymentState(isProcessing: true);
+
+    final cart = _ref.read(cartProvider);
+
+    if (cart.isEmpty) {
+      state = const PaymentState(
+        errorMessage: 'Keranjang tidak boleh kosong',
+      );
+      return;
+    }
+
+    final confirmedAt = DateTime.now();
+
+    final useCase = getIt<CreateTransaction>();
+    final result = await useCase(CreateTransactionParams.qris(
+      cartItems: cart,
+      confirmedAt: confirmedAt,
+      customerName: customerName,
+      notes: notes,
+    ));
+
+    result.fold(
+      (failure) {
+        state = PaymentState(errorMessage: failure.message);
+      },
+      (transaction) {
+        if (proof != null) {
+          unawaited(_attachProofInBackground(
+            transactionId: transaction.id,
+            proof: proof,
+            confirmedAt: confirmedAt,
+          ));
+        }
+
+        _ref.read(cartProvider.notifier).clear();
+        state = PaymentState(completedTransaction: transaction);
+      },
+    );
+  }
+
+  /// Uploads a proof for an already-committed sale.
+  ///
+  /// Resolved through GetIt rather than this notifier's [Ref] on purpose: it
+  /// has to keep working after the notifier is disposed, and reading a
+  /// disposed Ref throws.
+  Future<void> _attachProofInBackground({
+    required String transactionId,
+    required PickedImage proof,
+    required DateTime confirmedAt,
+  }) async {
+    try {
+      await getIt<AttachPaymentProof>()(AttachPaymentProofParams(
+        transactionId: transactionId,
+        proof: proof,
+        confirmedAt: confirmedAt,
+      ));
+    } catch (_) {
+      // Swallowed by design. The sale is safe, the proof is not, and the
+      // transaction detail screen is where that gets noticed and fixed.
+    }
   }
 
   /// Process a debt payment (hutang)

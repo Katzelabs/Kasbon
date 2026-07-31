@@ -39,10 +39,24 @@ abstract class TransactionRepository {
     int? offset,
   });
 
-  /// Update a transaction (e.g., mark debt as paid)
+  /// Update a transaction (e.g., mark debt as paid, attach a payment proof)
+  ///
+  /// Only the named fields are written; anything omitted is left alone.
   Future<Either<Failure, Transaction>> updateTransaction(
     String id, {
     String? paymentStatus,
     DateTime? debtPaidAt,
+    String? paymentProofPath,
+    DateTime? paymentConfirmedAt,
+    String? paymentConfirmedBy,
+  });
+
+  /// Distinct customer names already used by this shop, most recent first.
+  ///
+  /// Feeds the POS name autocomplete, which exists so that one customer stays
+  /// one name rather than becoming three spellings of it.
+  Future<Either<Failure, List<String>>> getCustomerNames({
+    String? query,
+    int limit,
   });
 }

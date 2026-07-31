@@ -1,7 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:kasbon_pos/core/errors/failures.dart';
 import 'package:kasbon_pos/core/entities/paginated_result.dart';
+import 'package:kasbon_pos/core/services/payment_proof/payment_proof_storage.dart';
 import 'package:kasbon_pos/features/products/domain/entities/product.dart';
 import 'package:kasbon_pos/features/products/domain/entities/product_filter.dart';
 import 'package:kasbon_pos/features/products/domain/repositories/product_repository.dart';
@@ -47,6 +50,10 @@ void registerMocktailFallbackValues() {
 
   // Register fallback values for List<TransactionItem>
   registerFallbackValue(<TransactionItem>[]);
+
+  // Register fallback values for PickedImage, so `any()` works on the
+  // PaymentProofStorage.upload signature.
+  registerFallbackValue(PickedImage(bytes: Uint8List(0)));
 }
 
 /// Helper extension for stubbing ProductRepository methods
@@ -171,11 +178,34 @@ extension MockTransactionRepositoryExtension on MockTransactionRepository {
   }
 
   /// Stubs updateTransaction to return success
+  ///
+  /// Every named parameter has to be matched, not just the ones a given caller
+  /// uses: mocktail matches a call against the whole argument list, so a stub
+  /// naming only `paymentStatus` and `debtPaidAt` silently fails to match
+  /// `AttachPaymentProof`, which passes the proof fields instead.
   void stubUpdateTransactionSuccess(Transaction transaction) {
     when(() => updateTransaction(
           any(),
           paymentStatus: any(named: 'paymentStatus'),
           debtPaidAt: any(named: 'debtPaidAt'),
+          paymentProofPath: any(named: 'paymentProofPath'),
+          paymentConfirmedAt: any(named: 'paymentConfirmedAt'),
+          paymentConfirmedBy: any(named: 'paymentConfirmedBy'),
         )).thenAnswer((_) async => Right(transaction));
   }
+
+  /// Stubs updateTransaction to return failure
+  void stubUpdateTransactionFailure(Failure failure) {
+    when(() => updateTransaction(
+          any(),
+          paymentStatus: any(named: 'paymentStatus'),
+          debtPaidAt: any(named: 'debtPaidAt'),
+          paymentProofPath: any(named: 'paymentProofPath'),
+          paymentConfirmedAt: any(named: 'paymentConfirmedAt'),
+          paymentConfirmedBy: any(named: 'paymentConfirmedBy'),
+        )).thenAnswer((_) async => Left(failure));
+  }
 }
+
+/// Mock implementation of PaymentProofStorage using Mocktail
+class MockPaymentProofStorage extends Mock implements PaymentProofStorage {}

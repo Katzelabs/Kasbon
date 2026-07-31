@@ -116,12 +116,18 @@ class TransactionRepositoryImpl implements TransactionRepository {
     String id, {
     String? paymentStatus,
     DateTime? debtPaidAt,
+    String? paymentProofPath,
+    DateTime? paymentConfirmedAt,
+    String? paymentConfirmedBy,
   }) async {
     try {
       final model = await _remoteDataSource.updateTransaction(
         id,
         paymentStatus: paymentStatus,
         debtPaidAt: debtPaidAt,
+        paymentProofPath: paymentProofPath,
+        paymentConfirmedAt: paymentConfirmedAt,
+        paymentConfirmedBy: paymentConfirmedBy,
       );
 
       final itemModels = await _remoteDataSource.getTransactionItems(id);
@@ -130,6 +136,24 @@ class TransactionRepositoryImpl implements TransactionRepository {
       return Right(model.toEntity(items: items));
     } on NotFoundException catch (e) {
       return Left(NotFoundFailure(message: e.message));
+    } on DatabaseException catch (e) {
+      return Left(DatabaseFailure(message: e.message));
+    } catch (e) {
+      return const Left(UnexpectedFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<String>>> getCustomerNames({
+    String? query,
+    int limit = 20,
+  }) async {
+    try {
+      final names = await _remoteDataSource.getCustomerNames(
+        query: query,
+        limit: limit,
+      );
+      return Right(names);
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(message: e.message));
     } catch (e) {

@@ -4,6 +4,8 @@ import 'package:logger/logger.dart';
 import '../../core/services/backup_service.dart';
 import '../../core/services/image_storage/image_storage_service.dart';
 import '../../core/services/image_storage/supabase_image_storage_service.dart';
+import '../../core/services/payment_proof/payment_proof_storage.dart';
+import '../../core/services/payment_proof/supabase_payment_proof_storage.dart';
 import '../../core/services/supabase_client_provider.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -71,7 +73,9 @@ import '../../features/reports/domain/usecases/get_top_profitable_products.dart'
 import '../../features/transactions/data/datasources/transaction_remote_datasource.dart';
 import '../../features/transactions/data/repositories/transaction_repository_impl.dart';
 import '../../features/transactions/domain/repositories/transaction_repository.dart';
+import '../../features/transactions/domain/usecases/attach_payment_proof.dart';
 import '../../features/transactions/domain/usecases/create_transaction.dart';
+import '../../features/transactions/domain/usecases/get_customer_names.dart';
 import '../../features/transactions/domain/usecases/get_transaction.dart';
 import '../../features/transactions/domain/usecases/get_transactions.dart';
 
@@ -112,6 +116,15 @@ Future<void> configureDependencies() async {
   // serves every platform, so there is nothing left to choose between.
   getIt.registerLazySingleton<ImageStorageService>(
     () => SupabaseImageStorageService(getIt<SupabaseClientProvider>()),
+  );
+
+  // ===========================================
+  // PAYMENT PROOF STORAGE
+  // ===========================================
+  // Separate from ImageStorageService on purpose: that bucket is public and
+  // hands back a URL synchronously, this one is private and has to sign.
+  getIt.registerLazySingleton<PaymentProofStorage>(
+    () => SupabasePaymentProofStorage(getIt<SupabaseClientProvider>()),
   );
 
   // ===========================================
@@ -190,6 +203,13 @@ Future<void> configureDependencies() async {
       () => GetTransactionById(getIt<TransactionRepository>()));
   getIt.registerLazySingleton(
       () => GetTransactions(getIt<TransactionRepository>()));
+
+  getIt.registerLazySingleton(() => AttachPaymentProof(
+        getIt<TransactionRepository>(),
+        getIt<PaymentProofStorage>(),
+      ));
+  getIt.registerLazySingleton(
+      () => GetCustomerNames(getIt<TransactionRepository>()));
 
   // ===========================================
   // DEBT FEATURE

@@ -13,6 +13,7 @@ import '../../../../shared/modern/modern.dart';
 import '../../../receipt/presentation/providers/receipt_provider.dart';
 import '../../domain/entities/transaction.dart';
 import '../providers/transactions_provider.dart';
+import '../widgets/payment_proof_card.dart';
 import '../widgets/transaction_item_tile.dart';
 import '../../../../config/routes/app_router.dart';
 
@@ -132,6 +133,10 @@ class TransactionDetailScreen extends ConsumerWidget {
         _buildItemsCard(transaction),
         const SizedBox(height: AppDimensions.spacing16),
         _buildPaymentCard(transaction),
+        if (PaymentProofCard.appliesTo(transaction)) ...[
+          const SizedBox(height: AppDimensions.spacing16),
+          PaymentProofCard(transaction: transaction),
+        ],
         const SizedBox(height: AppDimensions.spacing24),
         // Side by side once the column is wider than a phone. In the detail
         // pane this is compact, so they stack there.
@@ -173,6 +178,10 @@ class TransactionDetailScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildPaymentCard(transaction),
+                  if (PaymentProofCard.appliesTo(transaction)) ...[
+                    const SizedBox(height: AppDimensions.spacing16),
+                    PaymentProofCard(transaction: transaction),
+                  ],
                   const SizedBox(height: AppDimensions.spacing16),
                   // Stacked even here: this column is the narrow one, and two
                   // buttons side by side inside it would each be ~150dp.
@@ -229,6 +238,34 @@ class TransactionDetailScreen extends ConsumerWidget {
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
+            ),
+          ],
+          // Notes (if present)
+          //
+          // Captured by the payment dialogs since hutang shipped, written to
+          // the database, included in the Excel export - and until now shown on
+          // no screen in the app. A cashier could type "titip dulu, diambil
+          // besok" and never see it again without exporting a spreadsheet.
+          if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
+            const SizedBox(height: AppDimensions.spacing8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.notes_outlined,
+                  size: AppDimensions.iconSmall,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: AppDimensions.spacing8),
+                Expanded(
+                  child: Text(
+                    transaction.notes!,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ],

@@ -300,4 +300,78 @@ void main() {
       });
     });
   });
+
+  group('PaymentConfirmedBy', () {
+    test('parses each stored value', () {
+      expect(PaymentConfirmedBy.fromString('cashier'),
+          PaymentConfirmedBy.cashier);
+      expect(PaymentConfirmedBy.fromString('notification'),
+          PaymentConfirmedBy.notification);
+      expect(PaymentConfirmedBy.fromString('webhook'),
+          PaymentConfirmedBy.webhook);
+    });
+
+    // Deliberately unlike the other two enums here, which fall back to a
+    // sensible default. "Nobody confirmed this" is a real state that every cash
+    // sale is in, so defaulting to `cashier` would fabricate a person vouching
+    // for money nobody was asked about.
+    test('answers null for absent or unknown, rather than defaulting', () {
+      expect(PaymentConfirmedBy.fromString(null), isNull);
+      expect(PaymentConfirmedBy.fromString(''), isNull);
+      expect(PaymentConfirmedBy.fromString('something_new'), isNull);
+    });
+
+    test('is case insensitive, like its neighbours', () {
+      expect(PaymentConfirmedBy.fromString('CASHIER'),
+          PaymentConfirmedBy.cashier);
+    });
+  });
+
+  group('hasPaymentProof', () {
+    test('is false without a path', () {
+      expect(MockData.createTransaction().hasPaymentProof, isFalse);
+    });
+
+    test('is false for an empty path', () {
+      final transaction =
+          MockData.createTransaction().copyWith(paymentProofPath: '');
+      expect(transaction.hasPaymentProof, isFalse);
+    });
+
+    test('is true once a path is stored', () {
+      final transaction = MockData.createTransaction()
+          .copyWith(paymentProofPath: 'uid/trx-1/123.jpg');
+      expect(transaction.hasPaymentProof, isTrue);
+    });
+  });
+
+  group('awaitsPaymentConfirmation', () {
+    test('is true for a QRIS sale nobody confirmed', () {
+      final transaction = MockData.createTransaction(
+        paymentMethod: PaymentMethod.qris,
+      );
+      expect(transaction.awaitsPaymentConfirmation, isTrue);
+    });
+
+    test('is false once confirmed', () {
+      final transaction = MockData.createTransaction(
+        paymentMethod: PaymentMethod.qris,
+      ).copyWith(paymentConfirmedAt: DateTime(2026, 7, 31));
+      expect(transaction.awaitsPaymentConfirmation, isFalse);
+    });
+
+    // Cash needs no confirming - the notes are in the drawer - so a cash sale
+    // must never show up as awaiting one, or every till in the shop looks
+    // unreconciled.
+    test('is false for cash, which confirms itself', () {
+      expect(MockData.createTransaction().awaitsPaymentConfirmation, isFalse);
+    });
+
+    test('is false for hutang, where no money has arrived to confirm', () {
+      expect(
+        MockData.debtTransaction().awaitsPaymentConfirmation,
+        isFalse,
+      );
+    });
+  });
 }

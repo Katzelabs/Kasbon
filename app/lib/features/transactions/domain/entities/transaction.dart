@@ -68,6 +68,52 @@ enum PaymentStatus {
   }
 }
 
+/// What affirmed that the money for a transaction actually arrived.
+///
+/// Only [cashier] is ever written today. A QRIS sale on a printed sticker has
+/// no API behind it, so the confirmation is a human looking at the customer's
+/// phone and tapping a button - which is evidence, not verification, and worth
+/// being able to tell apart from the other two later.
+///
+/// The other values are named now, before there are rows to migrate, so the
+/// vocabulary is fixed: [notification] for a merchant-app push read off the
+/// device, [webhook] for a real payment gateway calling us.
+enum PaymentConfirmedBy {
+  cashier,
+  notification,
+  webhook;
+
+  /// Get display label in Bahasa Indonesia
+  String get label {
+    switch (this) {
+      case PaymentConfirmedBy.cashier:
+        return 'Kasir';
+      case PaymentConfirmedBy.notification:
+        return 'Notifikasi';
+      case PaymentConfirmedBy.webhook:
+        return 'Otomatis';
+    }
+  }
+
+  /// Convert from string stored in database, or null when absent.
+  ///
+  /// Unlike the other enums here there is no sensible default: a row with no
+  /// confirmation is a real state (every cash sale), and inventing 'cashier'
+  /// for it would claim a person vouched for money nobody was asked about.
+  static PaymentConfirmedBy? fromString(String? value) {
+    switch (value?.toLowerCase()) {
+      case 'cashier':
+        return PaymentConfirmedBy.cashier;
+      case 'notification':
+        return PaymentConfirmedBy.notification;
+      case 'webhook':
+        return PaymentConfirmedBy.webhook;
+      default:
+        return null;
+    }
+  }
+}
+
 /// Transaction entity representing a complete sales transaction
 ///
 /// Contains header information about the sale as well as a list of
@@ -120,6 +166,31 @@ class Transaction extends Equatable {
   /// When the debt was paid (for debt transactions)
   final DateTime? debtPaidAt;
 
+  /// Object path of the payment proof photo inside the `payment-proofs`
+  /// bucket, or null when no photo was taken.
+  ///
+  /// A path, never a URL - the bucket is private, so a viewable link has to be
+  /// signed at render time. Resolve through `PaymentProofStorage.signedUrlFor`.
+  final String? paymentProofPath;
+
+  /// When the money was affirmed to have arrived.
+  ///
+  /// Null for cash, where handing over notes is its own confirmation. Distinct
+  /// from [transactionDate], which is when the sale happened: the two are the
+  /// same instant today and will not be once a webhook can confirm a sale after
+  /// the customer has left.
+  final DateTime? paymentConfirmedAt;
+
+  /// What did the confirming, or null if nothing did.
+  final PaymentConfirmedBy? paymentConfirmedBy;
+
+  /// Gateway-side identifier (RRN, order id).
+  ///
+  /// Always null today - a QRIS sticker has no gateway behind it to issue one.
+  /// The field exists so adding dynamic QRIS later is an Edge Function and not
+  /// a migration against a live shop's data.
+  final String? paymentReference;
+
   /// Record creation timestamp
   final DateTime createdAt;
 
@@ -146,6 +217,10 @@ class Transaction extends Equatable {
     this.cashierName,
     required this.transactionDate,
     this.debtPaidAt,
+    this.paymentProofPath,
+    this.paymentConfirmedAt,
+    this.paymentConfirmedBy,
+    this.paymentReference,
     required this.createdAt,
     required this.updatedAt,
     this.items = const [],
@@ -171,6 +246,19 @@ class Transaction extends Equatable {
   /// Check if debt has been settled
   bool get isDebtSettled => isDebt && debtPaidAt != null;
 
+  /// Whether a photo backs this payment.
+  bool get hasPaymentProof =>
+      paymentProofPath != null && paymentProofPath!.isNotEmpty;
+
+  /// A non-cash sale whose payment nobody has affirmed.
+  ///
+  /// Not an error state: a cashier can take a QRIS payment and skip the photo,
+  /// or lose the upload to a flat warung connection. It is the state that earns
+  /// an "attach the proof" affordance on the transaction detail screen, so the
+  /// evidence can be added after the queue clears.
+  bool get awaitsPaymentConfirmation =>
+      paymentMethod == PaymentMethod.qris && paymentConfirmedAt == null;
+
   /// Create a copy with updated fields
   Transaction copyWith({
     String? id,
@@ -189,6 +277,10 @@ class Transaction extends Equatable {
     String? cashierName,
     DateTime? transactionDate,
     DateTime? debtPaidAt,
+    String? paymentProofPath,
+    DateTime? paymentConfirmedAt,
+    PaymentConfirmedBy? paymentConfirmedBy,
+    String? paymentReference,
     DateTime? createdAt,
     DateTime? updatedAt,
     List<TransactionItem>? items,
@@ -210,6 +302,10 @@ class Transaction extends Equatable {
       cashierName: cashierName ?? this.cashierName,
       transactionDate: transactionDate ?? this.transactionDate,
       debtPaidAt: debtPaidAt ?? this.debtPaidAt,
+      paymentProofPath: paymentProofPath ?? this.paymentProofPath,
+      paymentConfirmedAt: paymentConfirmedAt ?? this.paymentConfirmedAt,
+      paymentConfirmedBy: paymentConfirmedBy ?? this.paymentConfirmedBy,
+      paymentReference: paymentReference ?? this.paymentReference,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       items: items ?? this.items,

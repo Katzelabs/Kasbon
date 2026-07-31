@@ -46,12 +46,19 @@ class CreateTransaction implements UseCase<Transaction, CreateTransactionParams>
         // Determine payment method and status
         final paymentMethod = params.paymentMethod;
         final paymentStatus = params.paymentStatus;
-        final isDebt = paymentMethod == PaymentMethod.debt;
 
-        // For debt transactions, cash fields are null; otherwise calculate change
-        final double? cashReceived = isDebt ? null : params.cashReceived;
+        // Cash fields belong to cash sales only.
+        //
+        // Keyed on "is this cash" rather than the old "is this debt": every
+        // non-cash method has no notes changing hands, so a QRIS or transfer
+        // sale storing `cash_change = 0 - total` would record a negative
+        // kembalian for money the cashier never took. Debt was the only
+        // non-cash method when this was written, which is why the inverted
+        // test survived.
+        final isCash = paymentMethod == PaymentMethod.cash;
+        final double? cashReceived = isCash ? params.cashReceived : null;
         final double? cashChange =
-            isDebt ? null : (params.cashReceived ?? 0) - total;
+            isCash ? (params.cashReceived ?? 0) - total : null;
 
         // 4. Create Transaction entity
         final now = DateTime.now();
@@ -73,6 +80,8 @@ class CreateTransaction implements UseCase<Transaction, CreateTransactionParams>
           notes: params.notes,
           cashierName: params.cashierName,
           transactionDate: now,
+          paymentConfirmedAt: params.paymentConfirmedAt,
+          paymentConfirmedBy: params.paymentConfirmedBy,
           createdAt: now,
           updatedAt: now,
         );
@@ -141,6 +150,13 @@ class CreateTransactionParams extends Equatable {
   /// Payment status (default: paid)
   final PaymentStatus paymentStatus;
 
+  /// When the money was affirmed to have arrived, for methods where that is a
+  /// separate act from the sale. Null for cash.
+  final DateTime? paymentConfirmedAt;
+
+  /// What affirmed it. Null for cash.
+  final PaymentConfirmedBy? paymentConfirmedBy;
+
   const CreateTransactionParams({
     required this.cartItems,
     this.cashReceived,
@@ -149,6 +165,8 @@ class CreateTransactionParams extends Equatable {
     this.cashierName,
     this.paymentMethod = PaymentMethod.cash,
     this.paymentStatus = PaymentStatus.paid,
+    this.paymentConfirmedAt,
+    this.paymentConfirmedBy,
   });
 
   /// Factory for cash payment
@@ -167,6 +185,42 @@ class CreateTransactionParams extends Equatable {
       cashierName: cashierName,
       paymentMethod: PaymentMethod.cash,
       paymentStatus: PaymentStatus.paid,
+    );
+  }
+
+  /// Factory for a QRIS payment taken on a printed sticker.
+  ///
+  /// No cash and no change: the customer paid their own phone, so there is
+  /// nothing to hand back. No amount either - on QRIS statis the customer types
+  /// the total themselves, and this app never sees what they typed.
+  ///
+  /// [confirmedAt] is the moment the cashier looked at the customer's success
+  /// screen and said yes. It is required rather than optional because a QRIS
+  /// sale reaching this factory has, by definition, already been confirmed by a
+  /// human - the button that creates it is the confirmation. A QRIS row with no
+  /// confirmation would mean the app took money on nobody's word.
+  ///
+  /// The proof photo is not here. It is uploaded after the sale commits and
+  /// attached by [AttachPaymentProof], because a slow upload must never hold up
+  /// a queue at the counter.
+  factory CreateTransactionParams.qris({
+    required List<CartItem> cartItems,
+    required DateTime confirmedAt,
+    PaymentConfirmedBy confirmedBy = PaymentConfirmedBy.cashier,
+    String? customerName,
+    String? notes,
+    String? cashierName,
+  }) {
+    return CreateTransactionParams(
+      cartItems: cartItems,
+      cashReceived: null,
+      customerName: customerName,
+      notes: notes,
+      cashierName: cashierName,
+      paymentMethod: PaymentMethod.qris,
+      paymentStatus: PaymentStatus.paid,
+      paymentConfirmedAt: confirmedAt,
+      paymentConfirmedBy: confirmedBy,
     );
   }
 
@@ -197,5 +251,7 @@ class CreateTransactionParams extends Equatable {
         cashierName,
         paymentMethod,
         paymentStatus,
+        paymentConfirmedAt,
+        paymentConfirmedBy,
       ];
 }

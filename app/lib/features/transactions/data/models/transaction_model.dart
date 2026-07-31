@@ -20,6 +20,10 @@ class TransactionModel {
   final String? cashierName;
   final DateTime transactionDate;
   final DateTime? debtPaidAt;
+  final String? paymentProofPath;
+  final DateTime? paymentConfirmedAt;
+  final String? paymentConfirmedBy;
+  final String? paymentReference;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -40,6 +44,10 @@ class TransactionModel {
     this.cashierName,
     required this.transactionDate,
     this.debtPaidAt,
+    this.paymentProofPath,
+    this.paymentConfirmedAt,
+    this.paymentConfirmedBy,
+    this.paymentReference,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -67,6 +75,12 @@ class TransactionModel {
       debtPaidAt: json['debt_paid_at'] != null
           ? DateTime.parse(json['debt_paid_at'] as String)
           : null,
+      paymentProofPath: json['payment_proof_path'] as String?,
+      paymentConfirmedAt: json['payment_confirmed_at'] != null
+          ? DateTime.parse(json['payment_confirmed_at'] as String)
+          : null,
+      paymentConfirmedBy: json['payment_confirmed_by'] as String?,
+      paymentReference: json['payment_reference'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -90,6 +104,16 @@ class TransactionModel {
       'cashier_name': cashierName,
       'transaction_date': transactionDate.toIso8601String(),
       'debt_paid_at': debtPaidAt?.toIso8601String(),
+      // Read by create_pos_transaction as of
+      // 20260731000004_pos_transaction_payment_confirmation.sql. Before that
+      // migration the RPC's explicit column list dropped them without error, so
+      // a confirmed QRIS sale was stored as unconfirmed.
+      'payment_confirmed_at': paymentConfirmedAt?.toIso8601String(),
+      'payment_confirmed_by': paymentConfirmedBy,
+      'payment_reference': paymentReference,
+      // payment_proof_path is absent on purpose: the photo is uploaded after
+      // the sale commits, so there is nothing to send here. It arrives via
+      // updateTransaction.
     };
   }
 
@@ -112,6 +136,10 @@ class TransactionModel {
       cashierName: cashierName,
       transactionDate: transactionDate,
       debtPaidAt: debtPaidAt,
+      paymentProofPath: paymentProofPath,
+      paymentConfirmedAt: paymentConfirmedAt,
+      paymentConfirmedBy: PaymentConfirmedBy.fromString(paymentConfirmedBy),
+      paymentReference: paymentReference,
       createdAt: createdAt,
       updatedAt: updatedAt,
       items: items,
@@ -137,6 +165,10 @@ class TransactionModel {
       cashierName: transaction.cashierName,
       transactionDate: transaction.transactionDate,
       debtPaidAt: transaction.debtPaidAt,
+      paymentProofPath: transaction.paymentProofPath,
+      paymentConfirmedAt: transaction.paymentConfirmedAt,
+      paymentConfirmedBy: transaction.paymentConfirmedBy?.name,
+      paymentReference: transaction.paymentReference,
       createdAt: transaction.createdAt,
       updatedAt: transaction.updatedAt,
     );

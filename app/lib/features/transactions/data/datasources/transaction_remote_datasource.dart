@@ -31,7 +31,13 @@ abstract class TransactionRemoteDataSource {
     String id, {
     String? paymentStatus,
     DateTime? debtPaidAt,
+    String? paymentProofPath,
+    DateTime? paymentConfirmedAt,
+    String? paymentConfirmedBy,
   });
+
+  /// Distinct customer names for the current user, most recently used first.
+  Future<List<String>> getCustomerNames({String? query, int limit});
 }
 
 /// Implementation of TransactionRemoteDataSource using Supabase
@@ -249,14 +255,30 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
     String id, {
     String? paymentStatus,
     DateTime? debtPaidAt,
+    String? paymentProofPath,
+    DateTime? paymentConfirmedAt,
+    String? paymentConfirmedBy,
   }) async {
     try {
+      // Each field is only sent when the caller named it, so two callers
+      // touching different fields on the same row cannot clobber each other.
+      // A whole-model update here would have the proof upload - which finishes
+      // seconds after the sale - write back a stale copy of every other column.
       final updateMap = <String, dynamic>{};
       if (paymentStatus != null) {
         updateMap['payment_status'] = paymentStatus;
       }
       if (debtPaidAt != null) {
         updateMap['debt_paid_at'] = debtPaidAt.toIso8601String();
+      }
+      if (paymentProofPath != null) {
+        updateMap['payment_proof_path'] = paymentProofPath;
+      }
+      if (paymentConfirmedAt != null) {
+        updateMap['payment_confirmed_at'] = paymentConfirmedAt.toIso8601String();
+      }
+      if (paymentConfirmedBy != null) {
+        updateMap['payment_confirmed_by'] = paymentConfirmedBy;
       }
 
       final result = await _provider.client
@@ -270,6 +292,27 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
     } catch (e) {
       throw DatabaseException(
         message: 'Gagal memperbarui transaksi',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<List<String>> getCustomerNames({String? query, int limit = 20}) async {
+    try {
+      // An RPC rather than a select: PostgREST has no DISTINCT, so the
+      // alternative is pulling every transaction back and deduping on the
+      // client - which grows with the shop's history to answer a question
+      // whose answer is a handful of names.
+      final result = await _provider.client.rpc(
+        'get_customer_names',
+        params: {'p_query': query, 'p_limit': limit},
+      );
+
+      return (result as List<dynamic>).cast<String>();
+    } catch (e) {
+      throw DatabaseException(
+        message: 'Gagal memuat nama pelanggan',
         originalError: e,
       );
     }
