@@ -21,6 +21,7 @@ import '../../domain/usecases/create_product.dart';
 import '../providers/products_provider.dart';
 import '../widgets/category_autocomplete_field.dart';
 import '../widgets/product_image_picker.dart';
+import '../widgets/profit_margin_summary.dart';
 
 /// Screen for adding or editing a product
 class ProductFormScreen extends ConsumerStatefulWidget {
@@ -223,6 +224,15 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   double _parseCurrencyText(String text) {
     return double.parse(text.replaceAll('.', ''));
+  }
+
+  /// [_parseCurrencyText] for a half-typed field.
+  ///
+  /// The strict version is only ever called after `validate()` and throws on an
+  /// empty or malformed value; the live margin below the price fields reads
+  /// them on every keystroke, when both are routinely neither.
+  double? _tryParseCurrencyText(String text) {
+    return double.tryParse(text.replaceAll('.', ''));
   }
 
   void _populateForm(Product product) {
@@ -615,6 +625,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             label: 'Harga Modal *',
             validator: (value) =>
                 Validators.positiveNumber(value, fieldName: 'Harga modal'),
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: AppDimensions.spacing16),
           ModernCurrencyField(
@@ -622,9 +633,33 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             label: 'Harga Jual *',
             validator: (value) =>
                 Validators.positiveNumber(value, fieldName: 'Harga jual'),
+            onChanged: (_) => setState(() {}),
           ),
+          _buildLiveMargin(),
         ],
       ),
+    );
+  }
+
+  /// The margin between the two prices above, as they are typed.
+  ///
+  /// Cost price is the field that separates this app from a cash drawer, and
+  /// until now the form asked for it and showed nothing back - the margin only
+  /// appeared on the detail screen, after saving. Hidden until both prices are
+  /// present, so an empty form does not open with "Rp 0 / 0,0%".
+  Widget _buildLiveMargin() {
+    final cost = _tryParseCurrencyText(_costPriceController.text);
+    final selling = _tryParseCurrencyText(_sellingPriceController.text);
+
+    if (cost == null || selling == null || cost <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      children: [
+        const Divider(height: AppDimensions.spacing24),
+        ProfitMarginSummary(costPrice: cost, sellingPrice: selling),
+      ],
     );
   }
 

@@ -11,9 +11,14 @@ import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/get_current_user.dart';
+import '../../features/auth/domain/usecases/mark_onboarding_complete.dart';
+import '../../features/auth/domain/usecases/request_password_reset.dart';
+import '../../features/auth/domain/usecases/resend_sign_up_otp.dart';
+import '../../features/auth/domain/usecases/reset_password.dart';
 import '../../features/auth/domain/usecases/sign_in.dart';
 import '../../features/auth/domain/usecases/sign_out.dart';
 import '../../features/auth/domain/usecases/sign_up.dart';
+import '../../features/auth/domain/usecases/verify_sign_up_otp.dart';
 import '../../features/backup/data/repositories/backup_repository_impl.dart';
 import '../../features/backup/domain/repositories/backup_repository.dart';
 import '../../features/backup/domain/usecases/create_backup.dart';
@@ -143,6 +148,15 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton(() => SignUp(getIt<AuthRepository>()));
   getIt.registerLazySingleton(() => SignOut(getIt<AuthRepository>()));
   getIt.registerLazySingleton(() => GetCurrentUser(getIt<AuthRepository>()));
+  getIt.registerLazySingleton(() => VerifySignUpOtp(getIt<AuthRepository>()));
+  getIt.registerLazySingleton(() => ResendSignUpOtp(getIt<AuthRepository>()));
+  getIt.registerLazySingleton(
+    () => RequestPasswordReset(getIt<AuthRepository>()),
+  );
+  getIt.registerLazySingleton(() => ResetPassword(getIt<AuthRepository>()));
+  getIt.registerLazySingleton(
+    () => MarkOnboardingComplete(getIt<AuthRepository>()),
+  );
 
   // ===========================================
   // PRODUCTS FEATURE

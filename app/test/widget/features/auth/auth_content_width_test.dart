@@ -1,27 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kasbon_pos/core/responsive/modern_content_column.dart';
-import 'package:kasbon_pos/features/auth/domain/usecases/get_current_user.dart';
-import 'package:kasbon_pos/features/auth/domain/usecases/sign_in.dart';
-import 'package:kasbon_pos/features/auth/domain/usecases/sign_out.dart';
-import 'package:kasbon_pos/features/auth/domain/usecases/sign_up.dart';
-import 'package:kasbon_pos/features/auth/presentation/providers/auth_provider.dart';
+import 'package:kasbon_pos/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:kasbon_pos/features/auth/presentation/screens/login_screen.dart';
 import 'package:kasbon_pos/features/auth/presentation/screens/register_screen.dart';
-import 'package:mocktail/mocktail.dart';
+import 'package:kasbon_pos/features/auth/presentation/screens/reset_password_screen.dart';
+import 'package:kasbon_pos/features/auth/presentation/screens/verify_email_screen.dart';
 
 import '../../../helpers/responsive_helpers.dart';
-
-// The screens only read the notifier's state while building; nothing here is
-// ever called, so bare mocks are enough to keep GetIt out of a layout test.
-class _MockSignIn extends Mock implements SignIn {}
-
-class _MockSignUp extends Mock implements SignUp {}
-
-class _MockSignOut extends Mock implements SignOut {}
-
-class _MockGetCurrentUser extends Mock implements GetCurrentUser {}
+import 'auth_fixtures.dart';
 
 /// The auth screens sit outside the shell, so nothing above them caps their
 /// width. They used to cap themselves with a hand-rolled
@@ -32,20 +19,14 @@ class _MockGetCurrentUser extends Mock implements GetCurrentUser {}
 /// `ModernContentColumn.form` fixes both halves at once, and these tests pin
 /// the clamp so a later refactor cannot quietly drop it.
 void main() {
-  final overrides = <Override>[
-    authNotifierProvider.overrideWith(
-      (ref) => AuthNotifier(
-        signIn: _MockSignIn(),
-        signUp: _MockSignUp(),
-        signOut: _MockSignOut(),
-        getCurrentUser: _MockGetCurrentUser(),
-      ),
-    ),
-  ];
+  final overrides = authProviderOverrides();
 
   final screens = <String, Widget>{
     'login': const LoginScreen(),
     'register': const RegisterScreen(),
+    'verifyEmail': const VerifyEmailScreen(email: 'test@kasbon.id'),
+    'forgotPassword': const ForgotPasswordScreen(),
+    'resetPassword': const ResetPasswordScreen(email: 'test@kasbon.id'),
   };
 
   for (final entry in screens.entries) {

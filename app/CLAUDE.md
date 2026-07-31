@@ -110,10 +110,71 @@ class GetProduct extends UseCase<Product, GetProductParams> {
 
 ## Authentication
 
-Mandatory email/password auth via Supabase Auth:
-- Route guarding in `app_router.dart` via `redirect` callback
-- `GoRouterRefreshStream` listens to `onAuthStateChange`
-- Unauthenticated → `/login`, authenticated on auth route → `/dashboard`
+Mandatory email/password auth via Supabase Auth, with email verification and
+password recovery by **6-digit OTP code** — never a magic link. The app
+registers no deep-link handlers on any platform (no `intent-filter` beyond
+LAUNCHER, no `CFBundleURLTypes`, no `redirectTo` anywhere), and a link opened
+from a mobile mail client lands in an in-app browser with no session. A code is
+one path that works identically on Android, iOS, macOS and Chrome. Do not
+reintroduce `{{ .ConfirmationURL }}` into the templates.
+
+**The flow:** register → `/verify-email?email=` → onboarding → POS.
+`signUp()` returns a user but **no session** while `enable_confirmations = true`
+in `supabase/config.toml`; `verifyOTP` is what mints the first session. Signing
+in with an unverified account is routed to the same screen, matched on
+`AuthErrorCodes.emailNotConfirmed` rather than on the Bahasa Indonesia copy.
+
+Recovery is `/forgot-password` → `/reset-password?email=`, which verifies the
+code and sets the password in one step — the code establishes the session the
+change is made against. The forgot-password screen advances whether or not the
+address has an account, deliberately: Supabase answers an unknown email with a
+plain success, and a screen that said "email tidak terdaftar" would turn the
+form into a way to enumerate accounts.
+
+A wrong code and an expired one are the **same error** to Supabase
+(`otp_expired` / "Token has expired or is invalid"). One message names both.
+
+**Route guarding** in `app_router.dart` via `redirect`, three rules in order:
+- not signed in, not a public auth route → `/login`
+- signed in, on a public auth route → `/dashboard`
+- signed in, not onboarded, not already there → `/onboarding`
+
+`AppRouter._publicAuthRoutes` is the set for the first two. Adding a screen to
+the auth flow without adding it there bounces the user to `/login` on arrival.
+`/onboarding` is **not** in it — that route needs a session.
+
+**The onboarding marker lives in auth metadata**
+(`raw_user_meta_data.onboarding_completed_at`, see
+`SupabaseClientProvider.onboardingCompletedAtKey`), not in a `user_profiles`
+column, because `redirect` is synchronous: metadata is already in memory at
+first frame, while a table read would paint the dashboard and then yank a
+half-onboarded user away from it on every cold start. It is deliberately not
+mirrored anywhere. `MarkOnboardingComplete` must land **before** the wizard
+navigates, or the gate sends the user straight back.
+
+## Onboarding
+
+`lib/features/onboarding/` — three steps, one of which blocks.
+
+The signup trigger creates a `user_profiles` row and nothing else: no
+`shop_settings` (whose `name` is NOT NULL), no categories, no products. Step 1
+(nama toko + jenis usaha) is the only thing in the app that creates that row, so
+it blocks. Steps 2 and 3 fill the app with something to sell and are skippable.
+Finishing lands on **POS**, not the dashboard — on day one the dashboard is a
+wall of zeros.
+
+The feature is presentation-heavy and thin on domain: it orchestrates use cases
+that already exist. `UpdateShopSettings` upserts on `user_id` so it creates the
+row; `CreateCategory` is find-or-create so stepping back and forth cannot
+duplicate; `CreateProduct` mints its own id and SKU. Each step persists as it
+completes, so abandoning on step 2 still leaves a named shop.
+
+`BusinessType` ids (`warung_makan`, `kedai_kopi`, …) are **storage** — they
+reach `shop_settings.business_type`. Labels and starter category lists are free
+to change; ids are not.
+
+Everything that does *not* block lives on the dashboard's `SetupChecklistCard`,
+dismissible per device via `shared_preferences`.
 
 ## Modern Widget Library (REQUIRED)
 

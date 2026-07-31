@@ -68,9 +68,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final phone = _phoneController.text.trim();
+    final email = _emailController.text.trim();
 
     final success = await ref.read(authNotifierProvider.notifier).register(
-          email: _emailController.text.trim(),
+          email: email,
           password: _passwordController.text,
           fullName: _fullNameController.text.trim(),
           phone: phone.isNotEmpty ? phone : null,
@@ -83,8 +84,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       // `newPassword` hint below, this is what makes a password manager offer
       // to save the account it just helped create.
       TextInput.finishAutofillContext();
-      ModernToast.success(context, 'Pendaftaran berhasil! Selamat datang.');
-      context.go(AppRoutes.dashboard);
+      // No session yet - sign-up returns a user and an email on its way. The
+      // welcome belongs after verification, not here.
+      //
+      // Note this also runs when the address is already registered: with
+      // confirmations on, Supabase answers that with a plain success and sends
+      // nothing, so as not to reveal which addresses have accounts. Landing on
+      // the verification screen with a code that never arrives is the correct
+      // non-leaking behaviour - do not special-case it.
+      context.go(AppRoutes.verifyEmailPath(email));
     }
     // A failure stays on screen in the banner instead of a toast - see
     // [AuthErrorBanner].

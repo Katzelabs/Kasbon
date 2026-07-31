@@ -37,10 +37,23 @@ class Product extends Equatable {
   });
 
   /// Profit per unit (selling price - cost price)
-  double get profit => sellingPrice - costPrice;
+  double get profit => profitOf(costPrice, sellingPrice);
 
   /// Profit margin as percentage
-  double get profitMargin =>
+  double get profitMargin => profitMarginOf(costPrice, sellingPrice);
+
+  /// [profit] for a cost and selling price with no product between them.
+  ///
+  /// Exists for the forms, which show the margin while the two prices are
+  /// still being typed and have no `Product` to ask. Keeping the arithmetic
+  /// here rather than restating it there is what stops the number under the
+  /// form and the number on the detail screen from drifting apart.
+  static double profitOf(double costPrice, double sellingPrice) =>
+      sellingPrice - costPrice;
+
+  /// [profitMargin] for a cost and selling price. Margin is over *cost*, not
+  /// over revenue - a 10.000 item bought for 8.000 is 25%, not 20%.
+  static double profitMarginOf(double costPrice, double sellingPrice) =>
       costPrice > 0 ? ((sellingPrice - costPrice) / costPrice) * 100 : 0;
 
   /// Check if stock is low (at or below minimum stock but not zero)

@@ -7,6 +7,7 @@ import '../../../../config/routes/app_router.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/errors/auth_error_codes.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../shared/modern/modern.dart';
 import '../providers/auth_provider.dart';
@@ -52,8 +53,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (!_formKey.currentState!.validate()) return;
 
+    final email = _emailController.text.trim();
+
     final success = await ref.read(authNotifierProvider.notifier).login(
-          email: _emailController.text.trim(),
+          email: email,
           password: _passwordController.text,
         );
 
@@ -65,8 +68,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // password manager *fill* the form but never learn a new login.
       TextInput.finishAutofillContext();
       context.go(AppRoutes.dashboard);
+      return;
     }
-    // A failure stays on screen in the banner instead of a toast - see
+
+    // An unverified account is not a wrong password, and telling someone their
+    // credentials were right but unusable, with no way to act on it, is a dead
+    // end. Send them to the screen that can finish the job.
+    if (ref.read(authNotifierProvider).errorCode ==
+        AuthErrorCodes.emailNotConfirmed) {
+      context.go(AppRoutes.verifyEmailPath(email));
+    }
+    // Any other failure stays on screen in the banner instead of a toast - see
     // [AuthErrorBanner].
   }
 
@@ -126,7 +138,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 enabled: !isLoading,
                 autovalidateMode: AutovalidateMode.onUserInteraction,
               ),
-              const SizedBox(height: AppDimensions.spacing24),
+              const SizedBox(height: AppDimensions.spacing8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ModernButton.text(
+                  onPressed: isLoading
+                      ? null
+                      : () => context.go(AppRoutes.forgotPassword),
+                  child: Text(
+                    'Lupa password?',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppDimensions.spacing16),
               AuthErrorBanner(
                 message: authState.status == AuthStatus.error
                     ? authState.errorMessage

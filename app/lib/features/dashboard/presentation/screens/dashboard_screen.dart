@@ -20,6 +20,7 @@ import '../widgets/dashboard_analytics_section.dart';
 import '../widgets/gradient_summary_card.dart';
 import '../widgets/low_stock_alert.dart';
 import '../widgets/sales_summary_card.dart';
+import '../widgets/setup_checklist_card.dart';
 import '../../../../config/routes/app_router.dart';
 
 /// Main dashboard/home screen for the KASBON POS app.
@@ -170,6 +171,11 @@ class _DashboardBody extends ConsumerWidget {
         // At every tier, including the ones that used to drop it.
         const _BannerSection(),
         const SizedBox(height: AppDimensions.spacing24),
+
+        // Above the numbers on purpose: on a shop that has not finished setting
+        // up, the numbers are all zero and this is the only thing on the page
+        // worth acting on. Renders nothing once complete or dismissed.
+        const SetupChecklistCard(),
 
         // The four-tile stats row is an *addition* at expanded and above, not
         // a replacement for the summary card the way it used to be.

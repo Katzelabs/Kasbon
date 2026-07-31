@@ -1,0 +1,63 @@
+<!--
+  Password recovery - 6-digit OTP.
+
+  {{ .Token }} deliberately, not {{ .ConfirmationURL }}. See the note in
+  confirmation.html; the same reasoning and the same table-and-inline-styles
+  idiom apply here.
+-->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F8FAFC;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;background-color:#FFFFFF;border-radius:16px;padding:40px 32px;">
+
+        <tr>
+          <td align="center" style="padding-bottom:8px;font-size:24px;font-weight:700;letter-spacing:2px;color:#2563EB;">
+            KASBON
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding-bottom:32px;font-size:14px;color:#64748B;">
+            Kasir Bisnis Online
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding-bottom:8px;font-size:20px;font-weight:600;color:#0F172A;">
+            Reset password Anda
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding-bottom:28px;font-size:15px;line-height:22px;color:#475569;">
+            Masukkan kode ini di aplikasi KASBON untuk membuat password baru.
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding-bottom:28px;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="background-color:#DBEAFE;border-radius:12px;padding:20px 36px;font-size:34px;font-weight:700;letter-spacing:10px;color:#1D4ED8;font-family:'SF Mono',Menlo,Consolas,monospace;">
+                  {{ .Token }}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding-bottom:32px;font-size:14px;color:#64748B;">
+            Kode ini berlaku selama <strong style="color:#475569;">15 menit</strong>.
+          </td>
+        </tr>
+
+        <tr>
+          <td style="border-top:1px solid #E2E8F0;padding-top:24px;font-size:13px;line-height:20px;color:#94A3B8;">
+            Jika Anda tidak meminta reset password, abaikan email ini. Password
+            Anda tidak akan berubah selama kode di atas tidak digunakan.
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:kasbon_pos/core/errors/failures.dart';
 import 'package:kasbon_pos/core/entities/paginated_result.dart';
 import 'package:kasbon_pos/core/services/payment_proof/payment_proof_storage.dart';
+import 'package:kasbon_pos/features/auth/domain/repositories/auth_repository.dart';
 import 'package:kasbon_pos/features/products/domain/entities/product.dart';
 import 'package:kasbon_pos/features/products/domain/entities/product_filter.dart';
 import 'package:kasbon_pos/features/products/domain/repositories/product_repository.dart';
@@ -17,6 +18,9 @@ class MockProductRepository extends Mock implements ProductRepository {}
 
 /// Mock implementation of TransactionRepository using Mocktail
 class MockTransactionRepository extends Mock implements TransactionRepository {}
+
+/// Mock implementation of AuthRepository using Mocktail
+class MockAuthRepository extends Mock implements AuthRepository {}
 
 /// Register fallback values for mocktail
 void registerMocktailFallbackValues() {

@@ -5,9 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/utils/responsive_utils.dart';
+import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
+import '../../features/auth/presentation/screens/reset_password_screen.dart';
+import '../../features/auth/presentation/screens/verify_email_screen.dart';
+import '../../core/services/supabase_client_provider.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/debt/presentation/screens/debt_list_screen.dart';
 import '../../features/dev_tools/presentation/screens/design_system_showcase_screen.dart';
 import '../../features/dev_tools/presentation/screens/dev_seed_screen.dart';
@@ -40,6 +45,10 @@ class AppRoutes {
 
   static const String login = '/login';
   static const String register = '/register';
+  static const String verifyEmail = '/verify-email';
+  static const String forgotPassword = '/forgot-password';
+  static const String resetPassword = '/reset-password';
+  static const String onboarding = '/onboarding';
   static const String splash = '/';
   static const String dashboard = '/dashboard';
   static const String pos = '/pos';
@@ -91,6 +100,15 @@ class AppRoutes {
   // `:id` patterns GoRouter matches on, so they cannot be navigated to
   // directly - every call site goes through a builder instead of
   // interpolating an id into a URL string by hand.
+  // The OTP screens carry their email in the query string rather than in
+  // notifier state, so that a hard refresh on web - where these have real URLs
+  // - does not strand the user on a form that no longer knows whose code it is
+  // collecting.
+  static String verifyEmailPath(String email) =>
+      '$verifyEmail?email=${Uri.encodeQueryComponent(email)}';
+  static String resetPasswordPath(String email) =>
+      '$resetPassword?email=${Uri.encodeQueryComponent(email)}';
+
   static String productDetailPath(String id) => '/products/$id';
   static String productEditPath(String id) => '/products/$id/edit';
   static String transactionDetailPath(String id) => '/transactions/$id';
@@ -193,6 +211,23 @@ class AppRouter {
   static final GlobalKey<NavigatorState> _shellNavigatorKey =
       GlobalKey<NavigatorState>(debugLabel: 'shell');
 
+  /// Routes reachable without a session.
+  ///
+  /// Every one of these is also a route a *signed-in* user has no business on,
+  /// which is why one set drives both halves of the redirect. Adding a screen
+  /// to the auth flow without adding it here bounces the user to `/login` the
+  /// moment they arrive - and sign-up no longer returns a session, so the
+  /// verification screen is reached with nothing to authenticate with.
+  ///
+  /// `/onboarding` deliberately does **not** belong here: it needs a session.
+  static const Set<String> _publicAuthRoutes = {
+    AppRoutes.login,
+    AppRoutes.register,
+    AppRoutes.verifyEmail,
+    AppRoutes.forgotPassword,
+    AppRoutes.resetPassword,
+  };
+
   static final GoRouter router = GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: AppRoutes.dashboard,
@@ -203,8 +238,7 @@ class AppRouter {
     redirect: (context, state) {
       final session = Supabase.instance.client.auth.currentSession;
       final isLoggedIn = session != null;
-      final isAuthRoute = state.uri.path == AppRoutes.login ||
-          state.uri.path == AppRoutes.register;
+      final isAuthRoute = _publicAuthRoutes.contains(state.uri.path);
 
       if (!isLoggedIn && !isAuthRoute) {
         return AppRoutes.login;
@@ -212,6 +246,24 @@ class AppRouter {
       if (isLoggedIn && isAuthRoute) {
         return AppRoutes.dashboard;
       }
+
+      // A signed-in account with no `shop_settings` row has no shop name, no
+      // categories and no products - every screen past this point renders as
+      // broken. The wizard is the only thing that creates that row, so it
+      // holds the door until it has.
+      //
+      // The marker is read from auth metadata rather than the database on
+      // purpose: this callback is synchronous, and a table read here would
+      // paint the dashboard and then yank the user away from it on every cold
+      // start. See `SupabaseClientProvider.onboardingCompletedAtKey`.
+      if (isLoggedIn &&
+          state.uri.path != AppRoutes.onboarding &&
+          !SupabaseClientProvider.isOnboardingCompleteFor(
+            Supabase.instance.client.auth.currentUser,
+          )) {
+        return AppRoutes.onboarding;
+      }
+
       return null;
     },
     routes: [
@@ -236,6 +288,45 @@ class AppRouter {
         pageBuilder: (context, state) => _slidePage(
           state: state,
           child: const RegisterScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.verifyEmail,
+        name: 'verifyEmail',
+        pageBuilder: (context, state) => _slidePage(
+          state: state,
+          child: VerifyEmailScreen(
+            email: state.uri.queryParameters['email'] ?? '',
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        name: 'forgotPassword',
+        pageBuilder: (context, state) => _slidePage(
+          state: state,
+          child: const ForgotPasswordScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        name: 'resetPassword',
+        pageBuilder: (context, state) => _slidePage(
+          state: state,
+          child: ResetPasswordScreen(
+            email: state.uri.queryParameters['email'] ?? '',
+          ),
+        ),
+      ),
+
+      // Onboarding: signed in, but outside the shell - a wizard with a bottom
+      // nav bar under it is a wizard the user can walk out of halfway.
+      GoRoute(
+        path: AppRoutes.onboarding,
+        name: 'onboarding',
+        pageBuilder: (context, state) => _fadePage(
+          state: state,
+          child: const OnboardingScreen(),
         ),
       ),
 

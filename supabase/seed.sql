@@ -25,7 +25,10 @@ INSERT INTO auth.users (
   crypt('password123', gen_salt('bf')),
   NOW(),
   '{"provider": "email", "providers": ["email"]}',
-  '{"full_name": "Pak Adi", "phone": "081234567890", "tier": "free"}',
+  -- onboarding_completed_at keeps the seed user out of the setup wizard. The
+  -- backfill in 20260731000006 cannot reach them: migrations run before seeds,
+  -- so this row does not exist yet when it fires.
+  '{"full_name": "Pak Adi", "phone": "081234567890", "tier": "free", "onboarding_completed_at": "2026-07-31T00:00:00Z"}',
   NOW(),
   NOW(),
   '', '', '', ''
@@ -52,12 +55,13 @@ INSERT INTO auth.identities (
 -- ---------------------------------------------------------------------------
 
 INSERT INTO public.shop_settings (
-  id, user_id, name, address, phone,
+  id, user_id, name, business_type, address, phone,
   receipt_header, receipt_footer, currency, low_stock_threshold
 ) VALUES (
   'b1000000-0000-0000-0000-000000000001',
   'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d',
   'Warung Pak Adi',
+  'warung_makan',
   'Jl. Merdeka No. 10, Jakarta Selatan',
   '081234567890',
   'Terima kasih sudah berbelanja!',

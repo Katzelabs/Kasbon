@@ -10,6 +10,7 @@ import '../../../../shared/modern/modern.dart';
 import '../../../reports/presentation/providers/profit_report_provider.dart';
 import '../../domain/entities/product.dart';
 import 'product_image.dart';
+import 'profit_margin_summary.dart';
 import 'stock_indicator.dart';
 
 /// The cards a product's detail is made of, independent of what shows them.
@@ -128,30 +129,9 @@ class ProductPricingCard extends StatelessWidget {
             value: CurrencyFormatter.format(product.sellingPrice),
           ),
           const Divider(height: AppDimensions.spacing24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Keuntungan', style: AppTextStyles.labelLarge),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    CurrencyFormatter.format(product.profit),
-                    style: AppTextStyles.priceMedium.copyWith(
-                      color: product.profit >= 0
-                          ? AppColors.success
-                          : AppColors.error,
-                    ),
-                  ),
-                  Text(
-                    '${product.profitMargin.toStringAsFixed(1)}%',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          ProfitMarginSummary(
+            costPrice: product.costPrice,
+            sellingPrice: product.sellingPrice,
           ),
         ],
       ),

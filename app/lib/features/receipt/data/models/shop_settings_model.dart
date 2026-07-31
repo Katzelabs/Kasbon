@@ -5,6 +5,7 @@ class ShopSettingsModel extends ShopSettings {
   const ShopSettingsModel({
     required super.id,
     required super.name,
+    super.businessType,
     super.address,
     super.phone,
     super.logoUrl,
@@ -21,6 +22,7 @@ class ShopSettingsModel extends ShopSettings {
     return ShopSettingsModel(
       id: json['id'] as String,
       name: json['name'] as String,
+      businessType: json['business_type'] as String?,
       address: json['address'] as String?,
       phone: json['phone'] as String?,
       logoUrl: json['logo_url'] as String?,
@@ -37,6 +39,7 @@ class ShopSettingsModel extends ShopSettings {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
+      'business_type': businessType,
       'address': address,
       'phone': phone,
       'logo_url': logoUrl,
@@ -52,6 +55,7 @@ class ShopSettingsModel extends ShopSettings {
     return ShopSettingsModel(
       id: entity.id,
       name: entity.name,
+      businessType: entity.businessType,
       address: entity.address,
       phone: entity.phone,
       logoUrl: entity.logoUrl,
@@ -69,6 +73,7 @@ class ShopSettingsModel extends ShopSettings {
     return ShopSettings(
       id: id,
       name: name,
+      businessType: businessType,
       address: address,
       phone: phone,
       logoUrl: logoUrl,

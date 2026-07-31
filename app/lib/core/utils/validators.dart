@@ -128,6 +128,21 @@ class Validators {
     return null;
   }
 
+  /// Validate a 6-digit email OTP code.
+  ///
+  /// The length is fixed by `[auth.email] otp_length` in `supabase/config.toml`
+  /// - change one and the other has to follow.
+  static String? otp(String? value) {
+    final code = value?.trim() ?? '';
+    if (code.isEmpty) {
+      return 'Kode OTP wajib diisi';
+    }
+    if (!RegExp(r'^[0-9]{6}$').hasMatch(code)) {
+      return 'Kode OTP harus 6 digit angka';
+    }
+    return null;
+  }
+
   /// Validate full name (2-100 characters)
   static String? fullName(String? value) {
     if (value == null || value.trim().isEmpty) {

@@ -8,6 +8,14 @@ class ShopSettings extends Equatable {
   /// Shop/store name
   final String name;
 
+  /// What kind of shop this is, as chosen during onboarding
+  /// (`warung_makan`, `kedai_kopi`, ...). Null for shops created before
+  /// onboarding existed.
+  ///
+  /// A plain string rather than an enum so this layer does not have to know
+  /// the onboarding feature's catalogue of trades - see `BusinessType`.
+  final String? businessType;
+
   /// Shop address (optional)
   final String? address;
 
@@ -38,6 +46,7 @@ class ShopSettings extends Equatable {
   const ShopSettings({
     required this.id,
     required this.name,
+    this.businessType,
     this.address,
     this.phone,
     this.logoUrl,
@@ -66,6 +75,7 @@ class ShopSettings extends Equatable {
   ShopSettings copyWith({
     String? id,
     String? name,
+    String? businessType,
     String? address,
     String? phone,
     String? logoUrl,
@@ -79,6 +89,7 @@ class ShopSettings extends Equatable {
     return ShopSettings(
       id: id ?? this.id,
       name: name ?? this.name,
+      businessType: businessType ?? this.businessType,
       address: address ?? this.address,
       phone: phone ?? this.phone,
       logoUrl: logoUrl ?? this.logoUrl,

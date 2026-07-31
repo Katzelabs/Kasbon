@@ -58,6 +58,94 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, UserProfile>> verifySignUpOtp({
+    required String email,
+    required String token,
+  }) async {
+    try {
+      final model = await _remoteDataSource.verifySignUpOtp(
+        email: email,
+        token: token,
+      );
+      return Right(model.toEntity());
+    } on AuthException catch (e) {
+      return Left(AuthFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return const Left(
+        AuthFailure(message: 'Terjadi kesalahan saat verifikasi'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> resendSignUpOtp({
+    required String email,
+  }) async {
+    try {
+      await _remoteDataSource.resendSignUpOtp(email: email);
+      return const Right(null);
+    } on AuthException catch (e) {
+      return Left(AuthFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return const Left(
+        AuthFailure(message: 'Gagal mengirim ulang kode'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> requestPasswordReset({
+    required String email,
+  }) async {
+    try {
+      await _remoteDataSource.requestPasswordReset(email: email);
+      return const Right(null);
+    } on AuthException catch (e) {
+      return Left(AuthFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return const Left(
+        AuthFailure(message: 'Gagal mengirim kode reset password'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserProfile>> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      final model = await _remoteDataSource.resetPassword(
+        email: email,
+        token: token,
+        newPassword: newPassword,
+      );
+      return Right(model.toEntity());
+    } on AuthException catch (e) {
+      return Left(AuthFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return const Left(
+        AuthFailure(message: 'Terjadi kesalahan saat reset password'),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> markOnboardingComplete() async {
+    try {
+      await _remoteDataSource.markOnboardingComplete();
+      return const Right(null);
+    } on AuthException catch (e) {
+      return Left(AuthFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return const Left(
+        AuthFailure(message: 'Gagal menyimpan status onboarding'),
+      );
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> signOut() async {
     try {
       await _remoteDataSource.signOut();

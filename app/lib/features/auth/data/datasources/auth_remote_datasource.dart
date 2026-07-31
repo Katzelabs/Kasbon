@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../../../core/errors/auth_error_codes.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/services/supabase_client_provider.dart';
 import '../models/user_profile_model.dart';
@@ -19,6 +20,28 @@ abstract class AuthRemoteDataSource {
     required String fullName,
     String? phone,
   });
+
+  /// Verify a sign-up with the emailed 6-digit code. Returns the user profile.
+  Future<UserProfileModel> verifySignUpOtp({
+    required String email,
+    required String token,
+  });
+
+  /// Resend the sign-up confirmation code.
+  Future<void> resendSignUpOtp({required String email});
+
+  /// Email a password-recovery code.
+  Future<void> requestPasswordReset({required String email});
+
+  /// Redeem a recovery code and set a new password. Returns the user profile.
+  Future<UserProfileModel> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  });
+
+  /// Stamp the onboarding-complete marker onto the user's auth metadata.
+  Future<void> markOnboardingComplete();
 
   /// Sign out the current user.
   Future<void> signOut();
@@ -61,7 +84,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on sb.AuthException catch (e) {
       throw AuthException(
         message: _mapAuthErrorMessage(e.message),
-        code: e.statusCode,
+        code: _mapAuthErrorCode(e.message, e.statusCode),
         originalError: e,
       );
     } on AuthException {
@@ -113,7 +136,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } on sb.AuthException catch (e) {
       throw AuthException(
         message: _mapAuthErrorMessage(e.message),
-        code: e.statusCode,
+        code: _mapAuthErrorCode(e.message, e.statusCode),
         originalError: e,
       );
     } on AuthException {
@@ -121,6 +144,151 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (e) {
       throw AuthException(
         message: 'Terjadi kesalahan saat mendaftar',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<UserProfileModel> verifySignUpOtp({
+    required String email,
+    required String token,
+  }) async {
+    try {
+      final response = await _client.auth.verifyOTP(
+        email: email,
+        token: token,
+        type: sb.OtpType.signup,
+      );
+
+      final user = response.user;
+      if (user == null) {
+        throw const AuthException(
+          message: 'Verifikasi gagal: tidak ada data pengguna',
+          code: 'no_user',
+        );
+      }
+
+      return await _fetchUserProfile(user);
+    } on sb.AuthException catch (e) {
+      throw AuthException(
+        message: _mapAuthErrorMessage(e.message),
+        code: _mapAuthErrorCode(e.message, e.statusCode),
+        originalError: e,
+      );
+    } on AuthException {
+      rethrow;
+    } catch (e) {
+      throw AuthException(
+        message: 'Terjadi kesalahan saat verifikasi',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<void> resendSignUpOtp({required String email}) async {
+    try {
+      await _client.auth.resend(email: email, type: sb.OtpType.signup);
+    } on sb.AuthException catch (e) {
+      throw AuthException(
+        message: _mapAuthErrorMessage(e.message),
+        code: _mapAuthErrorCode(e.message, e.statusCode),
+        originalError: e,
+      );
+    } catch (e) {
+      throw AuthException(
+        message: 'Gagal mengirim ulang kode',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<void> requestPasswordReset({required String email}) async {
+    try {
+      await _client.auth.resetPasswordForEmail(email);
+    } on sb.AuthException catch (e) {
+      throw AuthException(
+        message: _mapAuthErrorMessage(e.message),
+        code: _mapAuthErrorCode(e.message, e.statusCode),
+        originalError: e,
+      );
+    } catch (e) {
+      throw AuthException(
+        message: 'Gagal mengirim kode reset password',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<UserProfileModel> resetPassword({
+    required String email,
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      // Redeeming the recovery code signs the user in. The password change
+      // below is made against that session - there is no other way to
+      // authenticate someone who by definition cannot supply their password.
+      final response = await _client.auth.verifyOTP(
+        email: email,
+        token: token,
+        type: sb.OtpType.recovery,
+      );
+
+      final user = response.user;
+      if (user == null) {
+        throw const AuthException(
+          message: 'Verifikasi gagal: tidak ada data pengguna',
+          code: 'no_user',
+        );
+      }
+
+      await _client.auth.updateUser(
+        sb.UserAttributes(password: newPassword),
+      );
+
+      return await _fetchUserProfile(user);
+    } on sb.AuthException catch (e) {
+      throw AuthException(
+        message: _mapAuthErrorMessage(e.message),
+        code: _mapAuthErrorCode(e.message, e.statusCode),
+        originalError: e,
+      );
+    } on AuthException {
+      rethrow;
+    } catch (e) {
+      throw AuthException(
+        message: 'Terjadi kesalahan saat reset password',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<void> markOnboardingComplete() async {
+    try {
+      // updateUser merges into raw_user_meta_data rather than replacing it,
+      // so full_name and phone survive this write.
+      await _client.auth.updateUser(
+        sb.UserAttributes(
+          data: {
+            SupabaseClientProvider.onboardingCompletedAtKey:
+                DateTime.now().toUtc().toIso8601String(),
+          },
+        ),
+      );
+    } on sb.AuthException catch (e) {
+      throw AuthException(
+        message: _mapAuthErrorMessage(e.message),
+        code: _mapAuthErrorCode(e.message, e.statusCode),
+        originalError: e,
+      );
+    } catch (e) {
+      throw AuthException(
+        message: 'Gagal menyimpan status onboarding',
         originalError: e,
       );
     }
@@ -194,6 +362,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     );
   }
 
+  /// Substitute a semantic code for Supabase's HTTP status where the UI needs
+  /// to branch on *which* error this is.
+  ///
+  /// Returns [fallback] - the status - for everything else, so the code field
+  /// keeps its existing meaning for the cases nobody matches on.
+  String? _mapAuthErrorCode(String message, String? fallback) {
+    final lower = message.toLowerCase();
+    if (lower.contains('email not confirmed')) {
+      return AuthErrorCodes.emailNotConfirmed;
+    }
+    if (lower.contains('token has expired or is invalid') ||
+        lower.contains('otp_expired') ||
+        lower.contains('invalid token')) {
+      return AuthErrorCodes.invalidOtp;
+    }
+    return fallback;
+  }
+
   /// Map Supabase auth error messages to user-friendly Bahasa Indonesia.
   String _mapAuthErrorMessage(String message) {
     final lower = message.toLowerCase();
@@ -203,6 +389,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
     if (lower.contains('email not confirmed')) {
       return 'Email belum dikonfirmasi. Periksa inbox Anda';
+    }
+    // A wrong code and an expired one are the same error to Supabase: both
+    // come back as otp_expired / "Token has expired or is invalid". Verified
+    // against the local stack - do not split this into two messages, or one of
+    // them will be a lie half the time. The copy names both possibilities.
+    if (lower.contains('token has expired or is invalid') ||
+        lower.contains('otp_expired') ||
+        lower.contains('invalid token')) {
+      return 'Kode salah atau sudah kedaluwarsa. Minta kode baru';
+    }
+    if (lower.contains('same as the old password') ||
+        lower.contains('should be different from the old password')) {
+      return 'Password baru harus berbeda dari password lama';
     }
     if (lower.contains('user already registered') ||
         lower.contains('already_exists')) {

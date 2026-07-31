@@ -1,28 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kasbon_pos/features/auth/domain/usecases/get_current_user.dart';
-import 'package:kasbon_pos/features/auth/domain/usecases/sign_in.dart';
-import 'package:kasbon_pos/features/auth/domain/usecases/sign_out.dart';
-import 'package:kasbon_pos/features/auth/domain/usecases/sign_up.dart';
 import 'package:kasbon_pos/features/auth/presentation/providers/auth_provider.dart';
 import 'package:kasbon_pos/features/auth/presentation/screens/login_screen.dart';
 import 'package:kasbon_pos/features/auth/presentation/screens/register_screen.dart';
 import 'package:kasbon_pos/features/auth/presentation/widgets/auth_error_banner.dart';
 import 'package:kasbon_pos/features/auth/presentation/widgets/password_strength_meter.dart';
-import 'package:mocktail/mocktail.dart';
 
 import '../../../helpers/responsive_helpers.dart';
-
-// Nothing here submits, so the use cases are never called - bare mocks keep
-// GetIt out of a form-behaviour test.
-class _MockSignIn extends Mock implements SignIn {}
-
-class _MockSignUp extends Mock implements SignUp {}
-
-class _MockSignOut extends Mock implements SignOut {}
-
-class _MockGetCurrentUser extends Mock implements GetCurrentUser {}
+import 'auth_fixtures.dart';
 
 /// The parts of the auth forms that are behaviour rather than layout.
 ///
@@ -30,16 +16,7 @@ class _MockGetCurrentUser extends Mock implements GetCurrentUser {}
 /// they get. This covers what they do while being typed into, which is where
 /// all three of the bugs fixed alongside it lived.
 void main() {
-  List<Override> overrides() => [
-        authNotifierProvider.overrideWith(
-          (ref) => AuthNotifier(
-            signIn: _MockSignIn(),
-            signUp: _MockSignUp(),
-            signOut: _MockSignOut(),
-            getCurrentUser: _MockGetCurrentUser(),
-          ),
-        ),
-      ];
+  List<Override> overrides() => authProviderOverrides();
 
   Future<void> pumpLogin(WidgetTester tester) => pumpScreenAtWidth(
         tester,

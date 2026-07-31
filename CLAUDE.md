@@ -182,10 +182,24 @@ All data stored in Supabase PostgreSQL with Row Level Security (RLS). Every tabl
 
 ## Authentication
 
-Mandatory email/password auth via Supabase Auth. Route guarding in `app_router.dart`:
+Mandatory email/password auth via Supabase Auth, with email verification and
+password recovery by **6-digit OTP code** (never a magic link — the app has no
+deep-link handlers on any platform). Route guarding in `app_router.dart`:
 - Unauthenticated users → redirected to `/login`
-- Authenticated users on auth routes → redirected to `/dashboard`
+- Authenticated users on a public auth route → redirected to `/dashboard`
+- Authenticated users who have not finished onboarding → `/onboarding`
 - `GoRouterRefreshStream` listens to `onAuthStateChange` for reactive redirects
+
+`enable_confirmations = true` in `supabase/config.toml`, so `signUp()` returns a
+user but no session — verifying the emailed code is what mints the first one.
+The OTP emails come from `supabase/templates/{confirmation,recovery}.html`,
+which carry `{{ .Token }}`. **Production additionally needs real SMTP** in
+`[auth.email.smtp]` and the same two templates set on the hosted project;
+`config.toml` governs local dev only.
+
+Whether a user has onboarded is recorded in
+`auth.users.raw_user_meta_data.onboarding_completed_at`, not in a table, because
+the router redirect is synchronous. See `app/CLAUDE.md` for the full flow.
 
 ## Key Patterns
 
