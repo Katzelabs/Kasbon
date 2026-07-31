@@ -32,9 +32,6 @@ class DebtListScreen extends StatelessWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Hutang',
-        onProfileTap: () {
-          // TODO: Navigate to profile
-        },
       ),
       body: MasterDetailScaffold(
         basePath: AppRoutes.debts,

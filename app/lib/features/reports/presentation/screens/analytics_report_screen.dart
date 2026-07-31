@@ -36,7 +36,6 @@ class AnalyticsReportScreen extends ConsumerWidget {
     return Scaffold(
       appBar: ModernAppBar.backWithActions(
         title: 'Analitik Lanjutan',
-        onProfileTap: () {},
         additionalActions: [
           IconButton(
             icon: const Icon(Icons.ios_share_rounded),

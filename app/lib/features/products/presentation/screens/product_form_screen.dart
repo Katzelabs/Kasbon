@@ -351,9 +351,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       appBar: ModernAppBar.backWithActions(
         title: title,
         onBack: () => context.pop(),
-        onProfileTap: () {
-          // TODO: Navigate to profile
-        },
       ),
       body: body,
     );

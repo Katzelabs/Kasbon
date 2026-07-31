@@ -142,14 +142,12 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// ModernAppBar.backWithActions(
   ///   title: 'Detail Produk',
   ///   onBack: () => context.pop(),
-  ///   onProfileTap: () => context.go('/profile'),
   /// )
   /// ```
   factory ModernAppBar.backWithActions({
     Key? key,
     required String title,
     VoidCallback? onBack,
-    VoidCallback? onProfileTap,
     List<Widget>? additionalActions,
     Color? backgroundColor,
     Color? foregroundColor,
@@ -163,7 +161,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       actions: [
         if (additionalActions != null) ...additionalActions,
-        _AccountMenu(onProfileTap: onProfileTap),
+        const _AccountMenu(),
       ],
       centerTitle: false,
       backgroundColor: backgroundColor,
@@ -192,14 +190,12 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// ```dart
   /// ModernAppBar.withActions(
   ///   title: 'Produk',
-  ///   onProfileTap: () => context.go('/profile'),
   ///   additionalActions: const [ProductAddAction()],
   /// )
   /// ```
   factory ModernAppBar.withActions({
     Key? key,
     required String title,
-    VoidCallback? onProfileTap,
     List<Widget>? additionalActions,
     Color? backgroundColor,
     Color? foregroundColor,
@@ -212,7 +208,7 @@ class ModernAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       actions: [
         if (additionalActions != null) ...additionalActions,
-        _AccountMenu(onProfileTap: onProfileTap),
+        const _AccountMenu(),
       ],
       centerTitle: false,
       backgroundColor: backgroundColor,
@@ -475,15 +471,18 @@ class _BackButton extends StatelessWidget {
 
 /// Internal widget for the account menu shown at the end of the app bar
 class _AccountMenu extends ConsumerWidget {
-  const _AccountMenu({this.onProfileTap});
-
-  final VoidCallback? onProfileTap;
+  const _AccountMenu();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // Previously this returned an empty box below the tablet breakpoint, so
     // the mobile header carried a title and nothing else - and profile/logout
     // were reachable only by navigating to the Pengaturan tab.
+    //
+    // It also used to take an `onProfileTap` callback that it never read.
+    // Twenty-four screens dutifully passed one - `() {}` or a `// TODO:
+    // Navigate to profile` - and every one of them was wiring a handler to
+    // nothing.
     final userInfo = ref.watch(userInfoProvider);
 
     return Padding(
@@ -502,6 +501,37 @@ class _AccountMenu extends ConsumerWidget {
           borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
         ),
         itemBuilder: (context) => [
+          // Who this menu is going to sign out. The avatar alone is two
+          // letters; on a shared till it is worth being able to check the
+          // account before using the item below it.
+          if (userInfo.isSignedIn)
+            PopupMenuItem<String>(
+              enabled: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    userInfo.name,
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    userInfo.email!,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          if (userInfo.isSignedIn) const PopupMenuDivider(),
           const PopupMenuItem<String>(
             value: 'settings',
             child: Row(

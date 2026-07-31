@@ -16,7 +16,6 @@ class DevToolsScreen extends StatelessWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Dev Tools',
-        onProfileTap: () {},
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppDimensions.spacing16),

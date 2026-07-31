@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/constants/support_contacts.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../providers/about_provider.dart';
@@ -24,7 +25,6 @@ class AboutScreen extends ConsumerWidget {
       appBar: ModernAppBar.backWithActions(
         title: 'Tentang Aplikasi',
         onBack: () => context.pop(),
-        onProfileTap: () {},
       ),
       body: Builder(
         builder: (context) {
@@ -58,14 +58,18 @@ class AboutScreen extends ConsumerWidget {
                         icon: Icons.chat_rounded,
                         iconColor: AppColors.whatsapp,
                         title: 'WhatsApp',
-                        subtitle: 'Kirim pesan via WhatsApp',
+                        // The number itself, not "Kirim pesan via WhatsApp":
+                        // a support row that names its destination can be
+                        // acted on without tapping it, which matters when the
+                        // app is the thing that is broken.
+                        subtitle: SupportContacts.whatsAppDisplay,
                         onTap: () => _launchWhatsApp(context),
                       ),
                       SettingsTile.externalLink(
                         icon: Icons.email_rounded,
                         iconColor: AppColors.info,
                         title: 'Email',
-                        subtitle: 'support@kasbon.app',
+                        subtitle: SupportContacts.supportEmail,
                         onTap: () => _launchEmail(context),
                       ),
                     ],
@@ -83,23 +87,27 @@ class AboutScreen extends ConsumerWidget {
                         iconColor: AppColors.textSecondary,
                         title: 'Syarat & Ketentuan',
                         onTap: () =>
-                            _launchUrl(context, 'https://kasbon.app/terms'),
+                            _launchUrl(context, SupportContacts.termsUrl),
                       ),
                       SettingsTile.externalLink(
                         icon: Icons.privacy_tip_rounded,
                         iconColor: AppColors.textSecondary,
                         title: 'Kebijakan Privasi',
                         onTap: () =>
-                            _launchUrl(context, 'https://kasbon.app/privacy'),
+                            _launchUrl(context, SupportContacts.privacyUrl),
                       ),
                     ],
                   ),
 
                   const SizedBox(height: AppDimensions.spacing32),
 
-                  // Copyright
+                  // Copyright.
+                  //
+                  // Stamped from the clock rather than typed: the literal here
+                  // said 2024 well into 2026, which is the one line on this
+                  // screen whose whole job is to look current.
                   Text(
-                    '© 2024 KASBON. Hak Cipta Dilindungi.',
+                    '© ${DateTime.now().year} KASBON. Hak Cipta Dilindungi.',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.textTertiary,
                     ),
@@ -177,42 +185,54 @@ class AboutScreen extends ConsumerWidget {
   }
 
   Future<void> _launchWhatsApp(BuildContext context) async {
-    const phoneNumber = '6281234567890'; // Replace with actual number
-    const message = 'Halo, saya ingin bertanya tentang aplikasi KASBON';
-    final url = Uri.parse(
-      'https://wa.me/$phoneNumber?text=${Uri.encodeComponent(message)}',
+    await _launch(
+      context,
+      SupportContacts.whatsAppUri,
+      failureMessage: 'Tidak dapat membuka WhatsApp',
     );
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (context.mounted) {
-        ModernToast.error(context, 'Tidak dapat membuka WhatsApp');
-      }
-    }
   }
 
   Future<void> _launchEmail(BuildContext context) async {
-    final url = Uri.parse('mailto:support@kasbon.app?subject=Bantuan KASBON');
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      if (context.mounted) {
-        ModernToast.error(context, 'Tidak dapat membuka email');
-      }
-    }
+    await _launch(
+      context,
+      SupportContacts.supportEmailUri,
+      // `mailto:` has no external-application equivalent to fall back on, so
+      // it goes out with the platform default.
+      mode: LaunchMode.platformDefault,
+      failureMessage: 'Tidak dapat membuka email',
+    );
   }
 
   Future<void> _launchUrl(BuildContext context, String urlString) async {
-    final url = Uri.parse(urlString);
+    await _launch(
+      context,
+      Uri.parse(urlString),
+      failureMessage: 'Tidak dapat membuka link',
+    );
+  }
 
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (context.mounted) {
-        ModernToast.error(context, 'Tidak dapat membuka link');
-      }
+  /// One launch path for all four rows.
+  ///
+  /// `canLaunchUrl` is consulted but not trusted as a veto: on the web it
+  /// answers for a scheme rather than for a handler, and on Android it needs a
+  /// `<queries>` entry to answer honestly at all - so a false there is a
+  /// "probably not", and the attempt is still worth making. The error only
+  /// surfaces once the launch itself has actually failed.
+  Future<void> _launch(
+    BuildContext context,
+    Uri url, {
+    LaunchMode mode = LaunchMode.externalApplication,
+    required String failureMessage,
+  }) async {
+    var launched = false;
+    try {
+      launched = await launchUrl(url, mode: mode);
+    } catch (_) {
+      launched = false;
+    }
+
+    if (!launched && context.mounted) {
+      ModernToast.error(context, failureMessage);
     }
   }
 }

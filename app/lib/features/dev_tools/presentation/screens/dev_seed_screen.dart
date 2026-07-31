@@ -274,7 +274,6 @@ class _DevSeedScreenState extends State<DevSeedScreen> {
       appBar: ModernAppBar.backWithActions(
         title: 'Dev Seed Data',
         onBack: () => Navigator.of(context).maybePop(),
-        onProfileTap: () {},
       ),
       body: _isLoading
           ? Center(

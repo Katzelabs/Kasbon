@@ -61,7 +61,6 @@ class _InventoryMovementScreenState
     return Scaffold(
       appBar: ModernAppBar.backWithActions(
         title: 'Pergerakan Stok',
-        onProfileTap: () {},
       ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(productMovementProvider),

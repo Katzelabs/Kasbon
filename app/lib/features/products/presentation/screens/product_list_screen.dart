@@ -34,9 +34,6 @@ class ProductListScreen extends StatelessWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Daftar Produk',
-        onProfileTap: () {
-          // TODO: Navigate to profile
-        },
         // Hides itself on a phone, where the FAB in the list pane below does
         // this job instead.
         additionalActions: const [ProductAddAction()],

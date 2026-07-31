@@ -174,9 +174,6 @@ class _PosScreenState extends ConsumerState<PosScreen> {
         resizeToAvoidBottomInset: false,
         appBar: ModernAppBar.withActions(
           title: 'Kasir',
-          onProfileTap: () {
-            // TODO: Navigate to profile
-          },
           // Toggles the docked cart in the split layout and opens the modal one
           // at `medium`; hides itself on a phone, which keeps the summary bar.
           additionalActions: const [PosCartAction()],

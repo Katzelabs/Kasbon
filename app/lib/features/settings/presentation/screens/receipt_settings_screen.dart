@@ -13,6 +13,7 @@ import '../../../receipt/presentation/widgets/receipt_preview_widget.dart';
 import '../../../transactions/domain/entities/transaction.dart';
 import '../../../transactions/domain/entities/transaction_item.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/unsaved_changes_guard.dart';
 
 /// Screen for customizing receipt header and footer
 class ReceiptSettingsScreen extends ConsumerStatefulWidget {
@@ -24,13 +25,19 @@ class ReceiptSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
+  /// The cap on both fields.
+  ///
+  /// Enforced by the inputs themselves now, with a visible counter, instead of
+  /// being checked on every keystroke and reported as an error after the fact.
+  /// A 42-column receipt has no room for more than this, and finding that out
+  /// when you press Simpan is the wrong moment.
+  static const int _maxLength = 100;
+
   final _headerController = TextEditingController();
   final _footerController = TextEditingController();
-  bool _initialized = false;
 
-  // Validation state
-  String? _headerError;
-  String? _footerError;
+  /// Whether the controllers have been filled from the loaded settings.
+  bool _seeded = false;
 
   @override
   void dispose() {
@@ -39,68 +46,66 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
     super.dispose();
   }
 
-  /// Validates header and footer fields
-  /// Returns true if all fields are valid
-  bool _validateFields() {
-    bool isValid = true;
-
-    // Header validation - max 100 characters
-    if (_headerController.text.length > 100) {
-      setState(() => _headerError = 'Header maksimal 100 karakter');
-      isValid = false;
-    } else {
-      setState(() => _headerError = null);
-    }
-
-    // Footer validation - max 100 characters
-    if (_footerController.text.length > 100) {
-      setState(() => _footerError = 'Footer maksimal 100 karakter');
-      isValid = false;
-    } else {
-      setState(() => _footerError = null);
-    }
-
-    return isValid;
+  /// Fills the controllers the first time the settings are available.
+  ///
+  /// See the note on the same method in `shop_profile_screen.dart`: this runs
+  /// just before the form subtree exists, so no field is listening yet.
+  void _seedControllers(SettingsFormState state) {
+    if (_seeded) return;
+    _seeded = true;
+    _headerController.text = state.receiptHeader;
+    _footerController.text = state.receiptFooter;
   }
 
   @override
   Widget build(BuildContext context) {
     final formState = ref.watch(settingsFormProvider);
     final formNotifier = ref.read(settingsFormProvider.notifier);
+    final isDirty = formState.isReceiptDirty;
 
-    // Load settings on first build
-    if (!_initialized) {
-      _initialized = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await formNotifier.loadSettings();
-        if (mounted) {
-          final state = ref.read(settingsFormProvider);
-          _headerController.text = state.receiptHeader;
-          _footerController.text = state.receiptFooter;
-        }
-      });
+    return UnsavedChangesGuard(
+      isDirty: isDirty,
+      child: Scaffold(
+        appBar: ModernAppBar.backWithActions(
+          title: 'Pengaturan Struk',
+          onBack: () => UnsavedChangesGuard.maybePop(context, isDirty: isDirty),
+        ),
+        body: _buildBody(formState, formNotifier),
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    SettingsFormState formState,
+    SettingsFormNotifier formNotifier,
+  ) {
+    if (formState.isLoading) {
+      return const Center(child: ModernLoading());
     }
 
-    return Scaffold(
-      appBar: ModernAppBar.backWithActions(
-        title: 'Pengaturan Struk',
-        onBack: () => context.pop(),
-        onProfileTap: () {},
+    // A failed load must not fall through to the form here. The fields would
+    // render empty, and saving them would write those blanks over a header and
+    // footer that are perfectly intact on the server.
+    if (formState.hasLoadError) {
+      return ModernErrorState(
+        message: formState.error!,
+        onRetry: formNotifier.loadSettings,
+      );
+    }
+
+    _seedControllers(formState);
+
+    return ModernContentColumn(
+      // Wide enough for the two-column split, and it re-scopes the
+      // breakpoint to the clamped width - so the branch below asks
+      // "have I got room for two columns?" and gets an answer about
+      // this column rather than about the monitor.
+      width: ContentWidth.wide,
+      child: Builder(
+        builder: (context) => context.isAtLeast(Breakpoint.expanded)
+            ? _buildSplitLayout(context, formState, formNotifier)
+            : _buildStackedLayout(context, formState, formNotifier),
       ),
-      body: formState.isLoading
-          ? const Center(child: ModernLoading())
-          : ModernContentColumn(
-              // Wide enough for the two-column split, and it re-scopes the
-              // breakpoint to the clamped width - so the branch below asks
-              // "have I got room for two columns?" and gets an answer about
-              // this column rather than about the monitor.
-              width: ContentWidth.wide,
-              child: Builder(
-                builder: (context) => context.isAtLeast(Breakpoint.expanded)
-                    ? _buildSplitLayout(context, formState, formNotifier)
-                    : _buildStackedLayout(context, formState, formNotifier),
-              ),
-            ),
     );
   }
 
@@ -124,12 +129,7 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
           const SizedBox(height: AppDimensions.spacing24),
           _buildFormCard(formNotifier),
           const SizedBox(height: AppDimensions.spacing24),
-          ModernButton.primary(
-            fullWidth: true,
-            isLoading: formState.isSaving,
-            onPressed: () => _saveSettings(context, formNotifier),
-            child: const Text('Simpan'),
-          ),
+          _buildSaveButton(context, formState, formNotifier),
         ],
       ),
     );
@@ -178,12 +178,8 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
                   const SizedBox(height: AppDimensions.spacing24),
                   FocusTraversalOrder(
                     order: const NumericFocusOrder(2),
-                    child: ModernButton.primary(
-                      fullWidth: true,
-                      isLoading: formState.isSaving,
-                      onPressed: () => _saveSettings(context, formNotifier),
-                      child: const Text('Simpan'),
-                    ),
+                    child:
+                        _buildSaveButton(context, formState, formNotifier),
                   ),
                 ],
               ),
@@ -204,6 +200,26 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
     );
   }
 
+  /// The Simpan button, shared by both layouts.
+  ///
+  /// Disabled while the form matches what was loaded, so the button doubles as
+  /// the answer to "did that save?" - which is worth having on the one screen
+  /// where the result is a piece of paper you only see at the next sale.
+  Widget _buildSaveButton(
+    BuildContext context,
+    SettingsFormState formState,
+    SettingsFormNotifier formNotifier,
+  ) {
+    final isDirty = formState.isReceiptDirty;
+
+    return ModernButton.primary(
+      fullWidth: true,
+      isLoading: formState.isSaving,
+      onPressed: isDirty ? () => _saveSettings(context, formNotifier) : null,
+      child: Text(isDirty ? 'Simpan' : 'Tersimpan'),
+    );
+  }
+
   /// Builds the form card with header and footer fields
   Widget _buildFormCard(SettingsFormNotifier formNotifier) {
     return ModernCard.elevated(
@@ -217,18 +233,21 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
           ),
           const SizedBox(height: AppDimensions.spacing16),
 
-          // Receipt header field
+          // Receipt header field.
+          //
+          // `showCounter` is on here - one of the rare cases the flag was
+          // meant for. The limit is not a defensive database bound but a
+          // budget the user is actively spending against a narrow paper roll,
+          // so the remaining count is worth the space.
           ModernTextField(
             label: 'Header Struk',
             hint: 'Teks yang ditampilkan di bagian atas struk',
             controller: _headerController,
             leading: const Icon(Icons.vertical_align_top_rounded),
-            errorText: _headerError,
-            onChanged: (value) {
-              formNotifier.setReceiptHeader(value);
-              _validateFields();
-            },
+            onChanged: formNotifier.setReceiptHeader,
             maxLines: 3,
+            maxLength: _maxLength,
+            showCounter: true,
           ),
           const SizedBox(height: AppDimensions.spacing16),
 
@@ -238,12 +257,11 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
             hint: 'Teks yang ditampilkan di bagian bawah struk',
             controller: _footerController,
             leading: const Icon(Icons.vertical_align_bottom_rounded),
-            errorText: _footerError,
-            onChanged: (value) {
-              formNotifier.setReceiptFooter(value);
-              _validateFields();
-            },
+            onChanged: formNotifier.setReceiptFooter,
             maxLines: 3,
+            maxLength: _maxLength,
+            showCounter: true,
+            helperText: 'Kosongkan untuk memakai "Terima kasih"',
           ),
         ],
       ),
@@ -353,17 +371,16 @@ class _ReceiptSettingsScreenState extends ConsumerState<ReceiptSettingsScreen> {
     BuildContext context,
     SettingsFormNotifier formNotifier,
   ) async {
-    // Validate fields before saving
-    if (!_validateFields()) {
-      return;
-    }
-
+    // Nothing to validate: `maxLength` caps both fields at the input, so the
+    // over-length case the old `_validateFields` reported after the fact is
+    // no longer reachable.
     final success = await formNotifier.saveReceiptSettings();
+    if (!context.mounted) return;
 
-    if (success && context.mounted) {
+    if (success) {
       ModernToast.success(context, 'Pengaturan struk berhasil disimpan');
       context.pop();
-    } else if (!success && context.mounted) {
+    } else {
       final error = ref.read(settingsFormProvider).error;
       if (error != null) {
         ModernToast.error(context, error);

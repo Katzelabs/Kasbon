@@ -7,6 +7,7 @@ import '../../../../config/theme/app_dimensions.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/unsaved_changes_guard.dart';
 
 /// Screen for editing shop profile (name, address, phone)
 class ShopProfileScreen extends ConsumerStatefulWidget {
@@ -21,7 +22,9 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
-  bool _initialized = false;
+
+  /// Whether the controllers have been filled from the loaded settings.
+  bool _seeded = false;
 
   @override
   void dispose() {
@@ -31,142 +34,175 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     super.dispose();
   }
 
+  /// Fills the controllers the first time the settings are available.
+  ///
+  /// Called from `build` immediately before the form subtree is constructed for
+  /// the first time, which is the one moment where writing to a controller is
+  /// free: no `TextField` is listening yet, so there is nothing to notify
+  /// mid-build.
+  ///
+  /// The old arrangement loaded from a post-frame callback with `isLoading`
+  /// defaulting to false, so the form rendered empty, then as a spinner, then
+  /// finally with values - a blank-field flash on every visit.
+  void _seedControllers(SettingsFormState state) {
+    if (_seeded) return;
+    _seeded = true;
+    _nameController.text = state.name;
+    _addressController.text = state.address;
+    _phoneController.text = state.phone;
+  }
+
   @override
   Widget build(BuildContext context) {
     final formState = ref.watch(settingsFormProvider);
     final formNotifier = ref.read(settingsFormProvider.notifier);
+    final isDirty = formState.isShopProfileDirty;
 
-    // Load settings on first build
-    if (!_initialized) {
-      _initialized = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await formNotifier.loadSettings();
-        if (mounted) {
-          final state = ref.read(settingsFormProvider);
-          _nameController.text = state.name;
-          _addressController.text = state.address;
-          _phoneController.text = state.phone;
-        }
-      });
+    return UnsavedChangesGuard(
+      isDirty: isDirty,
+      child: Scaffold(
+        appBar: ModernAppBar.backWithActions(
+          title: 'Profil Toko',
+          onBack: () => UnsavedChangesGuard.maybePop(context, isDirty: isDirty),
+        ),
+        body: _buildBody(formState, formNotifier),
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    SettingsFormState formState,
+    SettingsFormNotifier formNotifier,
+  ) {
+    if (formState.isLoading) {
+      return const Center(child: ModernLoading());
     }
 
-    return Scaffold(
-      appBar: ModernAppBar.backWithActions(
-        title: 'Profil Toko',
-        onBack: () => context.pop(),
-        onProfileTap: () {},
-      ),
-      body: formState.isLoading
-          ? const Center(child: ModernLoading())
-          : formState.error != null && !_initialized
-              ? ModernErrorState(
-                  message: formState.error!,
-                  onRetry: () => formNotifier.loadSettings(),
-                )
-              : Builder(
-                  builder: (context) {
-                    // Calculate bottom padding based on device type to account for bottom nav
-                    final bottomPadding =
-                        AppDimensions.spacing16 + context.shellBottomInset;
+    // This branch used to read `formState.error != null && !_initialized`, and
+    // `_initialized` was set to true before the load was even started - so the
+    // condition could never be true, and a failed load rendered a blank form
+    // with no message and no way to retry.
+    if (formState.hasLoadError) {
+      return ModernErrorState(
+        message: formState.error!,
+        onRetry: formNotifier.loadSettings,
+      );
+    }
 
-                    // Three fields and a save button. Form width, so the
-                    // inputs stay a length the eye can track from label to
-                    // value instead of spanning the whole window.
-                    return ModernContentColumn.form(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.only(
-                          top: AppDimensions.spacing16,
-                          bottom: bottomPadding,
-                        ),
-                        child: Form(
-                          key: _formKey,
-                          // Single column, so no reordering is needed - the group
-                          // is here to bound traversal to the form. Without it
-                          // Tab leaves the last field for the app bar's account
-                          // menu rather than reaching Simpan.
-                          child: FocusTraversalGroup(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Form fields card
-                                ModernCard.elevated(
-                                  padding: const EdgeInsets.all(
-                                      AppDimensions.spacing16),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Shop name field (required)
-                                      ModernTextField(
-                                        label: 'Nama Toko',
-                                        hint: 'Masukkan nama toko',
-                                        controller: _nameController,
-                                        leading:
-                                            const Icon(Icons.store_rounded),
-                                        onChanged: (value) =>
-                                            formNotifier.setName(value),
-                                        validator: _validateName,
-                                        textCapitalization:
-                                            TextCapitalization.words,
-                                      ),
-                                      const SizedBox(
-                                          height: AppDimensions.spacing16),
+    _seedControllers(formState);
+    final isDirty = formState.isShopProfileDirty;
 
-                                      // Shop address field (optional)
-                                      ModernTextField(
-                                        label: 'Alamat Toko',
-                                        hint: 'Masukkan alamat toko (opsional)',
-                                        controller: _addressController,
-                                        leading: const Icon(
-                                            Icons.location_on_rounded),
-                                        onChanged: (value) =>
-                                            formNotifier.setAddress(value),
-                                        maxLines: 2,
-                                        textCapitalization:
-                                            TextCapitalization.sentences,
-                                      ),
-                                      const SizedBox(
-                                          height: AppDimensions.spacing16),
+    return Builder(
+      builder: (context) {
+        // Calculate bottom padding based on device type to account for bottom nav
+        final bottomPadding =
+            AppDimensions.spacing16 + context.shellBottomInset;
 
-                                      // Shop phone field (optional)
-                                      ModernTextField(
-                                        label: 'Nomor Telepon',
-                                        hint:
-                                            'Masukkan nomor telepon (opsional)',
-                                        controller: _phoneController,
-                                        leading:
-                                            const Icon(Icons.phone_rounded),
-                                        keyboardType: TextInputType.phone,
-                                        onChanged: (value) =>
-                                            formNotifier.setPhone(value),
-                                        validator: _validatePhone,
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.allow(
-                                            RegExp(r'[0-9+\-\s]'),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: AppDimensions.spacing24),
-
-                                // Save button
-                                ModernButton.primary(
-                                  fullWidth: true,
-                                  isLoading: formState.isSaving,
-                                  onPressed: () =>
-                                      _saveProfile(context, formNotifier),
-                                  child: const Text('Simpan'),
-                                ),
-                              ],
-                            ),
+        // Three fields and a save button. Form width, so the
+        // inputs stay a length the eye can track from label to
+        // value instead of spanning the whole window.
+        return ModernContentColumn.form(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.only(
+              top: AppDimensions.spacing16,
+              bottom: bottomPadding,
+            ),
+            child: Form(
+              key: _formKey,
+              // Single column, so no reordering is needed - the group
+              // is here to bound traversal to the form. Without it
+              // Tab leaves the last field for the app bar's account
+              // menu rather than reaching Simpan.
+              child: FocusTraversalGroup(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Form fields card
+                    ModernCard.elevated(
+                      padding: const EdgeInsets.all(AppDimensions.spacing16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Shop name field (required)
+                          ModernTextField(
+                            label: 'Nama Toko',
+                            hint: 'Masukkan nama toko',
+                            controller: _nameController,
+                            leading: const Icon(Icons.store_rounded),
+                            onChanged: formNotifier.setName,
+                            validator: _validateName,
+                            textCapitalization: TextCapitalization.words,
+                            textInputAction: TextInputAction.next,
+                            maxLength: 100,
                           ),
-                        ),
+                          const SizedBox(height: AppDimensions.spacing16),
+
+                          // Shop address field (optional)
+                          ModernTextField(
+                            label: 'Alamat Toko',
+                            hint: 'Masukkan alamat toko (opsional)',
+                            controller: _addressController,
+                            leading: const Icon(Icons.location_on_rounded),
+                            onChanged: formNotifier.setAddress,
+                            maxLines: 2,
+                            textCapitalization: TextCapitalization.sentences,
+                            textInputAction: TextInputAction.next,
+                            // Says why the field is worth filling in. Both
+                            // optional fields here are printed on every
+                            // receipt, which is not obvious from the label.
+                            helperText: 'Ditampilkan pada struk',
+                          ),
+                          const SizedBox(height: AppDimensions.spacing16),
+
+                          // Shop phone field (optional)
+                          ModernTextField(
+                            label: 'Nomor Telepon',
+                            hint: 'Masukkan nomor telepon (opsional)',
+                            controller: _phoneController,
+                            leading: const Icon(Icons.phone_rounded),
+                            keyboardType: TextInputType.phone,
+                            onChanged: formNotifier.setPhone,
+                            validator: _validatePhone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[0-9+\-\s]'),
+                              ),
+                            ],
+                            helperText: 'Ditampilkan pada struk',
+                            // Last field in the form, so the keyboard's action
+                            // key should finish the job rather than dropping
+                            // focus and leaving Simpan under the keyboard.
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) {
+                              if (isDirty) _saveProfile(context, formNotifier);
+                            },
+                          ),
+                        ],
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(height: AppDimensions.spacing24),
+
+                    // Save button.
+                    //
+                    // Disabled until something actually changes: an enabled
+                    // Simpan on an untouched form invites a pointless round
+                    // trip, and it makes the button useless as a signal that
+                    // there is work outstanding.
+                    ModernButton.primary(
+                      fullWidth: true,
+                      isLoading: formState.isSaving,
+                      onPressed: isDirty
+                          ? () => _saveProfile(context, formNotifier)
+                          : null,
+                      child: Text(isDirty ? 'Simpan' : 'Tersimpan'),
+                    ),
+                  ],
                 ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -212,11 +248,14 @@ class _ShopProfileScreenState extends ConsumerState<ShopProfileScreen> {
     }
 
     final success = await formNotifier.saveShopProfile();
+    if (!context.mounted) return;
 
-    if (success && context.mounted) {
+    if (success) {
       ModernToast.success(context, 'Profil toko berhasil disimpan');
+      // Safe to pop directly: the save reset the baseline, so the guard has
+      // nothing to warn about.
       context.pop();
-    } else if (!success && context.mounted) {
+    } else {
       final error = ref.read(settingsFormProvider).error;
       if (error != null) {
         ModernToast.error(context, error);

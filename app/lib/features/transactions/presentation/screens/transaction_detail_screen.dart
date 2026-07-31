@@ -77,7 +77,6 @@ class TransactionDetailScreen extends ConsumerWidget {
                   context.go(basePath);
                 }
               },
-              onProfileTap: () {},
             ),
       body: transactionAsync.when(
         loading: () => const Center(child: ModernLoading()),

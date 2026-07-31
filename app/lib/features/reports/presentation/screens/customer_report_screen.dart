@@ -24,7 +24,6 @@ class CustomerReportScreen extends ConsumerWidget {
     return Scaffold(
       appBar: ModernAppBar.backWithActions(
         title: 'Laporan Pelanggan',
-        onProfileTap: () {},
       ),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(topCustomersProvider),

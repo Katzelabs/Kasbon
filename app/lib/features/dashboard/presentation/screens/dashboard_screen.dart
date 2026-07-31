@@ -64,9 +64,6 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Beranda',
-        onProfileTap: () {
-          // TODO: Navigate to profile
-        },
       ),
       body: RefreshIndicator(
         onRefresh: () => _refresh(ref),

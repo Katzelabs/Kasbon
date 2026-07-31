@@ -29,7 +29,6 @@ class TransactionListScreen extends StatelessWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Riwayat Transaksi',
-        onProfileTap: () {},
       ),
       body: MasterDetailScaffold(
         basePath: AppRoutes.transactions,

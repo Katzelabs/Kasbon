@@ -1,10 +1,46 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kasbon_pos/config/di/injection.dart';
+import 'package:kasbon_pos/core/errors/failures.dart';
+import 'package:kasbon_pos/features/receipt/domain/entities/shop_settings.dart';
+import 'package:kasbon_pos/features/receipt/domain/repositories/shop_settings_repository.dart';
+import 'package:kasbon_pos/features/receipt/domain/usecases/get_shop_settings.dart';
 import 'package:kasbon_pos/features/receipt/presentation/widgets/receipt_preview_widget.dart';
+import 'package:kasbon_pos/features/settings/domain/usecases/update_shop_settings.dart';
 import 'package:kasbon_pos/features/settings/presentation/screens/receipt_settings_screen.dart';
 
 import '../../../helpers/responsive_helpers.dart';
+
+/// Stands in for Supabase, which a widget test has no connection to.
+///
+/// The screen resolves `GetShopSettings` out of `getIt`, so without a
+/// registration the load fails and the screen renders its error state - which
+/// is correct behaviour, and exactly what this file needs to get past to be
+/// able to test a layout. It previously got away with registering nothing
+/// because the screen ignored a failed load and drew the form anyway, over
+/// values it did not have.
+class _FakeShopSettingsRepository implements ShopSettingsRepository {
+  ShopSettings stored = ShopSettings(
+    id: 'test',
+    name: 'Warung Bu Siti',
+    address: 'Jl. Merdeka 10',
+    phone: '081234567890',
+    createdAt: DateTime(2026),
+    updatedAt: DateTime(2026),
+  );
+
+  @override
+  Future<Either<Failure, ShopSettings>> getShopSettings() async =>
+      Right(stored);
+
+  @override
+  Future<Either<Failure, void>> updateShopSettings(ShopSettings settings) async {
+    stored = settings;
+    return const Right(null);
+  }
+}
 
 /// The highest-value wide layout in Settings: a live receipt preview docked
 /// beside the form that edits it.
@@ -18,6 +54,18 @@ void main() {
   // The preview runs the real generator, which formats the sample sale's date
   // in `id_ID`. `main.dart` initialises this before runApp; a test has to too.
   setUpAll(() => initializeDateFormatting('id_ID', null));
+
+  setUp(() {
+    final repository = _FakeShopSettingsRepository();
+    getIt.registerLazySingleton<GetShopSettings>(
+      () => GetShopSettings(repository),
+    );
+    getIt.registerLazySingleton<UpdateShopSettings>(
+      () => UpdateShopSettings(repository),
+    );
+  });
+
+  tearDown(() => getIt.reset());
 
   Finder formCard() => find.text('Kustomisasi Struk');
   Finder preview() => find.byType(ReceiptPreviewWidget);

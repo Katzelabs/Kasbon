@@ -32,7 +32,6 @@ class ReportsHubScreen extends ConsumerWidget {
     return Scaffold(
       appBar: ModernAppBar.withActions(
         title: 'Laporan',
-        onProfileTap: () {},
         additionalActions: [
           IconButton(
             icon: const Icon(Icons.ios_share_rounded),
