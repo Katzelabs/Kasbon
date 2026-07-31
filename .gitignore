@@ -13,3 +13,6 @@ app/env.*.json
 
 # Python bytecode from the brand asset generator.
 __pycache__/
+
+# Flutter golden-test diff output, written on every failed comparison.
+failures/

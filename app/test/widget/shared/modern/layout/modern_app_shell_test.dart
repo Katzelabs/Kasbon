@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kasbon_pos/shared/brand/kasbon_mark.dart';
 import 'package:kasbon_pos/shared/modern/components/layout/modern_app_shell.dart';
 import 'package:kasbon_pos/shared/providers/navigation_sidebar_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -50,9 +51,10 @@ void main() {
 
   /// The rail's rendered width, or null when no rail is on screen.
   ///
-  /// Measured off the logo tile, which only the rail draws.
+  /// Measured off the logo tile, which only the rail draws. The compact shell
+  /// has no rail and so no tile, which is what makes absence a usable signal.
   Size? railSize(WidgetTester tester) {
-    final logo = find.byIcon(Icons.store_rounded);
+    final logo = find.byType(KasbonLogoTile);
     if (logo.evaluate().isEmpty) return null;
 
     return tester.getSize(

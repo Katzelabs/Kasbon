@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
-import '../../../../config/theme/app_gradients.dart';
 import '../../../../config/theme/app_shadows.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_utils.dart';
+import '../../../brand/kasbon_mark.dart';
 import '../../../providers/navigation_sidebar_provider.dart';
 import '../../../providers/shell_account_provider.dart';
 import '../data_display/modern_avatar.dart';
@@ -652,20 +652,14 @@ class _ModernNavigationRail extends StatelessWidget {
         mainAxisAlignment:
             isExpanded ? MainAxisAlignment.start : MainAxisAlignment.center,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: AppGradients.primaryCard,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              boxShadow: AppShadows.glow(AppColors.primary, opacity: 0.22),
-            ),
-            child: const Icon(
-              Icons.store_rounded,
-              color: Colors.white,
-              size: AppDimensions.iconLarge,
-            ),
-          ),
+          // The brand mark, not a stock storefront glyph. Collapsed, this tile
+          // is the only thing identifying the app in the rail, so it had to be
+          // the real icon rather than something that merely gestures at retail.
+          //
+          // No glow: the rail is dense chrome and a lit tile beside a hairline
+          // border reads as a rendering artefact. `docs/BRAND.md` covers when
+          // the glow is wanted.
+          const KasbonLogoTile(size: 40, glow: false),
           if (isExpanded) ...[
             const SizedBox(width: AppDimensions.spacing12),
             Expanded(
