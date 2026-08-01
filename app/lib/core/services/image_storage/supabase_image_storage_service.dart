@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../constants/storage_cache_control.dart';
 import '../../errors/exceptions.dart';
 import '../supabase_client_provider.dart';
 import 'image_compression_settings.dart';
@@ -64,6 +65,9 @@ class SupabaseImageStorageService implements ImageStorageService {
           // would mean something is wrong. Failing is better than silently
           // replacing a different product's photo.
           upsert: false,
+          // That same fresh timestamp is what makes a year safe: this object
+          // will never be rewritten, only orphaned. See [StorageCacheControl].
+          cacheControl: StorageCacheControl.maxAge,
         ),
       );
 

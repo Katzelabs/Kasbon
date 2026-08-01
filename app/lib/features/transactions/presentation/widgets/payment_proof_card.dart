@@ -8,6 +8,7 @@ import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/utils/date_formatter.dart';
+import '../../../../core/widgets/cached_remote_image.dart';
 import '../../../../shared/image_picking/image_source_picker.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../domain/entities/transaction.dart';
@@ -276,7 +277,10 @@ class _AttachedProof extends ConsumerWidget {
               ),
             ),
           ),
-          data: (url) => _ProofThumbnail(url: url),
+          data: (url) => _ProofThumbnail(
+            url: url,
+            objectPath: transaction.paymentProofPath!,
+          ),
         ),
       ],
     );
@@ -285,19 +289,26 @@ class _AttachedProof extends ConsumerWidget {
 
 /// The photo, tappable into a full-size viewer.
 class _ProofThumbnail extends StatelessWidget {
-  const _ProofThumbnail({required this.url});
+  const _ProofThumbnail({required this.url, required this.objectPath});
 
+  /// A signed URL, valid for minutes and different on every view.
   final String url;
+
+  /// The object's path in the bucket - stable, and therefore what the cache
+  /// keys on. Keying on [url] instead would miss every single time: a fresh
+  /// signature per view means the cache would fill and never be read.
+  final String objectPath;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _showFullSize(context, url),
+      onTap: () => _showFullSize(context, url, objectPath),
       child: _ProofFrame(
-        child: Image.network(
-          url,
+        child: CachedRemoteImage(
+          url: url,
+          cacheKey: objectPath,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Center(
+          errorWidget: const Center(
             child: Icon(
               Icons.broken_image_outlined,
               color: AppColors.textTertiary,
@@ -308,7 +319,11 @@ class _ProofThumbnail extends StatelessWidget {
     );
   }
 
-  static void _showFullSize(BuildContext context, String url) {
+  static void _showFullSize(
+    BuildContext context,
+    String url,
+    String objectPath,
+  ) {
     // A proof is read, not admired: the amount is often small in frame and the
     // photo was taken across a counter, so panning and zooming is the point.
     Navigator.of(context, rootNavigator: true).push(
@@ -324,7 +339,21 @@ class _ProofThumbnail extends StatelessWidget {
           body: Center(
             child: InteractiveViewer(
               maxScale: 5,
-              child: Image.network(url),
+              // Same key as the thumbnail, so opening the viewer reads the
+              // bytes the card already fetched instead of paying for them
+              // again.
+              child: CachedRemoteImage(
+                url: url,
+                cacheKey: objectPath,
+                fit: BoxFit.contain,
+                showProgress: true,
+                errorWidget: const Center(
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ),
             ),
           ),
         ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kasbon_pos/core/widgets/cached_remote_image.dart';
 
 /// Creates a testable widget wrapped with necessary providers
 ///
@@ -188,4 +190,32 @@ class TestFixtureBuilder<T> {
   }
 
   List<T> build() => List.unmodifiable(items);
+}
+
+/// Stops [CachedRemoteImage] reaching the real cache store for the rest of the
+/// test file.
+///
+/// The default `flutter_cache_manager` wants `path_provider`, which has no
+/// plugin under a test binding, and the network, which answers 400. Neither
+/// produces an error the widget can render - the image simply never resolves,
+/// so no frame is scheduled and `pumpAndSettle` times out with a stack that
+/// points at the pump rather than at the photo.
+///
+/// This makes every fetch fail immediately instead, so the widget settles on
+/// its `errorWidget`. Any test rendering a product or a payment proof wants
+/// this in `setUp`; what such a test is checking is never the photo itself.
+void installInertImageCache() {
+  CachedRemoteImage.cacheManager = _InertCacheManager();
+  addTearDown(() => CachedRemoteImage.cacheManager = null);
+}
+
+/// Fails every request, by whichever method the image widget reaches for.
+///
+/// `noSuchMethod` rather than the twenty-odd real overrides: the point is that
+/// nothing here should ever succeed, and spelling that out once says it better
+/// than twenty stubs would.
+class _InertCacheManager implements BaseCacheManager {
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw StateError('No image cache in tests');
 }

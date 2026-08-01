@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../constants/storage_cache_control.dart';
 import '../../errors/exceptions.dart';
 import '../image_storage/image_compressor.dart';
 import '../supabase_client_provider.dart';
@@ -52,6 +53,12 @@ class SupabasePaymentProofStorage implements PaymentProofStorage {
           // leaves the old one for [delete] to remove, so that the row never
           // points at a half-overwritten file.
           upsert: false,
+          // Correct, but worth far less here than on the public bucket: this
+          // one is read through signed URLs, and a fresh signature is minted
+          // per view, so the URL a cache would key on rarely repeats. It earns
+          // its keep within a single view and costs nothing. The thing that
+          // actually bounds this bucket is retention, not caching.
+          cacheControl: StorageCacheControl.maxAge,
         ),
       );
 

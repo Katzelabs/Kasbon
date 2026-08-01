@@ -5,6 +5,7 @@ import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/widgets/adaptive_local_image.dart';
+import '../../../../core/widgets/cached_remote_image.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../products/domain/entities/product.dart';
 // The POS grid paints its own photo tile rather than using ProductImage, which
@@ -167,12 +168,12 @@ class ProductGridItem extends StatelessWidget {
       );
     }
 
-    return Image.network(
-      productImageUrl(imagePath),
+    return CachedRemoteImage(
+      url: productImageUrl(imagePath),
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      errorBuilder: (_, __, ___) => _buildPlaceholder(),
+      errorWidget: _buildPlaceholder(),
     );
   }
 

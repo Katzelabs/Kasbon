@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:kasbon_pos/core/errors/exceptions.dart';
+import 'package:kasbon_pos/core/services/image_storage/image_compression_settings.dart';
 import 'package:kasbon_pos/core/services/image_storage/image_compressor_dart.dart';
 
 /// Covers the pure-Dart compressor, which is what the browser build uses.
@@ -21,6 +22,29 @@ Uint8List _jpeg(int width, int height) {
       image.setPixelRgb(x, y, x % 256, y % 256, (x + y) % 256);
     }
   }
+
+  return img.encodeJpg(image, quality: 100);
+}
+
+/// A JPEG carrying the Exif a phone camera attaches.
+///
+/// `orientation` is the tag that decides which way up the pixels are meant to
+/// be read; the GPS and Make tags stand in for everything else a camera writes,
+/// and are what must not survive into a public bucket.
+Uint8List _jpegWithExif(int width, int height, {int? orientation}) {
+  final image = img.Image(width: width, height: height);
+
+  for (var y = 0; y < height; y++) {
+    for (var x = 0; x < width; x++) {
+      image.setPixelRgb(x, y, x % 256, y % 256, (x + y) % 256);
+    }
+  }
+
+  if (orientation != null) {
+    image.exif.imageIfd.orientation = orientation;
+  }
+  image.exif.imageIfd['Make'] = 'TestCam';
+  image.exif.gpsIfd['GPSLatitudeRef'] = 'S';
 
   return img.encodeJpg(image, quality: 100);
 }
@@ -87,6 +111,58 @@ void main() {
       final compressed = await compressImage(original);
 
       expect(compressed.length, lessThan(original.length ~/ 4));
+    });
+
+    test('strips the camera Exif block, including GPS', () async {
+      final compressed = await compressImage(_jpegWithExif(1000, 1000));
+
+      // Not just "no GPS": the whole block goes, matching the native
+      // compressor's `keepExif: false`. The embedded camera thumbnail inside it
+      // is the part that costs 10-30 KB of a 1 GB quota.
+      expect(_decode(compressed).exif.isEmpty, isTrue);
+    });
+
+    test('bakes orientation into an image too small to be resized', () async {
+      // The regression this guards: `copyResize` bakes orientation, but `_fit`
+      // returns the source untouched when the shorter side is already under the
+      // maximum. Dropping Exif on that path - with no resize to bake it - left
+      // a portrait photo lying on its side.
+      final compressed = await compressImage(
+        _jpegWithExif(120, 200, orientation: 6),
+      );
+      final result = _decode(compressed);
+
+      expect(result.width, 200);
+      expect(result.height, 120);
+    });
+
+    test('bakes orientation when it also resizes', () async {
+      final compressed = await compressImage(
+        _jpegWithExif(3000, 4000, orientation: 6),
+      );
+      final result = _decode(compressed);
+
+      // Rotated to 4000x3000 first, then scaled on the shorter side.
+      expect(result.height, 800);
+      expect(result.width, 1067);
+    });
+
+    test('subsamples chroma the way the platform encoders do', () async {
+      final source = _jpeg(1000, 1000);
+
+      final compressed = await compressImage(source);
+      final fullChroma = img.encodeJpg(
+        img.copyResize(
+          _decode(source),
+          width: ImageCompression.maxDimension,
+          height: ImageCompression.maxDimension,
+          interpolation: img.Interpolation.average,
+        ),
+        quality: ImageCompression.quality,
+        chroma: img.JpegChroma.yuv444,
+      );
+
+      expect(compressed.length, lessThan(fullChroma.length));
     });
 
     test('throws a readable failure when the bytes are not an image', () {

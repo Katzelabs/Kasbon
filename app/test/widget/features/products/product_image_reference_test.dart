@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kasbon_pos/config/di/injection.dart';
 import 'package:kasbon_pos/core/services/image_storage/image_storage_service.dart';
+import 'package:kasbon_pos/core/widgets/cached_remote_image.dart';
 import 'package:kasbon_pos/core/services/image_storage/supabase_image_storage_service.dart';
 import 'package:kasbon_pos/features/pos/presentation/widgets/product_grid_item.dart'
     as pos;
@@ -11,6 +12,7 @@ import 'package:kasbon_pos/features/products/presentation/widgets/product_image.
 
 import '../../../fixtures/mock_data.dart';
 import '../../../helpers/responsive_helpers.dart';
+import '../../../helpers/test_helpers.dart';
 
 /// Stands in for the bucket: a reference becomes a URL under whatever host this
 /// environment happens to have.
@@ -58,16 +60,20 @@ void main() {
 
   setUp(() {
     getIt.registerSingleton<ImageStorageService>(_HostedImageStorage());
+    installInertImageCache();
   });
 
   tearDown(() => getIt.reset());
 
-  /// The URL every `Image` in the tree is loading.
+  /// The URL every remote image in the tree is loading.
+  ///
+  /// Reads [CachedRemoteImage.url] rather than digging a `NetworkImage` out of
+  /// an `Image`, which is what this did before product photos were cached. That
+  /// version now finds nothing at all - and would have gone on passing the
+  /// legacy-device-path case below for entirely the wrong reason.
   List<String> loadedUrls(WidgetTester tester) => tester
-      .widgetList<Image>(find.byType(Image))
-      .map((image) => image.image)
-      .whereType<NetworkImage>()
-      .map((provider) => provider.url)
+      .widgetList<CachedRemoteImage>(find.byType(CachedRemoteImage))
+      .map((image) => image.url)
       .toList();
 
   group('ProductImage', () {

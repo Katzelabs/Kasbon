@@ -8,6 +8,7 @@ import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../core/widgets/adaptive_local_image.dart';
+import '../../../../core/widgets/cached_remote_image.dart';
 import '../../../../shared/modern/components/card/modern_card.dart';
 import '../../../../shared/modern/utils/modern_hover.dart';
 import '../../domain/entities/product.dart';
@@ -281,12 +282,12 @@ class ProductGridItem extends StatelessWidget {
       );
     }
 
-    return Image.network(
-      productImageUrl(imagePath),
+    return CachedRemoteImage(
+      url: productImageUrl(imagePath),
       fit: BoxFit.cover,
       width: double.infinity,
       height: double.infinity,
-      errorBuilder: (_, __, ___) => _buildPlaceholderIcon(),
+      errorWidget: _buildPlaceholderIcon(),
     );
   }
 

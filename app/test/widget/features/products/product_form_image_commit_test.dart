@@ -18,6 +18,7 @@ import 'package:kasbon_pos/features/products/presentation/widgets/product_image_
 
 import '../../../fixtures/mock_data.dart';
 import '../../../helpers/responsive_helpers.dart';
+import '../../../helpers/test_helpers.dart';
 
 /// Records what reached storage, and when.
 class _RecordingImageStorage implements ImageStorageService {
@@ -79,6 +80,7 @@ void main() {
     repository = _RecordingProductRepository();
     getIt.registerSingleton<ImageStorageService>(storage);
     getIt.registerSingleton<UpdateProduct>(UpdateProduct(repository));
+    installInertImageCache();
   });
 
   tearDown(() => getIt.reset());

@@ -5,7 +5,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../core/services/image_storage/image_storage_service.dart';
 import '../../../../core/widgets/adaptive_local_image.dart';
-import '../../../../shared/modern/modern.dart';
+import '../../../../core/widgets/cached_remote_image.dart';
 
 /// Whether [reference] is a path on this device rather than in the bucket.
 ///
@@ -112,21 +112,14 @@ class ProductImage extends StatelessWidget {
   }
 
   Widget _buildNetworkImage(double iconSize) {
-    return Image.network(
-      productImageUrl(imagePath!),
+    // The determinate progress this used to show is gone with the switch to a
+    // cached fetch: byte counts are not exposed, and after the first load there
+    // is nothing to report anyway.
+    return CachedRemoteImage(
+      url: productImageUrl(imagePath!),
       fit: fit,
-      errorBuilder: (_, __, ___) => _buildPlaceholder(iconSize),
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return Center(
-          child: ModernLoading.small(
-            value: loadingProgress.expectedTotalBytes != null
-                ? loadingProgress.cumulativeBytesLoaded /
-                    loadingProgress.expectedTotalBytes!
-                : null,
-          ),
-        );
-      },
+      showProgress: true,
+      errorWidget: _buildPlaceholder(iconSize),
     );
   }
 
