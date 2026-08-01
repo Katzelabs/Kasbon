@@ -23,27 +23,34 @@ class FileExportService {
   /// Whether saved files have a path worth showing the user.
   static bool get hasAddressableFiles => true;
 
-  /// Returns/creates the backup directory path
-  /// Saves to external storage on Android for easy access via file manager
+  /// Returns/creates the default backup directory, inside the app sandbox.
+  ///
+  /// This used to aim at `/storage/emulated/0/Download/KASBON_Backup` on
+  /// Android, reached by string-slicing `getExternalStorageDirectory()` at
+  /// "Android" to climb out of the sandbox. A backup is a plain `jsonEncode` of
+  /// every product, transaction and line item the shop has - cost prices,
+  /// margins, customer names, who owes what - written unencrypted. In shared
+  /// storage that file was readable by any app holding READ_EXTERNAL_STORAGE
+  /// and it outlived uninstall.
+  ///
+  /// It was also, on any device running Android 11 or later, broken: scoped
+  /// storage rejects the raw-path write and the old `catch` quietly fell back
+  /// to this same app-documents directory. So the shared-storage path was
+  /// simultaneously a data exposure on old phones and dead code on current
+  /// ones, which is why removing it changes nothing a user will notice.
+  ///
+  /// Nothing is lost by staying inside the sandbox. Wanting the file elsewhere
+  /// is already handled better: `_handleCreateBackup` offers
+  /// `FilePicker.getDirectoryPath()`, which is the SAF picker and writes
+  /// wherever the user points it with no permission at all; the success dialog
+  /// offers `Share.shareXFiles`; and restore reads through `FilePicker
+  /// .pickFiles()`, so backups written to the old location are still
+  /// restorable. Removing the default is what lets READ_EXTERNAL_STORAGE,
+  /// WRITE_EXTERNAL_STORAGE and requestLegacyExternalStorage come out of the
+  /// manifest entirely.
   static Future<String> getBackupDirectory() async {
     try {
-      Directory? backupDir;
-
-      // Try to use external storage first (visible in file managers)
-      if (Platform.isAndroid) {
-        final externalDir = await getExternalStorageDirectory();
-        if (externalDir != null) {
-          // Go up to Android folder level and create KASBON_Backup in root
-          // externalDir is typically /storage/emulated/0/Android/data/com.app/files
-          final rootPath = externalDir.path.split('Android').first;
-          final downloadsPath =
-              path.join(rootPath, 'Download', 'KASBON_Backup');
-          backupDir = Directory(downloadsPath);
-        }
-      }
-
-      // Fallback to app documents directory
-      backupDir ??= Directory(path.join(
+      final backupDir = Directory(path.join(
         (await getApplicationDocumentsDirectory()).path,
         _backupFolderName,
       ));
@@ -54,21 +61,10 @@ class FileExportService {
 
       return backupDir.path;
     } catch (e) {
-      // If external storage fails, use internal storage
-      try {
-        final appDocDir = await getApplicationDocumentsDirectory();
-        final internalBackupDir =
-            Directory(path.join(appDocDir.path, _backupFolderName));
-        if (!await internalBackupDir.exists()) {
-          await internalBackupDir.create(recursive: true);
-        }
-        return internalBackupDir.path;
-      } catch (_) {
-        throw FileException(
-          message: 'Gagal mengakses direktori backup',
-          originalError: e,
-        );
-      }
+      throw FileException(
+        message: 'Gagal mengakses direktori backup',
+        originalError: e,
+      );
     }
   }
 

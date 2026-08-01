@@ -27,13 +27,39 @@
 //
 // ## Auth
 //
-// Deployed with the default `verify_jwt = true`, so a caller needs a valid
-// Supabase JWT to reach the body at all. The scheduled caller presents the
-// service key; the client built below uses the same key from the environment,
-// which is what lets it read across every shop.
+// `verify_jwt = true` is necessary and nowhere near sufficient. It proves the
+// caller holds *some* valid JWT for this project - which every signed-in shop
+// owner does. It says nothing about which role that JWT carries, so on its own
+// it let any authenticated user fire a project-wide sweep that runs, below,
+// with the service role.
+//
+// The damage was bounded (the policy functions in 20260801000001 only ever
+// name objects that are already expired or already orphaned, so nothing a user
+// could still reach was deletable) but the sweep is O(objects) and free to
+// trigger in a loop, and "bounded" is not the same as "authorised".
+//
+// So the caller is checked against the service key directly rather than by
+// decoding claims. `run_storage_janitor` sends `Bearer <service key>` read from
+// Vault, so the expected value is known exactly and an equality test cannot be
+// fooled by a JWT that merely parses. The comparison is length-then-XOR so it
+// does not return early on the first differing byte.
 // =============================================================================
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+
+/// Constant-time string comparison.
+///
+/// A plain `===` leaks how many leading bytes matched through its running time.
+/// That is a thin channel over HTTP and this key is long, but the mitigation is
+/// four lines and the alternative is arguing about how thin.
+function secureEquals(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  }
+  return diff === 0
+}
 
 /// Buckets swept for orphans. Retention applies only to payment proofs - a
 /// product photo has no expiry, it is deleted when its product is.
@@ -72,9 +98,22 @@ interface Report {
 }
 
 Deno.serve(async (req) => {
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+  // Before anything else, and before the service-role client below exists.
+  const presented = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? ''
+  if (!secureEquals(presented, serviceKey)) {
+    // Deliberately terse. The caller is a cron job that does not read this, and
+    // anything more descriptive only helps someone probing the endpoint.
+    return new Response(JSON.stringify({ error: 'forbidden' }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 403,
+    })
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    serviceKey,
     // No session to persist and nothing to refresh: this process handles one
     // request and exits.
     { auth: { persistSession: false, autoRefreshToken: false } },

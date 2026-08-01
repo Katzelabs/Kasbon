@@ -83,4 +83,20 @@ class AppPlatform {
   /// False on web, where an "export" is a browser download and there is no
   /// path to show the user afterwards.
   static bool get hasFileSystem => !isWeb;
+
+  /// Whether the developer-only screens should exist at all.
+  ///
+  /// Not a platform question like the rest of this file, but it belongs here
+  /// for the same reason they do: the alternative is a bare `kDebugMode` at the
+  /// call site, which says when the branch is taken and not what it is for.
+  ///
+  /// This gates route *registration*, not just navigation. `/dev`, `/dev/seed`
+  /// and `/dev/design-system` were registered unconditionally and merely left
+  /// out of the navigation rail, which hides them on a phone and does nothing
+  /// at all on web - the app uses path URLs, so `/dev/seed` was one typed
+  /// address away in a shipped build, and that screen writes categories and
+  /// products straight into whatever account is signed in. RLS keeps the damage
+  /// inside the user's own tenant; it does not make a "seed dummy data" button
+  /// something a shop owner should be able to reach.
+  static bool get exposesDevTools => kDebugMode;
 }

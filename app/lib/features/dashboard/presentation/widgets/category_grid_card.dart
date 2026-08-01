@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../config/theme/app_colors.dart';
+import '../../../../core/platform/app_platform.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 
@@ -196,7 +197,24 @@ class MenuCategory {
 class DefaultMenuCategories {
   DefaultMenuCategories._();
 
-  static const List<MenuCategory> items = [
+  /// A getter rather than a `const` list because the last entry is conditional:
+  /// the Dev Tools route only exists in a debug build (see
+  /// `AppPlatform.exposesDevTools`), and a tile pointing at an unregistered
+  /// route would drop the user on the error page.
+  static List<MenuCategory> get items => [
+    ..._core,
+    if (AppPlatform.exposesDevTools) _devTools,
+  ];
+
+  static const MenuCategory _devTools = MenuCategory(
+    label: 'Dev Tools',
+    icon: Icons.developer_mode,
+    routePath: '/dev',
+    backgroundColor: AppColors.accentPinkLight,
+    iconColor: AppColors.accentPink,
+  );
+
+  static const List<MenuCategory> _core = [
     MenuCategory(
       label: 'Kasir',
       icon: Icons.point_of_sale,
@@ -238,14 +256,6 @@ class DefaultMenuCategories {
       routePath: '/settings',
       backgroundColor: AppColors.borderLight,
       iconColor: AppColors.textSecondary,
-    ),
-    // Dev Tools (for development only)
-    MenuCategory(
-      label: 'Dev Tools',
-      icon: Icons.developer_mode,
-      routePath: '/dev',
-      backgroundColor: AppColors.accentPinkLight,
-      iconColor: AppColors.accentPink,
     ),
   ];
 }

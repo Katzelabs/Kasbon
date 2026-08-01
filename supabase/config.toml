@@ -139,10 +139,21 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 6
+#
+# 8 and lower_upper_letters_digits are not a tightening of what users
+# experience - they are the server finally agreeing with the client. Validators
+# .password() in core/utils/validators.dart has always required 8 characters
+# plus a lowercase, an uppercase and a digit, so every password the app has ever
+# created already satisfies this. What the old values (6, no requirements) meant
+# was that anything reaching the API another way - curl, a future admin path, a
+# client build with the validator edited out - could set a weaker one than the
+# UI would ever accept.
+#
+# Change these and validators.dart has to follow, in both directions.
+minimum_password_length = 8
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
-password_requirements = ""
+password_requirements = "lower_upper_letters_digits"
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
@@ -179,7 +190,17 @@ double_confirm_changes = true
 # /verify-email to collect the 6-digit code from the confirmation template.
 enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
-secure_password_change = false
+#
+# On, so that a stolen or borrowed session cannot be turned into a permanent
+# account takeover by silently changing the password - the one action that locks
+# the real owner out of their own sales history.
+#
+# This does not affect the recovery flow, which is the only place the app
+# changes a password at all: `resetPassword` in auth_remote_datasource.dart
+# calls verifyOTP(type: recovery) first, and the session that mints satisfies
+# the recent-login condition. There is no settings screen that changes a
+# password; if one is added it will need a reauthentication step.
+secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
 # Number of characters used in the email OTP.

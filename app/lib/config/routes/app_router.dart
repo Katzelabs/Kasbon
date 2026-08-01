@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/platform/app_platform.dart';
 import '../../core/utils/responsive_utils.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -606,33 +607,36 @@ class AppRouter {
             ],
           ),
 
-          // Dev Tools (development only)
-          GoRoute(
-            path: AppRoutes.dev,
-            name: 'dev',
-            pageBuilder: (context, state) => _fadePage(
-              state: state,
-              child: const DevToolsScreen(),
+          // Dev Tools. Registered only in a debug build - in release these
+          // routes do not exist, so /dev/seed falls through to the error page
+          // like any other unknown path. See AppPlatform.exposesDevTools.
+          if (AppPlatform.exposesDevTools)
+            GoRoute(
+              path: AppRoutes.dev,
+              name: 'dev',
+              pageBuilder: (context, state) => _fadePage(
+                state: state,
+                child: const DevToolsScreen(),
+              ),
+              routes: [
+                GoRoute(
+                  path: 'design-system',
+                  name: 'design-system',
+                  pageBuilder: (context, state) => _slidePage(
+                    state: state,
+                    child: const DesignSystemShowcaseScreen(),
+                  ),
+                ),
+                GoRoute(
+                  path: 'seed',
+                  name: 'dev-seed',
+                  pageBuilder: (context, state) => _slidePage(
+                    state: state,
+                    child: const DevSeedScreen(),
+                  ),
+                ),
+              ],
             ),
-            routes: [
-              GoRoute(
-                path: 'design-system',
-                name: 'design-system',
-                pageBuilder: (context, state) => _slidePage(
-                  state: state,
-                  child: const DesignSystemShowcaseScreen(),
-                ),
-              ),
-              GoRoute(
-                path: 'seed',
-                name: 'dev-seed',
-                pageBuilder: (context, state) => _slidePage(
-                  state: state,
-                  child: const DevSeedScreen(),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     ],

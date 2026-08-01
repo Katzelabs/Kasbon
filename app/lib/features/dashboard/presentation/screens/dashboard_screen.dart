@@ -722,8 +722,12 @@ class _SalesSummaryCardSkeleton extends StatelessWidget {
 /// the navigation.
 ///
 /// The one destination the rail does not carry is Dev Tools (`/dev`), which is
-/// consequently unreachable by tap from `medium` up. Deliberate: it is a
-/// development route that should arguably not be in the release menu at all.
+/// consequently unreachable by tap from `medium` up. That used to be the only
+/// thing hiding it, which was worth roughly nothing on web - path URLs meant
+/// `/dev/seed` was one typed address away in a shipped build. The route is now
+/// registered only in debug (`AppPlatform.exposesDevTools`) and the grid drops
+/// its tile to match, so in release there is no route to reach and no tile to
+/// point at it.
 ///
 /// Heading and grid travel together because the pair is placed as one unit.
 class _CategorySection extends StatelessWidget {
@@ -733,7 +737,7 @@ class _CategorySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const categories = DefaultMenuCategories.items;
+    final categories = DefaultMenuCategories.items;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nothing this app stores locally leaves the device by way of a backup.
+
+  `android:allowBackup="false"` on the <application> tag already stops cloud
+  backup, and on Android 11 and below that is the whole story. It is not the
+  whole story from Android 12 (API 31) on: allowBackup no longer governs
+  device-to-device transfer, which is a separate channel with its own rules, and
+  an app that only sets allowBackup still hands its data to the new phone during
+  a D2D migration. Both sections below are therefore required, and they say the
+  same thing twice on purpose.
+
+  What was actually leaking: the Supabase refresh token. It lived in a plaintext
+  SharedPreferences XML (`sharedpref` below) and Auto Backup copied it to the
+  user's Google Drive, where it outlived uninstalls and factory resets. It is
+  now in the platform keystore instead - see
+  core/services/secure_session_storage.dart - and this file makes sure the
+  keystore is the only place it is.
+
+  Nothing here needs to survive a device migration in any case: every byte of a
+  shop's real data is in Supabase and comes back on sign-in. What is local is a
+  session token and a few dismissed-checklist flags.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

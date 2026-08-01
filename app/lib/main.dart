@@ -12,6 +12,7 @@ import 'config/session/session_reset.dart';
 import 'config/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'core/platform/app_platform.dart';
+import 'core/services/secure_session_storage.dart';
 import 'core/platform/app_scroll_behavior.dart';
 import 'core/responsive/modern_breakpoint_scope.dart';
 
@@ -65,6 +66,11 @@ void main() async {
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
     anonKey: AppConfig.supabaseKey,
+    // The refresh token goes in the platform keystore rather than a plaintext
+    // preferences file. See core/services/secure_session_storage.dart.
+    authOptions: FlutterAuthClientOptions(
+      localStorage: buildSessionStorage(),
+    ),
   );
 
   // Configure dependency injection

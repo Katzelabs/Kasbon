@@ -8,16 +8,29 @@
          failure does not reproduce under `flutter run`. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- Storage permissions for backup -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29" />
+    <!-- No storage permissions, deliberately.
+
+         READ_EXTERNAL_STORAGE and WRITE_EXTERNAL_STORAGE were here so that
+         backups could be written to a hardcoded Download/KASBON_Backup path.
+         They bought an unencrypted dump of every sale, cost price and customer
+         debt sitting in shared storage where any app with read access could
+         take it - and on Android 11+ they bought nothing at all, because
+         scoped storage blocked the write and the code silently fell back to
+         the app sandbox anyway.
+
+         Backups now stay in the sandbox. Putting one somewhere else is the
+         SAF directory picker, sharing it is the share sheet, and restoring one
+         is the file picker - none of which needs a permission. Their absence
+         also keeps this app out of the Play Console's storage-access review.
+
+         See core/services/file_export/file_export_service_io.dart. -->
 
     <!-- Camera permission for product photos -->
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
-        android:requestLegacyExternalStorage="true"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:label="KASBON"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
