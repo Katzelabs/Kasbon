@@ -34,19 +34,38 @@ import 'image_compression_settings.dart';
 /// slower. Neither is guaranteed on every device. A shop owner who cannot save
 /// a product photo has a far worse problem than one whose photo is larger than
 /// it needed to be, so a failure here falls back instead of propagating.
+/// ## The format is read back off the bytes, never assumed from the request
+///
+/// Asking for WebP is not the same as getting it, and the difference is silent.
+/// On macOS `getOutputFormat()` in `flutter_image_compress_macos` maps WebP to
+/// its `default:` branch - `kUTTypeJPEG` - so the call succeeds, returns a
+/// perfectly good JPEG, and reports nothing. Trusting the request there stores
+/// JPEG bytes named `.webp` under `image/webp`, which nothing notices until
+/// something strict tries to decode one.
+///
+/// iOS does honour it (`format == 3` goes to `SDImageWebPCoder`), and Android
+/// uses the system encoder. But the point is not to keep a list of which
+/// platforms are honest: sniffing the result is two comparisons, and it is
+/// correct on platforms nobody has tried yet.
 Future<CompressedImage> compressImage(
   Uint8List bytes, {
   int maxDimension = ImageCompression.maxDimension,
   int quality = ImageCompression.quality,
 }) async {
+  // WebP first, because it is about half the size when the platform can do it.
   final webp = await _tryCompress(
     bytes,
     maxDimension: maxDimension,
     quality: quality,
     format: CompressFormat.webp,
   );
-  if (webp != null) {
-    return CompressedImage(bytes: webp, format: ImageFormat.webp);
+
+  // A JPEG here means the platform quietly substituted one (macOS). Keep it -
+  // it is the same compressed image the JPEG branch would produce, so asking
+  // again would only spend the work twice.
+  final asked = webp == null ? null : _sniff(webp);
+  if (asked != null) {
+    return CompressedImage(bytes: webp!, format: asked);
   }
 
   final jpeg = await _tryCompress(
@@ -55,17 +74,49 @@ Future<CompressedImage> compressImage(
     quality: quality,
     format: CompressFormat.jpeg,
   );
-  if (jpeg != null) {
-    return CompressedImage(bytes: jpeg, format: ImageFormat.jpeg);
+  final fallback = jpeg == null ? null : _sniff(jpeg);
+  if (fallback != null) {
+    return CompressedImage(bytes: jpeg!, format: fallback);
   }
 
-  // Both codecs refused, so these bytes are not an image this device can read.
-  // Uploading the original instead would put an uncompressed camera file in a
-  // bucket with a 5 MiB ceiling.
+  // Both codecs refused, or returned something neither this app nor the buckets
+  // accept. Uploading the original instead would put an uncompressed camera
+  // file in a bucket with a 5 MiB ceiling.
   throw const ImageStorageException(
     message: 'Gagal mengompres gambar',
     code: 'COMPRESSION_FAILED',
   );
+}
+
+/// What [bytes] actually are, or null if it is not a format either bucket takes.
+///
+/// Deliberately narrow. PNG would decode fine and both buckets allow it, but
+/// nothing here ever asks for one, so a PNG coming back means the plugin did
+/// something unexpected - and falling through to the JPEG attempt is a better
+/// answer than storing a surprise.
+ImageFormat? _sniff(Uint8List bytes) {
+  // SOI + the marker byte that follows it in every JPEG.
+  if (bytes.length >= 3 &&
+      bytes[0] == 0xFF &&
+      bytes[1] == 0xD8 &&
+      bytes[2] == 0xFF) {
+    return ImageFormat.jpeg;
+  }
+
+  // 'RIFF' .... 'WEBP' - the four size bytes in between are skipped.
+  if (bytes.length >= 12 &&
+      bytes[0] == 0x52 &&
+      bytes[1] == 0x49 &&
+      bytes[2] == 0x46 &&
+      bytes[3] == 0x46 &&
+      bytes[8] == 0x57 &&
+      bytes[9] == 0x45 &&
+      bytes[10] == 0x42 &&
+      bytes[11] == 0x50) {
+    return ImageFormat.webp;
+  }
+
+  return null;
 }
 
 /// One encode attempt, or null if this device cannot do it.
