@@ -1,3 +1,6 @@
+@Tags(['golden'])
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kasbon_pos/config/theme/app_colors.dart';

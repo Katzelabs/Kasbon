@@ -99,7 +99,41 @@ supabase stop                # Stop local Supabase
 supabase migration new <name>  # Create new migration
 supabase db push             # Apply migrations to local
 supabase db reset            # Reset local database (applies migrations + seed)
+
+# Security invariants: RLS scoping, search_path pinning, tenant isolation in
+# create_pos_transaction, janitor grants, required indexes. Runs in one
+# transaction that rolls back, so it is safe to repeat. CI runs this after a
+# reset; run it yourself after touching a policy, an RPC or a GRANT.
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+  -v ON_ERROR_STOP=1 -f supabase/tests/security_invariants.sql
 ```
+
+## Continuous Integration
+
+`.github/workflows/ci.yml` — three parallel jobs on every push to `main` and
+every PR:
+
+| Job | What it protects |
+|-----|------------------|
+| `flutter` | `flutter analyze --fatal-infos`, then the suite minus goldens, with coverage uploaded as an artifact |
+| `database` | Every migration applies to an **empty** database in order, the security invariants hold, and the Edge Function type-checks |
+| `build` | Web and a **release** Android build compile, and the merged release manifest still has `INTERNET`, still has `allowBackup="false"`, and still has no external-storage permission |
+
+Two things worth knowing before you change it:
+
+- **Goldens are excluded on CI.** The baselines are macOS-recorded and font
+  rasterisation differs on a Linux runner. They are tagged `golden` (see
+  `app/dart_test.yaml`) and still run by default locally, which is where they
+  are recorded. `flutter test` locally runs 1166 tests; CI runs 1161.
+- **There is no `dart format` gate**, because 70 of 473 files do not currently
+  match `dart format` and turning it on means a mechanical reformat across
+  everyone's in-flight branches first. The workflow header says how to enable
+  it once that is done.
+
+The release-variant build job is not redundant with a debug build. Every
+packaging bug the August 2026 audit found — a release APK with no `INTERNET`
+permission, R8 stripping the Flutter embedding into a black screen — existed
+only in the release variant, and a debug build was green through all of it.
 
 ## Architecture
 

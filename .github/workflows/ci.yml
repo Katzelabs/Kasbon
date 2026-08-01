@@ -1,0 +1,222 @@
+# KASBON CI
+#
+# Three independent jobs, run in parallel on every push to main and every PR.
+# They exist because until now nothing ran unless someone remembered to run it,
+# and the August 2026 audit turned up a class of bug that only a machine will
+# reliably catch: a release build that compiles perfectly and cannot open a
+# socket, a migration that is fine on your laptop because your laptop already
+# has the old schema, an RLS policy that is missing a role clause.
+#
+#   flutter   - analyze and test
+#   database  - migrations apply from nothing, and the security invariants hold
+#   build     - web and Android actually build, and the manifest is still right
+#
+# Deliberately NOT here, and why:
+#
+#   dart format --set-exit-if-changed
+#     70 of 473 files do not currently match `dart format`. Turning this on
+#     means a 70-file mechanical reformat first, which is a decision about
+#     everyone's in-flight branches rather than a CI decision. Once the tree is
+#     formatted, add to the flutter job:
+#         - run: dart format --output=none --set-exit-if-changed lib/ test/
+#
+#   a coverage threshold
+#     Coverage is measured and uploaded, not gated. A threshold that nobody
+#     chose is a threshold people route around; pick one deliberately against
+#     the number the artifact reports.
+#
+#   iOS and macOS builds
+#     Need macOS runners, which are ~10x the minutes. Both broke during the
+#     audit (missing entitlements, missing usage strings), so they are worth
+#     adding if this project ever ships on a cadence that justifies it.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch cancels the first. Nobody needs CI results
+# for a commit that has already been replaced.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned rather than 'stable'. An unpinned channel means the toolchain can
+  # change under a branch that nobody touched, and the resulting failure looks
+  # like the branch's fault.
+  FLUTTER_VERSION: '3.38.5'
+
+jobs:
+  flutter:
+    name: analyze & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # --fatal-infos because the tree is currently clean at every severity, and
+      # the cheapest time to keep it that way is now. Drop to --fatal-warnings
+      # if an unavoidable info-level lint ever shows up.
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      # Goldens are excluded: the baselines in
+      # test/widget/shared/modern/layout/goldens/ were recorded on macOS and
+      # font rasterisation differs here, so they fail on a difference that means
+      # nothing. See app/dart_test.yaml.
+      - name: Test
+        run: flutter test --exclude-tags golden --coverage
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/lcov.info ]; then
+            awk -F: '/^LF:/{f+=$2} /^LH:/{h+=$2} END{
+              if (f>0) printf "Line coverage: %d/%d (%.1f%%)\n", h, f, h/f*100
+            }' coverage/lcov.info >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: app/coverage/lcov.info
+          if-no-files-found: warn
+
+  database:
+    name: migrations & invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Trimmed to what the checks actually touch. `storage` has to stay:
+      # 20260727000001 and 20260731000002 create buckets and write policies on
+      # storage.objects, and without the service that schema does not exist.
+      # Locally this brings start-up from ~90s to ~25s.
+      - name: Start Supabase
+        run: supabase start -x studio,imgproxy,inbucket,realtime,analytics,vector,edge-runtime
+
+      # The real assertion is that this exits 0. Every migration applies to an
+      # empty database in order, and the seed loads on top - which is the thing
+      # that cannot be checked on a developer machine that already has the
+      # schema from three migrations ago.
+      - name: Apply migrations from scratch
+        run: supabase db reset
+
+      - name: Security invariants
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 -f supabase/tests/security_invariants.sql
+
+      # The Supabase CLI bundles its own Deno for `functions serve`, but does
+      # not put one on PATH, so this needs its own toolchain.
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # Type-checks the edge function against the real supabase-js it imports.
+      # It is not covered by `flutter analyze` or by db reset, so without this
+      # nothing looks at it until a deploy.
+      - name: Type-check Edge Functions
+        run: deno check supabase/functions/storage-janitor/index.ts
+
+  build:
+    name: build web & android
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Placeholder values: this job proves the code compiles and the manifest
+      # is right, and neither needs a reachable backend. Nothing here runs the
+      # app, so nothing dials the URL.
+      - name: Write build config
+        run: |
+          cat > env.ci.json <<'EOF'
+          {
+            "SUPABASE_URL": "https://ci.invalid",
+            "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ci_placeholder"
+          }
+          EOF
+
+      - name: Build web
+        run: flutter build web --dart-define-from-file=env.ci.json
+
+      # Release rather than debug, because every packaging bug the audit found -
+      # the missing INTERNET permission, R8 stripping the Flutter embedding -
+      # exists only in the release variant. A debug build would have been green
+      # through all of it.
+      - name: Build Android release
+        run: |
+          flutter build apk --release \
+            --dart-define-from-file=env.ci.json \
+            --obfuscate --split-debug-info=build/symbols
+
+      # Guards the single worst bug in the audit: INTERNET lived only in the
+      # debug and profile manifests, so release APKs shipped unable to reach
+      # Supabase at all. Asserted against the *merged* manifest, since that is
+      # the one that reflects what the variant actually gets.
+      - name: Check the merged release manifest
+        run: |
+          MANIFEST=$(find build/app/intermediates/merged_manifest -name AndroidManifest.xml \
+                     | grep -i release | head -1)
+          if [ -z "$MANIFEST" ]; then
+            echo "::error::no merged release manifest found"; exit 1
+          fi
+          echo "Checking $MANIFEST"
+          fail=0
+          # Match the declaration, not the substring. AndroidManifest.xml
+          # carries a comment explaining why the storage permissions were
+          # removed, and XML comments survive into the merged manifest - a bare
+          # `grep EXTERNAL_STORAGE` matches that comment and fails every run.
+          # Found exactly that way, before this ever ran on CI.
+          grep -q 'android:name="android.permission.INTERNET"' "$MANIFEST" || {
+            echo "::error::release manifest is missing INTERNET - the app cannot reach Supabase"; fail=1; }
+          grep -q 'android:allowBackup="false"' "$MANIFEST" || {
+            echo "::error::allowBackup is not false - the session token gets backed up to Google Drive"; fail=1; }
+          for perm in READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE; do
+            if grep -q "android:name=\"android.permission.$perm\"" "$MANIFEST"; then
+              echo "::error::$perm is back; backups must stay in the app sandbox"; fail=1
+            fi
+          done
+          exit $fail
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error

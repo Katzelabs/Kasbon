@@ -1,0 +1,20 @@
+# Test tags.
+#
+# `golden` marks the pixel baselines in
+# test/widget/shared/modern/layout/modern_app_shell_golden_test.dart. They were
+# recorded on macOS and are not portable: font rasterisation differs between
+# hosts, so the same widget tree renders a few pixels differently on a Linux
+# runner and every comparison fails on a difference that means nothing.
+#
+# CI runs on ubuntu and passes --exclude-tags golden. They still run by default
+# on a developer's machine, which is where they are recorded and where they are
+# useful. Re-record intentional changes with:
+#
+#   flutter test --update-goldens test/widget/shared/modern/layout/
+#
+# Declaring the tag here is what stops `flutter test` warning about an unknown
+# tag on every run.
+tags:
+  golden:
+    description: >-
+      Pixel-comparison tests. macOS-recorded baselines; excluded on CI hosts.
