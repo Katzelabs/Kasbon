@@ -180,6 +180,46 @@ All data stored in Supabase PostgreSQL with Row Level Security (RLS). Every tabl
 - Booleans: native bool
 - Money: DECIMAL(12,2) → double in Dart
 
+## Storage Retention (`storage-janitor`)
+
+Storage is the quota that runs out first: 1 GB on the free tier, against a shop
+writing ~15 MB/day of payment proofs. Nothing used to delete anything, so the
+`storage-janitor` Edge Function sweeps nightly at 03:00 WIB (`0 20 * * *` UTC).
+
+Two jobs: **retention** (proofs past `shop_settings.payment_proof_retention_days`,
+default 90) and **orphans** (objects in either bucket that no row points at and
+that are more than 24h old — both app delete paths drop their errors on purpose,
+so leaks are by design and this is the other half).
+
+The split is deliberate: **Postgres decides what, the function only does I/O.**
+`storage.protect_delete()` blocks direct `DELETE` on `storage.objects` ("Use the
+Storage API instead"), so removal has to be an HTTP call — but the policy
+queries (`expired_payment_proofs`, `orphaned_object_paths`,
+`referenced_object_paths`, `clear_payment_proof_paths`) live in
+`20260801000001` and are testable with plain psql.
+
+Those four are **service-role only**, enforced twice: by GRANTs *and* by
+`assert_janitor_caller()` inside each body. Both are needed —
+`20260725000001_grant_api_role_privileges.sql` sets `ALTER DEFAULT PRIVILEGES`
+so every new `public` function is executable by `authenticated`, which would
+otherwise hand any signed-in user a cross-tenant read.
+
+**Deployment is not automatic.** The schedule ships in `20260801000002`, but it
+no-ops with a `NOTICE` until two Vault secrets exist — they hold a service key
+and a per-environment URL, so they cannot live in a migration:
+
+```sql
+select vault.create_secret('https://<ref>.supabase.co/functions/v1/storage-janitor', 'storage_janitor_url');
+select vault.create_secret('<service-role-key>', 'storage_janitor_service_key');
+```
+
+Then `supabase functions deploy storage-janitor`, and verify without deleting:
+
+```sql
+select public.run_storage_janitor(dry_run => true);
+select status_code, content from net._http_response order by created desc limit 1;
+```
+
 ## Authentication
 
 Mandatory email/password auth via Supabase Auth, with email verification and
