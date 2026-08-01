@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:kasbon_pos/core/errors/exceptions.dart';
+import 'package:kasbon_pos/core/services/image_storage/compressed_image.dart';
 import 'package:kasbon_pos/core/services/image_storage/image_compression_settings.dart';
 import 'package:kasbon_pos/core/services/image_storage/image_compressor_dart.dart';
 
@@ -56,7 +57,7 @@ void main() {
     test('scales a landscape photo until its shorter side is the maximum',
         () async {
       final compressed = await compressImage(_jpeg(4000, 3000));
-      final result = _decode(compressed);
+      final result = _decode(compressed.bytes);
 
       expect(result.height, 800);
       expect(result.width, 1067); // 4000 * (800 / 3000), rounded
@@ -64,7 +65,7 @@ void main() {
 
     test('scales a portrait photo on its width', () async {
       final compressed = await compressImage(_jpeg(3000, 4000));
-      final result = _decode(compressed);
+      final result = _decode(compressed.bytes);
 
       expect(result.width, 800);
       expect(result.height, 1067);
@@ -75,7 +76,7 @@ void main() {
       // A panorama: 2000 wide, but only 400 tall. Scaling this to fit 800 on
       // the short side would enlarge it.
       final compressed = await compressImage(_jpeg(2000, 400));
-      final result = _decode(compressed);
+      final result = _decode(compressed.bytes);
 
       expect(result.width, 2000);
       expect(result.height, 400);
@@ -83,7 +84,7 @@ void main() {
 
     test('never enlarges a small image', () async {
       final compressed = await compressImage(_jpeg(120, 120));
-      final result = _decode(compressed);
+      final result = _decode(compressed.bytes);
 
       expect(result.width, 120);
       expect(result.height, 120);
@@ -93,7 +94,7 @@ void main() {
       final compressed = await compressImage(_jpeg(1000, 1000),
           maxDimension: 200, quality: 60);
 
-      expect(_decode(compressed).width, 200);
+      expect(_decode(compressed.bytes).width, 200);
     });
 
     test('produces a JPEG regardless of the source format', () async {
@@ -102,7 +103,33 @@ void main() {
       final compressed = await compressImage(png);
 
       // SOI marker: the two bytes every JPEG starts with.
-      expect(compressed.sublist(0, 2), [0xFF, 0xD8]);
+      expect(compressed.bytes.sublist(0, 2), [0xFF, 0xD8]);
+    });
+
+    test('reports the format it actually produced', () async {
+      final compressed = await compressImage(_jpeg(1000, 1000));
+
+      // The browser path cannot make lossy WebP - `package:image` only encodes
+      // it losslessly, which would be bigger than the JPEG it replaced - so it
+      // says JPEG and means it. The native path says webp.
+      expect(compressed.format, ImageFormat.jpeg);
+      expect(compressed.mimeType, 'image/jpeg');
+      expect(compressed.fileExtension, 'jpg');
+    });
+
+    test('the declared format matches the bytes', () async {
+      // The failure this exists to catch is an object stored as `.jpg` while
+      // holding WebP, or the reverse: nothing notices until a browser refuses
+      // to render it, by which time the object path is already in a row.
+      final compressed = await compressImage(_jpeg(600, 600));
+
+      final magic = switch (compressed.format) {
+        ImageFormat.jpeg => [0xFF, 0xD8],
+        // RIFF....WEBP
+        ImageFormat.webp => [0x52, 0x49, 0x46, 0x46],
+      };
+
+      expect(compressed.bytes.sublist(0, magic.length), magic);
     });
 
     test('makes a large photo dramatically smaller', () async {
@@ -110,7 +137,7 @@ void main() {
 
       final compressed = await compressImage(original);
 
-      expect(compressed.length, lessThan(original.length ~/ 4));
+      expect(compressed.bytes.length, lessThan(original.length ~/ 4));
     });
 
     test('strips the camera Exif block, including GPS', () async {
@@ -119,7 +146,7 @@ void main() {
       // Not just "no GPS": the whole block goes, matching the native
       // compressor's `keepExif: false`. The embedded camera thumbnail inside it
       // is the part that costs 10-30 KB of a 1 GB quota.
-      expect(_decode(compressed).exif.isEmpty, isTrue);
+      expect(_decode(compressed.bytes).exif.isEmpty, isTrue);
     });
 
     test('bakes orientation into an image too small to be resized', () async {
@@ -130,7 +157,7 @@ void main() {
       final compressed = await compressImage(
         _jpegWithExif(120, 200, orientation: 6),
       );
-      final result = _decode(compressed);
+      final result = _decode(compressed.bytes);
 
       expect(result.width, 200);
       expect(result.height, 120);
@@ -140,7 +167,7 @@ void main() {
       final compressed = await compressImage(
         _jpegWithExif(3000, 4000, orientation: 6),
       );
-      final result = _decode(compressed);
+      final result = _decode(compressed.bytes);
 
       // Rotated to 4000x3000 first, then scaled on the shorter side.
       expect(result.height, 800);
@@ -162,7 +189,7 @@ void main() {
         chroma: img.JpegChroma.yuv444,
       );
 
-      expect(compressed.length, lessThan(fullChroma.length));
+      expect(compressed.bytes.length, lessThan(fullChroma.length));
     });
 
     test('throws a readable failure when the bytes are not an image', () {

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 
 import '../../errors/exceptions.dart';
+import 'compressed_image.dart';
 import 'image_compression_settings.dart';
 
 /// Pure-Dart compression: decode, resize, re-encode as JPEG.
@@ -16,7 +17,24 @@ import 'image_compression_settings.dart';
 /// is: `compute` does not fork an isolate in a browser. Acceptable because it
 /// happens once per photo, behind the picker's existing loading state, and the
 /// alternative is uploading the original.
-Future<Uint8List> compressImage(
+///
+/// ## Why this one stays JPEG while the native path moved to WebP
+///
+/// Not an oversight, and not a thing to "fix" by swapping the encoder.
+/// `package:image` does ship `encodeWebP`, but it is **lossless only** - so
+/// using it here would produce files several times *larger* than the JPEG it
+/// replaced, in the name of a format chosen for being smaller.
+///
+/// Lossy WebP in a browser means the browser's own encoder, reached through
+/// `canvas.toBlob` / `OffscreenCanvas.convertToBlob`. That is a real option and
+/// worth taking - it is worth ~50% of every image a web user uploads - but it
+/// is `package:web` interop that cannot be covered by a VM test, so it is a
+/// deliberate follow-up rather than something smuggled in here.
+///
+/// Until then a browser upload is a JPEG and a phone upload is a WebP, which is
+/// exactly why the format travels with the bytes as [CompressedImage] instead
+/// of being read from a constant.
+Future<CompressedImage> compressImage(
   Uint8List bytes, {
   int maxDimension = ImageCompression.maxDimension,
   int quality = ImageCompression.quality,
@@ -77,10 +95,13 @@ Future<Uint8List> compressImage(
   //
   // Without it the same photo landed measurably larger from a browser than from
   // a phone, which is the drift the shared settings exist to prevent.
-  return img.encodeJpg(
-    fitted,
-    quality: quality,
-    chroma: img.JpegChroma.yuv420,
+  return CompressedImage(
+    bytes: img.encodeJpg(
+      fitted,
+      quality: quality,
+      chroma: img.JpegChroma.yuv420,
+    ),
+    format: ImageFormat.jpeg,
   );
 }
 

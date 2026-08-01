@@ -191,6 +191,21 @@ default 90) and **orphans** (objects in either bucket that no row points at and
 that are more than 24h old — both app delete paths drop their errors on purpose,
 so leaks are by design and this is the other half).
 
+Retention bounds the total but does not make it small. At ~150 KB a proof,
+50 QRIS sales/day × 90 days is **~675 MB** — most of a free-tier GB for one
+shop. The window is the dial, and a busy shop belongs nearer 30 days than 90.
+Product images stopped mattering once they became WebP (~15 KB each); storage
+is payment proofs now.
+
+**Image format is per-upload, not a constant.** The native encoders produce
+WebP (~50% smaller than JPEG at matched quality, measured); browsers still get
+JPEG, because `package:image` only encodes WebP *losslessly* — which would be
+larger than the JPEG it replaced. So the format travels with the bytes as
+`CompressedImage`, and the object's extension comes from what was actually
+encoded. Reading it from a constant is how an object ends up named `.jpg` while
+holding WebP. Lossy WebP on web needs `canvas.toBlob` interop and is a
+follow-up.
+
 The split is deliberate: **Postgres decides what, the function only does I/O.**
 `storage.protect_delete()` blocks direct `DELETE` on `storage.objects` ("Use the
 Storage API instead"), so removal has to be an HTTP call — but the policy

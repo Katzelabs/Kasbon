@@ -39,15 +39,17 @@ class SupabasePaymentProofStorage implements PaymentProofStorage {
         quality: PaymentProofCompression.quality,
       );
 
+      // Extension follows what was encoded - WebP natively, JPEG in a browser -
+      // rather than a constant. See `CompressedImage`.
       final objectPath = '$userId/$transactionId/'
           '${DateTime.now().millisecondsSinceEpoch}.'
-          '${PaymentProofCompression.fileExtension}';
+          '${compressed.fileExtension}';
 
       await _bucket.uploadBinary(
         objectPath,
-        compressed,
-        fileOptions: const FileOptions(
-          contentType: PaymentProofCompression.mimeType,
+        compressed.bytes,
+        fileOptions: FileOptions(
+          contentType: compressed.mimeType,
           // A fresh timestamp per upload means a collision here would mean
           // something is wrong. Re-shooting a proof writes a new object and
           // leaves the old one for [delete] to remove, so that the row never

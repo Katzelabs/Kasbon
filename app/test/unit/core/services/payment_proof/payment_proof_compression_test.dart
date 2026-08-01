@@ -84,9 +84,9 @@ void main() {
       maxDimension: PaymentProofCompression.maxDimension,
       quality: PaymentProofCompression.quality,
     );
-    maybeDump('proof_1000_q85.jpg', compressed);
+    maybeDump('proof_1000_q85.jpg', compressed.bytes);
 
-    final decoded = img.decodeImage(compressed)!;
+    final decoded = img.decodeImage(compressed.bytes)!;
 
     // 1080x1920 portrait: the shorter side is the width.
     expect(decoded.width, PaymentProofCompression.maxDimension);
@@ -116,9 +116,9 @@ void main() {
       maxDimension: ImageCompression.maxDimension,
       quality: ImageCompression.quality,
     );
-    maybeDump('product_800_q75.jpg', asProduct);
+    maybeDump('product_800_q75.jpg', asProduct.bytes);
 
-    expect(asProof.length, greaterThan(asProduct.length));
+    expect(asProof.bytes.length, greaterThan(asProduct.bytes.length));
   });
 
   // The number the storage arithmetic in PaymentProofCompression is built on.
@@ -132,7 +132,7 @@ void main() {
     );
 
     expect(
-      compressed.length,
+      compressed.bytes.length,
       lessThan(600 * 1024),
       reason: 'budget assumes ~300 KB for a photographic proof; this synthetic '
           'screen is flatter than a real photo so it should come in well under',

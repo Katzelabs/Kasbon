@@ -23,7 +23,7 @@ export '../image_storage/picked_image.dart';
 /// a string that might be a stale link. Two small interfaces sharing the
 /// compressor and [PickedImage] cost less than either.
 ///
-/// Object layout: `<user_id>/<transaction_id>/<timestamp>.jpg`, matching the
+/// Object layout: `<user_id>/<transaction_id>/<timestamp>.<ext>`, matching the
 /// product bucket. The leading user id is load-bearing: the bucket's RLS
 /// policies read it with `storage.foldername(name)[1]` to decide who may write
 /// and who may sign.

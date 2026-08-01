@@ -36,26 +36,37 @@ class PaymentProofCompression {
   /// one thing being stored.
   static const int quality = 85;
 
-  /// Content type every stored proof carries.
-  static const String mimeType = 'image/jpeg';
+  // `mimeType` and `fileExtension` used to be constants here. They are now
+  // carried by `CompressedImage`, because a proof shot on a phone is WebP and
+  // one uploaded from a browser is still JPEG - see `image_compressor_dart`.
 
-  /// Extension matching [mimeType].
-  static const String fileExtension = 'jpg';
-
-  // Storage arithmetic, recorded here because these numbers decide a policy
-  // question that compression cannot solve:
+  // Storage arithmetic, kept here because these numbers decide a policy
+  // question, and because the earlier version of this comment got it wrong in a
+  // way worth not repeating.
   //
-  //   ~300 KB per proof at the settings above
-  //   x 50 QRIS sales/day for a busy warung
-  //   = ~15 MB/day, ~5.5 GB/year
+  // A proof is ~150 KB as WebP (measured: a 1000px screenshot of a phone is
+  // 74 KB, and a real proof is a hand-held photograph *of* a screen, so noisier
+  // and larger). It was ~300 KB before the format changed.
   //
-  // Supabase's free tier is 1 GB, so a shop that photographs every QRIS sale
-  // fills it in roughly ten weeks. Dropping to the product settings (800/q75,
-  // ~180 KB) only stretches that to about four months while making the digits
-  // harder to read - it trades the feature's purpose for a delay, not a fix.
+  // Retention bounds the total, but the bound is not small:
   //
-  // The lever is retention, not quality: a proof stops being useful once a sale
-  // is too old to dispute. Nothing in this app deletes them yet, which is a gap
-  // to close before a real shop runs on it for a year - not a reason to store
-  // unreadable photographs in the meantime.
+  //   50 QRIS sales/day x 90 days x 150 KB = ~675 MB
+  //   10 QRIS sales/day x 90 days x 150 KB = ~135 MB
+  //
+  // Against a 1 GB free tier that is one busy shop, or about seven moderate
+  // ones. The first draft of this arithmetic claimed a busy shop settled at
+  // ~40 MB; that figure implied about 1.5 proofs a day and was simply wrong.
+  //
+  // So the levers, in the order they actually bite:
+  //
+  //   1. `shop_settings.payment_proof_retention_days`. A busy shop belongs
+  //      nearer 30 days than 90, and 30 puts it back around 225 MB. This is the
+  //      dial, and it is per shop precisely because the right value is not the
+  //      same for a warung and a furniture seller.
+  //   2. Format. WebP already halved it and needed no quality sacrifice.
+  //   3. Not quality. Dropping to the product settings buys a little and costs
+  //      the legibility the whole feature exists for.
+  //
+  // Product images, by contrast, have stopped mattering: a photo at 800px WebP
+  // is ~15 KB, so a hundred of them is 1.5 MB. Storage is proofs now.
 }

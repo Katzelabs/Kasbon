@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/storage_cache_control.dart';
 import '../../errors/exceptions.dart';
 import '../supabase_client_provider.dart';
-import 'image_compression_settings.dart';
 import 'image_compressor.dart';
 import 'image_storage_service.dart';
 
@@ -20,7 +19,9 @@ import 'image_storage_service.dart';
 /// so the emulator's `10.0.2.2`, a LAN address and production each invalidated
 /// the others. The path is the part that is actually about the image.
 ///
-/// Objects are laid out as `<user_id>/<product_id>/<timestamp>.jpg`. The
+/// Objects are laid out as `<user_id>/<product_id>/<timestamp>.<ext>`, where
+/// the extension is whatever was actually encoded - `webp` from a phone, `jpg`
+/// from a browser, so a shop with both has both in the bucket. The
 /// leading user id is not decoration - the bucket's RLS policies read it with
 /// `storage.foldername(name)[1]` to decide who may write, the same way the
 /// public tables compare `user_id = auth.uid()`.
@@ -52,15 +53,18 @@ class SupabaseImageStorageService implements ImageStorageService {
       final userId = _clientProvider.requireUserId;
       final compressed = await compressImage(image.bytes);
 
+      // Extension comes from what was actually encoded, not from a constant:
+      // the native path produces WebP and the browser produces JPEG, so a shop
+      // with two devices has both in the same bucket.
       final objectPath = '$userId/$productId/'
           '${DateTime.now().millisecondsSinceEpoch}.'
-          '${ImageCompression.fileExtension}';
+          '${compressed.fileExtension}';
 
       await _bucket.uploadBinary(
         objectPath,
-        compressed,
-        fileOptions: const FileOptions(
-          contentType: ImageCompression.mimeType,
+        compressed.bytes,
+        fileOptions: FileOptions(
+          contentType: compressed.mimeType,
           // Every upload has a fresh timestamp, so an existing object here
           // would mean something is wrong. Failing is better than silently
           // replacing a different product's photo.
