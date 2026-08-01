@@ -51,6 +51,23 @@ abstract class TransactionRepository {
     String? paymentConfirmedBy,
   });
 
+  /// Detach the payment proof from a sale, leaving the sale itself untouched.
+  ///
+  /// Separate from [updateTransaction] rather than a null argument to it,
+  /// because null there means "leave this column alone" - the property that
+  /// lets a slow proof upload and a debt settlement write the same row without
+  /// clobbering each other. A method that erases has to be able to say so.
+  ///
+  /// This clears the path only. `payment_confirmed_at` and
+  /// `payment_confirmed_by` survive: a shop owner deleting a blurry photo is
+  /// not retracting the confirmation, and blanking those would make a sale that
+  /// was verified at the counter read as unverified.
+  ///
+  /// Does not touch the stored object - the caller owns that, and does it after
+  /// this returns, so a failed delete leaves an unreferenced file rather than a
+  /// row pointing at nothing.
+  Future<Either<Failure, Transaction>> clearPaymentProof(String id);
+
   /// Distinct customer names already used by this shop, most recent first.
   ///
   /// Feeds the POS name autocomplete, which exists so that one customer stays

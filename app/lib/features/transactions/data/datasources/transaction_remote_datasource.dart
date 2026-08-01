@@ -36,6 +36,14 @@ abstract class TransactionRemoteDataSource {
     String? paymentConfirmedBy,
   });
 
+  /// Write NULL over `payment_proof_path`.
+  ///
+  /// Its own method because [updateTransaction] cannot express this: null there
+  /// means "leave this column alone", which is what stops two concurrent
+  /// writers clobbering each other's fields. Overloading null to also mean
+  /// "erase" would make the two indistinguishable.
+  Future<TransactionModel> clearPaymentProof(String id);
+
   /// Distinct customer names for the current user, most recently used first.
   Future<List<String>> getCustomerNames({String? query, int limit});
 }
@@ -292,6 +300,28 @@ class TransactionRemoteDataSourceImpl implements TransactionRemoteDataSource {
     } catch (e) {
       throw DatabaseException(
         message: 'Gagal memperbarui transaksi',
+        originalError: e,
+      );
+    }
+  }
+
+  @override
+  Future<TransactionModel> clearPaymentProof(String id) async {
+    try {
+      // Only this one column. The confirmation fields stay: the cashier did
+      // look at the customer's screen, and removing the photograph removes the
+      // evidence, not the fact that a human affirmed the money arrived.
+      final result = await _provider.client
+          .from('transactions')
+          .update({'payment_proof_path': null})
+          .eq('id', id)
+          .select()
+          .single();
+
+      return TransactionModel.fromJson(result);
+    } catch (e) {
+      throw DatabaseException(
+        message: 'Gagal menghapus bukti pembayaran',
         originalError: e,
       );
     }

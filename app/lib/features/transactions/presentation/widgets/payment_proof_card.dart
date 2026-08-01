@@ -1,3 +1,4 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -5,11 +6,14 @@ import '../../../../config/di/injection.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/errors/failures.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../shared/image_picking/image_source_picker.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../domain/entities/transaction.dart';
 import '../../domain/usecases/attach_payment_proof.dart';
+import '../../domain/usecases/remove_payment_proof.dart';
+import '../../domain/usecases/replace_payment_proof.dart';
 import '../providers/payment_proof_provider.dart';
 import '../providers/transactions_provider.dart';
 
@@ -24,6 +28,11 @@ import '../providers/transactions_provider.dart';
 /// background upload failed on a flat connection - and neither is an error
 /// worth interrupting anyone over at the time. This is where it gets noticed,
 /// which is the whole reason the upload is allowed to fail silently.
+///
+/// An attached proof can be swapped or deleted, from an overflow menu rather
+/// than from buttons beside the photo. Looking at the proof is what nearly
+/// every visit here is for; editing it is the rare repair, and two controls
+/// competing with the thumbnail would invert that.
 class PaymentProofCard extends ConsumerStatefulWidget {
   const PaymentProofCard({super.key, required this.transaction});
 
@@ -39,7 +48,7 @@ class PaymentProofCard extends ConsumerStatefulWidget {
 }
 
 class _PaymentProofCardState extends ConsumerState<PaymentProofCard> {
-  bool _isAttaching = false;
+  bool _isBusy = false;
 
   Future<void> _attach() async {
     final result = await pickImageFromSource(
@@ -51,25 +60,102 @@ class _PaymentProofCardState extends ConsumerState<PaymentProofCard> {
 
     if (result is! ImagePicked || !mounted) return;
 
-    setState(() => _isAttaching = true);
-
     // Unlike the POS, this uploads straight away: the transaction already
     // exists, so there is a real id to file the object under, and nobody is
     // waiting at a counter.
-    final outcome = await getIt<AttachPaymentProof>()(AttachPaymentProofParams(
-      transactionId: widget.transaction.id,
-      proof: result.image,
-      confirmedAt: widget.transaction.paymentConfirmedAt ?? DateTime.now(),
-    ));
+    await _run(
+      () => getIt<AttachPaymentProof>()(AttachPaymentProofParams(
+        transactionId: widget.transaction.id,
+        proof: result.image,
+        confirmedAt: widget.transaction.paymentConfirmedAt ?? DateTime.now(),
+      )),
+      successMessage: 'Bukti pembayaran tersimpan',
+    );
+  }
+
+  /// The overflow menu on an attached proof: re-shoot it, or delete it.
+  ///
+  /// The same sheet the POS dialog uses, so replacing a proof after the fact
+  /// looks like replacing one before the sale committed.
+  Future<void> _showProofActions() async {
+    final result = await pickImageFromSource(
+      context,
+      title: 'Bukti Pembayaran',
+      cameraLabel: 'Foto Ulang',
+      galleryLabel: 'Pilih dari Galeri',
+      clearLabel: 'Hapus Bukti',
+      allowClear: true,
+    );
 
     if (!mounted) return;
-    setState(() => _isAttaching = false);
+
+    switch (result) {
+      case ImagePicked(:final image):
+        await _replace(image);
+      case ImagePickCleared():
+        await _remove();
+      case ImagePickCancelled():
+        break;
+    }
+  }
+
+  Future<void> _replace(PickedImage image) async {
+    await _run(
+      () => getIt<ReplacePaymentProof>()(ReplacePaymentProofParams(
+        transactionId: widget.transaction.id,
+        proof: image,
+        previousObjectPath: widget.transaction.paymentProofPath,
+      )),
+      successMessage: 'Bukti pembayaran diganti',
+    );
+  }
+
+  Future<void> _remove() async {
+    final path = widget.transaction.paymentProofPath;
+    if (path == null) return;
+
+    // Deleting a proof cannot be undone and the photo is often the only record
+    // of a QRIS payment this app holds, so it asks first. Replacing does not -
+    // that ends with a proof still attached.
+    final confirmed = await ModernDialog.confirm(
+      context,
+      title: 'Hapus Bukti?',
+      message: 'Foto bukti pembayaran akan dihapus permanen. '
+          'Transaksi dan status pembayarannya tidak berubah.',
+      confirmLabel: 'Hapus',
+      isDestructive: true,
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await _run(
+      () => getIt<RemovePaymentProof>()(RemovePaymentProofParams(
+        transactionId: widget.transaction.id,
+        objectPath: path,
+      )),
+      successMessage: 'Bukti pembayaran dihapus',
+    );
+  }
+
+  /// Runs one of the three actions with the busy flag, the toast and the
+  /// re-read that all of them need.
+  Future<void> _run(
+    Future<Either<Failure, Transaction>> Function() action, {
+    required String successMessage,
+  }) async {
+    setState(() => _isBusy = true);
+
+    final outcome = await action();
+
+    if (!mounted) return;
+    setState(() => _isBusy = false);
 
     outcome.fold(
       (failure) => ModernToast.error(context, failure.message),
       (_) {
-        ModernToast.success(context, 'Bukti pembayaran tersimpan');
-        // Re-read the row so the card swaps from the empty state to the photo.
+        ModernToast.success(context, successMessage);
+        // Re-read the row so the card follows what the proof now is - a photo,
+        // a different photo, or the empty state again.
         ref.invalidate(transactionDetailProvider(widget.transaction.id));
       },
     );
@@ -84,22 +170,39 @@ class _PaymentProofCardState extends ConsumerState<PaymentProofCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'BUKTI PEMBAYARAN',
-            style: AppTextStyles.labelLarge.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'BUKTI PEMBAYARAN',
+                  style: AppTextStyles.labelLarge.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              // Only where there is something to act on. On the empty state the
+              // sole action is already a button below, and a menu offering
+              // "replace" and "delete" for a photo that does not exist would be
+              // two dead entries.
+              if (transaction.hasPaymentProof)
+                ModernIconButton.standard(
+                  icon: Icons.more_horiz,
+                  size: ModernSize.small,
+                  tooltip: 'Ganti atau hapus bukti',
+                  onPressed: _isBusy ? null : _showProofActions,
+                ),
+            ],
           ),
           const SizedBox(height: AppDimensions.spacing8),
           const ModernDivider(),
           const SizedBox(height: AppDimensions.spacing12),
           if (transaction.hasPaymentProof)
-            _AttachedProof(transaction: transaction)
+            _AttachedProof(transaction: transaction, isBusy: _isBusy)
           else
             _MissingProof(
-              isAttaching: _isAttaching,
-              onAttach: _isAttaching ? null : _attach,
+              isAttaching: _isBusy,
+              onAttach: _isBusy ? null : _attach,
             ),
         ],
       ),
@@ -109,12 +212,23 @@ class _PaymentProofCardState extends ConsumerState<PaymentProofCard> {
 
 /// A stored proof: who confirmed it, when, and the photo itself.
 class _AttachedProof extends ConsumerWidget {
-  const _AttachedProof({required this.transaction});
+  const _AttachedProof({required this.transaction, this.isBusy = false});
 
   final Transaction transaction;
 
+  /// A swap or a delete is in flight.
+  ///
+  /// The photo is replaced by a spinner rather than dimmed in place, because
+  /// the thumbnail on screen is about to stop being the truth and leaving it
+  /// visible would suggest the tap did nothing.
+  final bool isBusy;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (isBusy) {
+      return const _ProofFrame(child: Center(child: ModernLoading()));
+    }
+
     final urlAsync =
         ref.watch(paymentProofUrlProvider(transaction.paymentProofPath!));
 
@@ -146,7 +260,8 @@ class _AttachedProof extends ConsumerWidget {
             ),
           ),
         urlAsync.when(
-          loading: () => const _ProofFrame(child: Center(child: ModernLoading())),
+          loading: () =>
+              const _ProofFrame(child: Center(child: ModernLoading())),
           // A signed URL can fail for reasons that have nothing to do with the
           // photo - no network, an expired session. Saying "the proof is gone"
           // would be a stronger claim than we can make, so this offers a retry.

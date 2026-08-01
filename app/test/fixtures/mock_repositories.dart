@@ -209,6 +209,17 @@ extension MockTransactionRepositoryExtension on MockTransactionRepository {
           paymentConfirmedBy: any(named: 'paymentConfirmedBy'),
         )).thenAnswer((_) async => Left(failure));
   }
+
+  /// Stubs clearPaymentProof to return success
+  void stubClearPaymentProofSuccess(Transaction transaction) {
+    when(() => clearPaymentProof(any()))
+        .thenAnswer((_) async => Right(transaction));
+  }
+
+  /// Stubs clearPaymentProof to return failure
+  void stubClearPaymentProofFailure(Failure failure) {
+    when(() => clearPaymentProof(any())).thenAnswer((_) async => Left(failure));
+  }
 }
 
 /// Mock implementation of PaymentProofStorage using Mocktail

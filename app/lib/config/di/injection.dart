@@ -83,6 +83,8 @@ import '../../features/transactions/domain/usecases/create_transaction.dart';
 import '../../features/transactions/domain/usecases/get_customer_names.dart';
 import '../../features/transactions/domain/usecases/get_transaction.dart';
 import '../../features/transactions/domain/usecases/get_transactions.dart';
+import '../../features/transactions/domain/usecases/remove_payment_proof.dart';
+import '../../features/transactions/domain/usecases/replace_payment_proof.dart';
 
 /// Global service locator instance
 final GetIt getIt = GetIt.instance;
@@ -219,6 +221,14 @@ Future<void> configureDependencies() async {
       () => GetTransactions(getIt<TransactionRepository>()));
 
   getIt.registerLazySingleton(() => AttachPaymentProof(
+        getIt<TransactionRepository>(),
+        getIt<PaymentProofStorage>(),
+      ));
+  getIt.registerLazySingleton(() => ReplacePaymentProof(
+        getIt<TransactionRepository>(),
+        getIt<PaymentProofStorage>(),
+      ));
+  getIt.registerLazySingleton(() => RemovePaymentProof(
         getIt<TransactionRepository>(),
         getIt<PaymentProofStorage>(),
       ));

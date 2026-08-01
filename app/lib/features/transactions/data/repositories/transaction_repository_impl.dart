@@ -144,6 +144,24 @@ class TransactionRepositoryImpl implements TransactionRepository {
   }
 
   @override
+  Future<Either<Failure, Transaction>> clearPaymentProof(String id) async {
+    try {
+      final model = await _remoteDataSource.clearPaymentProof(id);
+
+      final itemModels = await _remoteDataSource.getTransactionItems(id);
+      final items = itemModels.map((m) => m.toEntity()).toList();
+
+      return Right(model.toEntity(items: items));
+    } on NotFoundException catch (e) {
+      return Left(NotFoundFailure(message: e.message));
+    } on DatabaseException catch (e) {
+      return Left(DatabaseFailure(message: e.message));
+    } catch (e) {
+      return const Left(UnexpectedFailure());
+    }
+  }
+
+  @override
   Future<Either<Failure, List<String>>> getCustomerNames({
     String? query,
     int limit = 20,
