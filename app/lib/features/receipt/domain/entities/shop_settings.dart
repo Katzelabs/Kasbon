@@ -2,6 +2,17 @@ import 'package:equatable/equatable.dart';
 
 /// ShopSettings entity representing store information for receipts
 class ShopSettings extends Equatable {
+  /// Matches the column default in the database, so a shop that has never
+  /// touched the setting reads the same number here and there.
+  static const int defaultPaymentProofRetentionDays = 90;
+
+  /// The range the database CHECK constraint allows.
+  ///
+  /// The floor is 7 rather than 1: a window short enough to delete a proof
+  /// before the weekend it was taken on is a data-loss bug wearing a settings
+  /// row, and the app has no business offering it.
+  static const int minPaymentProofRetentionDays = 7;
+  static const int maxPaymentProofRetentionDays = 3650;
   /// Unique identifier (UUID from Supabase)
   final String id;
 
@@ -37,6 +48,20 @@ class ShopSettings extends Equatable {
   /// Low stock threshold for alerts (default: 5)
   final int lowStockThreshold;
 
+  /// Days a payment proof is kept before `storage-janitor` deletes it.
+  ///
+  /// A dispute window, not a technical setting: the photo exists so a human can
+  /// settle an argument about whether a customer paid, and it stops earning its
+  /// storage once the sale is too old to argue about.
+  ///
+  /// Worth setting deliberately if the shop takes a lot of QRIS. At roughly
+  /// 150 KB a proof, 50 a day over 90 days is ~675 MB - most of a free Supabase
+  /// project for one shop. Thirty days puts the same shop near 225 MB.
+  ///
+  /// The database constrains this to 7..3650; see
+  /// `20260801000001_payment_proof_retention.sql`.
+  final int paymentProofRetentionDays;
+
   /// Record creation timestamp
   final DateTime createdAt;
 
@@ -54,6 +79,7 @@ class ShopSettings extends Equatable {
     this.receiptFooter,
     this.currency = 'IDR',
     this.lowStockThreshold = 5,
+    this.paymentProofRetentionDays = defaultPaymentProofRetentionDays,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -83,6 +109,7 @@ class ShopSettings extends Equatable {
     String? receiptFooter,
     String? currency,
     int? lowStockThreshold,
+    int? paymentProofRetentionDays,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -97,6 +124,8 @@ class ShopSettings extends Equatable {
       receiptFooter: receiptFooter ?? this.receiptFooter,
       currency: currency ?? this.currency,
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
+      paymentProofRetentionDays:
+          paymentProofRetentionDays ?? this.paymentProofRetentionDays,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

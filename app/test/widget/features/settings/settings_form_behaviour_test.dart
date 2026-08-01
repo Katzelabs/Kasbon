@@ -49,13 +49,18 @@ ShopSettings _settings({
   String? address = 'Jl. Merdeka 10',
   String? phone = '081234567890',
   int lowStockThreshold = 5,
+  int paymentProofRetentionDays =
+      ShopSettings.defaultPaymentProofRetentionDays,
+  String? businessType = 'warung_makan',
 }) {
   return ShopSettings(
     id: 'test',
     name: name,
+    businessType: businessType,
     address: address,
     phone: phone,
     lowStockThreshold: lowStockThreshold,
+    paymentProofRetentionDays: paymentProofRetentionDays,
     createdAt: DateTime(2026),
     updatedAt: DateTime(2026),
   );
@@ -165,7 +170,19 @@ void main() {
 
       expect(find.textContaining('stok 5 atau kurang'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.add));
+      // Scoped to the stock stepper by name. A bare `find.byIcon(Icons.add)`
+      // worked while this screen held one stepper and became ambiguous the
+      // moment retention added a second - so it names which one it means
+      // rather than relying on there only ever being one.
+      await tester.tap(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text('Batas Stok Minimum'),
+            matching: find.byType(Row),
+          ).first,
+          matching: find.byIcon(Icons.add),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.textContaining('stok 6 atau kurang'), findsOneWidget);
@@ -185,6 +202,49 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('stok 10 atau kurang'), findsOneWidget);
+    });
+
+    testWidgets('a retention preset sets the window in one tap',
+        (tester) async {
+      register(_settings(paymentProofRetentionDays: 90));
+
+      await pumpScreenAtWidth(
+        tester,
+        ResponsiveWidths.compact,
+        const AppSettingsScreen(),
+      );
+
+      await tester.tap(find.text('30 hari'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('lebih lama dari 30 hari'),
+        findsOneWidget,
+      );
+      expect(find.text('Simpan Pengaturan'), findsOneWidget);
+    });
+
+    testWidgets('changing only the retention window arms Simpan',
+        (tester) async {
+      register(_settings(paymentProofRetentionDays: 90));
+
+      await pumpScreenAtWidth(
+        tester,
+        ResponsiveWidths.compact,
+        const AppSettingsScreen(),
+      );
+
+      expect(find.text('Tersimpan'), findsOneWidget);
+
+      await tester.tap(find.text('180 hari'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Simpan Pengaturan'),
+        findsOneWidget,
+        reason: 'retention is on this screen, so it must count toward its '
+            'dirty flag - otherwise the setting cannot be saved at all',
+      );
     });
   });
 
@@ -251,6 +311,59 @@ void main() {
         reason: 'the three forms share one provider, so an undivided dirty '
             'flag would arm Simpan and the discard prompt on all of them',
       );
+    });
+
+    test('the retention window is persisted', () async {
+      register(_settings(paymentProofRetentionDays: 90));
+
+      final container = containerFor();
+      final notifier = container.read(settingsFormProvider.notifier);
+      await notifier.loadSettings();
+
+      notifier.setPaymentProofRetentionDays(30);
+      await notifier.saveAppSettings();
+
+      expect(repository.stored.paymentProofRetentionDays, 30);
+    });
+
+    test('the retention window is clamped to what the database allows',
+        () async {
+      register(_settings());
+
+      final container = containerFor();
+      final notifier = container.read(settingsFormProvider.notifier);
+      await notifier.loadSettings();
+
+      // Below the CHECK floor. Reaching Supabase with this turns a bounded
+      // input into a save failure with an opaque constraint message.
+      notifier.setPaymentProofRetentionDays(1);
+      expect(
+        container.read(settingsFormProvider).paymentProofRetentionDays,
+        ShopSettings.minPaymentProofRetentionDays,
+      );
+
+      notifier.setPaymentProofRetentionDays(99999);
+      expect(
+        container.read(settingsFormProvider).paymentProofRetentionDays,
+        ShopSettings.maxPaymentProofRetentionDays,
+      );
+    });
+
+    test('saving app settings does not wipe the shop business type', () async {
+      // The save builds a fresh ShopSettings field by field, and businessType
+      // was not among the fields - so it defaulted to null, `toJson` wrote the
+      // null, and the upsert cleared a column chosen once during onboarding.
+      // Nothing on either settings screen edits it, so nothing showed it going.
+      register(_settings(businessType: 'kedai_kopi'));
+
+      final container = containerFor();
+      final notifier = container.read(settingsFormProvider.notifier);
+      await notifier.loadSettings();
+
+      notifier.setLowStockThreshold(7);
+      await notifier.saveAppSettings();
+
+      expect(repository.stored.businessType, 'kedai_kopi');
     });
 
     test('whitespace-only edits do not count as changes', () async {

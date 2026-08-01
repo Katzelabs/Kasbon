@@ -43,6 +43,7 @@ class SettingsFormState {
   final String receiptHeader;
   final String receiptFooter;
   final int lowStockThreshold;
+  final int paymentProofRetentionDays;
   final bool isLoading;
   final bool isSaving;
   final String? error;
@@ -55,6 +56,8 @@ class SettingsFormState {
     this.receiptHeader = '',
     this.receiptFooter = '',
     this.lowStockThreshold = 5,
+    this.paymentProofRetentionDays =
+        ShopSettings.defaultPaymentProofRetentionDays,
     this.isLoading = false,
     this.isSaving = false,
     this.error,
@@ -90,11 +93,12 @@ class SettingsFormState {
         _nullIfBlank(receiptFooter) != _nullIfBlank(o.receiptFooter ?? '');
   }
 
-  /// Whether the low-stock threshold differs from what was loaded.
+  /// Whether anything on the app-settings screen differs from what was loaded.
   bool get isAppSettingsDirty {
     final o = original;
     if (o == null) return false;
-    return lowStockThreshold != o.lowStockThreshold;
+    return lowStockThreshold != o.lowStockThreshold ||
+        paymentProofRetentionDays != o.paymentProofRetentionDays;
   }
 
   SettingsFormState copyWith({
@@ -105,6 +109,7 @@ class SettingsFormState {
     String? receiptHeader,
     String? receiptFooter,
     int? lowStockThreshold,
+    int? paymentProofRetentionDays,
     bool? isLoading,
     bool? isSaving,
     String? error,
@@ -117,6 +122,8 @@ class SettingsFormState {
       receiptHeader: receiptHeader ?? this.receiptHeader,
       receiptFooter: receiptFooter ?? this.receiptFooter,
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
+      paymentProofRetentionDays:
+          paymentProofRetentionDays ?? this.paymentProofRetentionDays,
       isLoading: isLoading ?? this.isLoading,
       isSaving: isSaving ?? this.isSaving,
       // Deliberately not `?? this.error`: every state transition either sets a
@@ -136,6 +143,7 @@ class SettingsFormState {
       receiptHeader: settings.receiptHeader ?? '',
       receiptFooter: settings.receiptFooter ?? '',
       lowStockThreshold: settings.lowStockThreshold,
+      paymentProofRetentionDays: settings.paymentProofRetentionDays,
     );
   }
 }
@@ -216,6 +224,20 @@ class SettingsFormNotifier extends StateNotifier<SettingsFormState> {
     state = state.copyWith(lowStockThreshold: clamped, error: null);
   }
 
+  /// Update how long payment proofs are kept.
+  ///
+  /// Clamped to the range the database CHECK enforces, for the same reason as
+  /// the threshold above: both inputs are bounded, so an out-of-range value is
+  /// a programming error rather than something a user typed - and letting it
+  /// reach Supabase would turn it into a save failure with an opaque message.
+  void setPaymentProofRetentionDays(int value) {
+    final clamped = value.clamp(
+      ShopSettings.minPaymentProofRetentionDays,
+      ShopSettings.maxPaymentProofRetentionDays,
+    );
+    state = state.copyWith(paymentProofRetentionDays: clamped, error: null);
+  }
+
   /// Validate shop profile form
   String? validateShopProfile() {
     if (state.name.trim().isEmpty) {
@@ -281,6 +303,12 @@ class SettingsFormNotifier extends StateNotifier<SettingsFormState> {
       final updatedSettings = ShopSettings(
         id: original.id,
         name: state.name.trim(),
+        // Carried from `original` because nothing on either settings screen
+        // edits it - it is chosen once during onboarding. Omitting it here did
+        // not leave it alone: the constructor defaulted it to null and `toJson`
+        // writes nulls, so saving a receipt footer silently cleared the shop's
+        // trade.
+        businessType: original.businessType,
         address: _nullIfBlank(state.address),
         phone: _nullIfBlank(state.phone),
         logoUrl: original.logoUrl,
@@ -288,6 +316,7 @@ class SettingsFormNotifier extends StateNotifier<SettingsFormState> {
         receiptFooter: _nullIfBlank(state.receiptFooter),
         currency: original.currency,
         lowStockThreshold: state.lowStockThreshold,
+        paymentProofRetentionDays: state.paymentProofRetentionDays,
         createdAt: original.createdAt,
         updatedAt: DateTime.now(),
       );

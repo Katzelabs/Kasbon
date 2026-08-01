@@ -13,6 +13,7 @@ class ShopSettingsModel extends ShopSettings {
     super.receiptFooter,
     super.currency,
     super.lowStockThreshold,
+    super.paymentProofRetentionDays,
     required super.createdAt,
     required super.updatedAt,
   });
@@ -30,6 +31,8 @@ class ShopSettingsModel extends ShopSettings {
       receiptFooter: json['receipt_footer'] as String?,
       currency: json['currency'] as String? ?? 'IDR',
       lowStockThreshold: json['low_stock_threshold'] as int? ?? 5,
+      paymentProofRetentionDays: json['payment_proof_retention_days'] as int? ??
+          ShopSettings.defaultPaymentProofRetentionDays,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -47,6 +50,7 @@ class ShopSettingsModel extends ShopSettings {
       'receipt_footer': receiptFooter,
       'currency': currency,
       'low_stock_threshold': lowStockThreshold,
+      'payment_proof_retention_days': paymentProofRetentionDays,
     };
   }
 
@@ -63,6 +67,7 @@ class ShopSettingsModel extends ShopSettings {
       receiptFooter: entity.receiptFooter,
       currency: entity.currency,
       lowStockThreshold: entity.lowStockThreshold,
+      paymentProofRetentionDays: entity.paymentProofRetentionDays,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );
@@ -81,6 +86,7 @@ class ShopSettingsModel extends ShopSettings {
       receiptFooter: receiptFooter,
       currency: currency,
       lowStockThreshold: lowStockThreshold,
+      paymentProofRetentionDays: paymentProofRetentionDays,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

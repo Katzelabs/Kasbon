@@ -7,6 +7,7 @@ import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
+import '../../../receipt/domain/entities/shop_settings.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/unsaved_changes_guard.dart';
 
@@ -22,6 +23,13 @@ class AppSettingsScreen extends ConsumerWidget {
   /// ("harus diisi", "angka yang valid", "lebih dari 0", "maksimal 9999") for
   /// a value that is nearly always 3, 5 or 10.
   static const List<int> _presets = [3, 5, 10];
+
+  /// Retention windows worth one tap.
+  ///
+  /// 30 is first because it is the one a busy QRIS shop actually wants: at
+  /// roughly 150 KB a proof, 50 sales a day over 90 days is ~675 MB, which is
+  /// most of a free Supabase project for a single shop.
+  static const List<int> _retentionPresets = [30, 60, 90, 180];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,6 +66,7 @@ class AppSettingsScreen extends ConsumerWidget {
     }
 
     final threshold = formState.lowStockThreshold;
+    final retentionDays = formState.paymentProofRetentionDays;
     final isDirty = formState.isAppSettingsDirty;
 
     return Builder(
@@ -199,6 +208,136 @@ class AppSettingsScreen extends ConsumerWidget {
                             Expanded(
                               child: Text(
                                 'Produk dengan stok $threshold atau kurang akan muncul di peringatan.',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.info,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppDimensions.spacing16),
+
+                // Payment proof retention.
+                //
+                // Surfaced because it is the only dial that bounds storage, and
+                // the right value differs per shop - see `storage-janitor`.
+                ModernCard.elevated(
+                  padding: const EdgeInsets.all(AppDimensions.spacing16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding:
+                                const EdgeInsets.all(AppDimensions.spacing8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(
+                                  AppDimensions.radiusMedium),
+                            ),
+                            child: const Icon(
+                              Icons.photo_library_outlined,
+                              color: AppColors.primary,
+                              size: AppDimensions.iconMedium,
+                            ),
+                          ),
+                          const SizedBox(width: AppDimensions.spacing12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Penyimpanan Bukti Pembayaran',
+                                  style: AppTextStyles.h4,
+                                ),
+                                const SizedBox(height: AppDimensions.spacing4),
+                                Text(
+                                  'Berapa lama foto bukti pembayaran disimpan',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppDimensions.spacing16),
+                      const ModernDivider(),
+                      const SizedBox(height: AppDimensions.spacing16),
+                      Text(
+                        'Foto bukti pembayaran dihapus otomatis setelah lewat '
+                        'batas ini. Bukti hanya berguna selama transaksinya '
+                        'masih mungkin dipersoalkan.',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: AppDimensions.spacing20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Simpan Selama (hari)',
+                              style: AppTextStyles.bodyLarge.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          ModernQuantityStepper(
+                            value: retentionDays,
+                            minValue:
+                                ShopSettings.minPaymentProofRetentionDays,
+                            maxValue:
+                                ShopSettings.maxPaymentProofRetentionDays,
+                            onChanged:
+                                formNotifier.setPaymentProofRetentionDays,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppDimensions.spacing16),
+                      Wrap(
+                        spacing: AppDimensions.spacing8,
+                        runSpacing: AppDimensions.spacing8,
+                        children: [
+                          for (final preset in _retentionPresets)
+                            ModernChip.filter(
+                              label: '$preset hari',
+                              selected: retentionDays == preset,
+                              onSelected: (_) => formNotifier
+                                  .setPaymentProofRetentionDays(preset),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: AppDimensions.spacing16),
+                      Container(
+                        padding:
+                            const EdgeInsets.all(AppDimensions.spacing12),
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(
+                              AppDimensions.radiusMedium),
+                          border: Border.all(
+                            color: AppColors.info.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: AppColors.info,
+                              size: AppDimensions.iconMedium,
+                            ),
+                            const SizedBox(width: AppDimensions.spacing12),
+                            Expanded(
+                              child: Text(
+                                'Bukti lebih lama dari $retentionDays hari '
+                                'akan dihapus otomatis.',
                                 style: AppTextStyles.bodySmall.copyWith(
                                   color: AppColors.info,
                                 ),
