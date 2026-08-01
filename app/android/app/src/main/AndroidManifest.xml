@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Every byte this app reads or writes comes from Supabase, so the app is
+         inert without this. It must be declared HERE and not only in
+         src/debug/ + src/profile/, which is where the Flutter template puts it
+         and where it stayed until this line was added: those two manifests are
+         merged into debug and profile builds only, so a release AAB shipped
+         with no INTERNET permission and could not open a socket at all. The
+         failure does not reproduce under `flutter run`. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Storage permissions for backup -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"

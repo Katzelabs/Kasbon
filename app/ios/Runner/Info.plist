@@ -28,6 +28,23 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	<!-- Both strings are shown to the user in the system permission sheet, so
+	     they are in Bahasa Indonesia like every other user-facing string, and
+	     they say what the photo is for rather than restating the permission.
+
+	     Neither is optional: iOS terminates the process the moment a camera or
+	     photo-library API is reached without the matching key, and App Store
+	     review rejects the binary before that. Both sources are used - see
+	     shared/image_picking/image_source_picker.dart, which offers the choice
+	     for product photos and QRIS payment proofs alike. -->
+	<key>NSCameraUsageDescription</key>
+	<string>KASBON memakai kamera untuk memotret produk dan bukti pembayaran QRIS.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>KASBON memakai galeri untuk memilih foto produk dan bukti pembayaran QRIS.</string>
+	<!-- The app uses only HTTPS, which is exempt. Declaring it here stops App
+	     Store Connect asking about export compliance on every single upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

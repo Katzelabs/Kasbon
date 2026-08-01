@@ -47,11 +47,21 @@ void main() async {
   // Initialize Indonesian locale data for date formatting
   await initializeDateFormatting('id_ID', null);
 
-  // Initialize Supabase
-  assert(
-      AppConfig.isConfigValid,
+  // Initialize Supabase.
+  //
+  // A throw rather than an assert, because asserts are compiled out of release
+  // builds and this is exactly the check that matters there: `flutter build`
+  // without --dart-define-from-file produces empty strings, not an error, so
+  // the app would ship, initialise against "" and fail later at the first query
+  // with something that reads like a network fault. Failing at startup names
+  // the actual cause.
+  if (!AppConfig.isConfigValid) {
+    throw StateError(
       'SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY must be provided, e.g. '
-      'flutter run --dart-define-from-file=env.json');
+      'flutter run --dart-define-from-file=env.json '
+      '(or --dart-define-from-file=env.prod.json for a release build).',
+    );
+  }
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
     anonKey: AppConfig.supabaseKey,

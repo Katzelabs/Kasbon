@@ -6,6 +6,14 @@ app/env.json
 app/env.*.json
 !app/env.example.json
 
+# Signing keystores, anywhere in the tree. app/android/.gitignore already covers
+# key.properties and the keystore globs under app/android/; this is the same rule
+# one level up, for a .jks dropped somewhere else while setting up signing. An
+# upload key cannot be rotated once an app is published under it, so committing
+# one means losing the ability to ship updates.
+*.jks
+*.keystore
+
 # Claude Code: personal permission overrides stay local; settings.json is shared.
 .claude/settings.local.json
 
