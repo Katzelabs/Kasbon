@@ -24,7 +24,12 @@ dart run build_runner build  # Generate code (freezed, riverpod, json)
 dart format lib/             # Format code
 
 # Production build (env.prod.json with production URL + publishable key)
-flutter build apk --dart-define-from-file=env.prod.json
+# Release: --obfuscate needs --split-debug-info, and build/symbols must be kept
+# per release or crash reports cannot be symbolised. R8 is on for the Java side
+# (android/app/build.gradle.kts) - a minified APK that builds is not a minified
+# APK that runs, so install it before shipping it.
+flutter build appbundle --dart-define-from-file=env.prod.json \
+  --obfuscate --split-debug-info=build/symbols
 ```
 
 ## Architecture

@@ -71,6 +71,43 @@ android {
                 )
                 signingConfigs.getByName("debug")
             }
+
+            // R8: shrink the Java/Kotlin half of the app.
+            //
+            // Dart is AOT-compiled into libapp.so and untouched by this; what
+            // R8 strips is the Flutter embedding and each plugin's Android
+            // code. Measured with everything else held equal - same flags, same
+            // env file, both --obfuscate - it is worth 3.02 MB: 61.35 down to
+            // 58.33.
+            //
+            // Measure it that way or not at all. An earlier comparison here
+            // read 63.1 MB minified against 62.4 unminified and concluded R8
+            // made the APK bigger; those two builds differed in --obfuscate,
+            // and the comparison meant nothing.
+            //
+            // Off by default in the Flutter template for a good reason. R8
+            // deletes whatever it cannot see referenced, and reflection is
+            // invisible to it, so this is the setting most likely to build
+            // clean and fail at runtime - which is exactly what it did here.
+            // The first minified APK installed, launched, held its process
+            // alive, reported MainActivity as topResumedActivity, and drew a
+            // black screen, with no exception anywhere in logcat. Do not trust
+            // a successful build. Install it and look at it.
+            // See proguard-rules.pro for what it had removed.
+            isMinifyEnabled = true
+
+            // Resource shrinking stays off. Flutter keeps its assets in assets/
+            // rather than res/, so there is little here for it to remove, and
+            // it removes by the same static-reference analysis that produced
+            // the black screen above - failing next time as a missing drawable
+            // on some screen nobody happened to open while testing. Not worth
+            // it for the remaining few hundred KB.
+            isShrinkResources = false
+
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

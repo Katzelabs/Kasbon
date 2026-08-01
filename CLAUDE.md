@@ -84,7 +84,12 @@ dart run build_runner build  # Generate code (freezed, riverpod, json)
 dart format lib/             # Format code
 
 # Production build (env.prod.json with production URL + publishable key)
-flutter build apk --dart-define-from-file=env.prod.json
+# --obfuscate renames Dart symbols; --split-debug-info writes the mapping that
+# turns a production stack trace back into names. Archive build/symbols with
+# each release or crash reports are unreadable. R8 handles the Java/Kotlin side
+# and is configured in android/app/build.gradle.kts.
+flutter build appbundle --dart-define-from-file=env.prod.json \
+  --obfuscate --split-debug-info=build/symbols
 ```
 
 ### Supabase Local Development (run from project root)
