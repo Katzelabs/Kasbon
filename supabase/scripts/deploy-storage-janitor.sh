@@ -113,7 +113,12 @@ elif [[ "$TARGET" == local ]]; then
 else
   # -s so it is not echoed, and it is never passed on to anything that would
   # put it in argv or a file.
-  read -rsp "     legacy service_role key (eyJ...) for ${PROJECT_REF}: " SERVICE_KEY
+  #
+  # Prefer this prompt to `SUPABASE_SERVICE_ROLE_KEY=... ./deploy...`: a leading
+  # assignment keeps the key out of argv but not out of shell history, and on a
+  # project using the new API keys the value is not recoverable from the CLI, so
+  # a leaked one has to be rotated in the dashboard.
+  read -rsp "     service key for ${PROJECT_REF} (sb_secret_... or eyJ...): " SERVICE_KEY
   echo
 fi
 readonly SERVICE_KEY
@@ -128,11 +133,16 @@ fi
 #
 # The function compares the bearer against its own `SUPABASE_SERVICE_ROLE_KEY`,
 # and what the runtime puts there depends on whether the project has the newer
-# API keys. On this one it is *not* the legacy service_role JWT: hashing each
-# key from `projects api-keys` against the digests in `supabase secrets list`
-# matches SUPABASE_ANON_KEY to the publishable key, and SUPABASE_SERVICE_ROLE_KEY
-# to neither legacy key - i.e. to the sb_secret_ one. So on a new project this
-# wants the secret key, and on an older one the legacy JWT.
+# API keys. On a project that has them it is the `sb_secret_...` key, not the
+# legacy service_role JWT - confirmed twice over here: hashing each key from
+# `projects api-keys` against the digests in `supabase secrets list` matches
+# SUPABASE_ANON_KEY to the *publishable* key and SUPABASE_SERVICE_ROLE_KEY to
+# neither legacy key, and the legacy JWT gets a 403 from the function while the
+# secret key gets a 200. An older project wants the legacy JWT instead.
+#
+# Worth knowing: `verify_jwt = true` accepts an `sb_secret_...` bearer. The
+# gateway understands the new key formats, so a secret key is not rejected for
+# failing to be a JWT, and this needs no config.toml change.
 #
 # `supabase projects api-keys` cannot supply the secret key either way: it
 # returns it masked, padded with U+00B7 to its real length. Presenting that gets
@@ -263,13 +273,10 @@ case "$RESPONSE" in
     # check ever ran. Distinct from the 403 above, which means the function ran
     # and disagreed about the value.
     echo "error: the gateway rejected the token, so the function never ran." >&2
-    echo "       Either the key is not valid for this project, or it is a" >&2
-    echo "       secret key and the function still has verify_jwt = true," >&2
-    echo "       which only accepts a JWT. Check:" >&2
-    echo "         supabase functions list --project-ref ${PROJECT_REF}" >&2
-    echo "       If verify_jwt is true and the project uses the new API keys," >&2
-    echo "       set it false in config.toml and redeploy - the constant-time" >&2
-    echo "       check in the function body is the real gate either way." >&2
+    echo "       The key is not valid for this project at all - note that a" >&2
+    echo "       correct sb_secret_ key passes verify_jwt fine, so this is not" >&2
+    echo "       a key-format problem. Most likely it was rotated, or copied" >&2
+    echo "       from a different project." >&2
     exit 1
     ;;
   *)

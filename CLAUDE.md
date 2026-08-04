@@ -274,6 +274,20 @@ three commands in the migration header: `vault.create_secret` raises on a name
 that already exists, so those work exactly once, and the `order by created desc
 limit 1` they end with races pg_net's background worker.
 
+**Which key it wants is a property of the project.** On this one — which has the
+newer API keys — it is the **`sb_secret_…` key**, because that is what the Edge
+Function runtime puts in `SUPABASE_SERVICE_ROLE_KEY`, and the function compares
+the bearer against exactly that. The legacy `service_role` JWT gets a 403 from
+the function body. `verify_jwt = true` accepts a secret key fine, so this needs
+no `config.toml` change. An older project without the new keys wants the legacy
+JWT instead — the script accepts both shapes and lets the dry run decide.
+
+The key is **not recoverable from the CLI**: `supabase projects api-keys` prints
+the secret masked, padded with `·` to its real length. Only the dashboard
+(Project Settings → API Keys) has it, so a leaked one has to be rotated there.
+Prefer the script's silent prompt to a `SUPABASE_SERVICE_ROLE_KEY=… ./deploy…`
+one-liner, which keeps the key out of argv but not out of shell history.
+
 **A deployed function and an active cron job are not evidence the sweep runs.**
 The two halves are independent: `functions deploy` can succeed, `cron.job` can
 show `storage-janitor-daily` active on `0 20 * * *`, and the nightly run can
