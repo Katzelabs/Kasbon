@@ -290,12 +290,27 @@ CREATE INDEX idx_txn_items_product         ON public.transaction_items (product_
 --
 -- gin rather than gist: slower to build, faster to search, and these are read
 -- far more than written.
+--
+-- The operator class is schema-qualified, and it has to be. pg_trgm lives in
+-- `extensions` (010001), and whether `gin_trgm_ops` resolves unqualified
+-- depends on the search_path of whichever role applies the migration - which
+-- differs between environments. Locally the `postgres` role carries
+-- `search_path = "$user", public, extensions` and a bare `gin_trgm_ops` works;
+-- on a hosted project it does not, and `db push` fails here with
+--
+--   ERROR: operator class "gin_trgm_ops" does not exist for access method "gin"
+--
+-- Found the only way it could be found: the first `db push` to production. The
+-- superseded migration set did not hit this because it created pg_trgm in
+-- `public`, built these indexes while the opclass was resolvable there, and
+-- only then moved the extension - the indexes followed by OID. Qualifying is
+-- the more robust form of that, and does not depend on a role setting.
 CREATE INDEX idx_products_name_trgm
-  ON public.products USING gin (name gin_trgm_ops)
+  ON public.products USING gin (name extensions.gin_trgm_ops)
   WHERE is_active;
 
 CREATE INDEX idx_transactions_customer_trgm
-  ON public.transactions USING gin (customer_name gin_trgm_ops)
+  ON public.transactions USING gin (customer_name extensions.gin_trgm_ops)
   WHERE customer_name IS NOT NULL;
 
 -- Not user-scoped, and the only index here that is not: `expired_payment_proofs`
