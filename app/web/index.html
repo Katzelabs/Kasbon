@@ -19,48 +19,65 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
 
-  <!-- Content-Security-Policy.
+  <!-- Content-Security-Policy: SET IT AT THE HOST, not here.
        ================================================================
-       Only the directives that do not depend on where the app is deployed are
-       here. That is a deliberate limit, not an oversight: a <meta> CSP is baked
-       into the bundle at build time, while the Supabase origin the app talks to
-       is 127.0.0.1 in local dev, 10.0.2.2 in the emulator and a project
-       subdomain in production. Pinning `connect-src` here would either break
-       dev or be loosened to `https:` until it meant nothing. Directives left
-       unlisted are unrestricted - there is intentionally no `default-src` - so
-       omitting them costs nothing that listing them loosely would have gained.
+       There used to be a <meta http-equiv="Content-Security-Policy"> in this
+       spot carrying `script-src 'self' 'wasm-unsafe-eval'
+       https://www.gstatic.com`. It was correct about production and it broke
+       every `flutter run -d chrome`, which is why it is gone rather than
+       relaxed.
 
-       `script-src` is the one that matters against injection and it is the same
-       everywhere: same-origin scripts only, plus the wasm compilation Flutter's
-       CanvasKit renderer needs, plus the gstatic CDN the engine loads CanvasKit
-       from by default. Building with --no-web-resources-cdn bundles CanvasKit
-       locally and lets the gstatic entry go.
+       A <meta> CSP applies to whatever loads this file, and debug and release
+       bootstrap differently. A release build loads an external
+       flutter_bootstrap.js and a service worker - all same-origin src, nothing
+       inline, so the policy was satisfied and the deployed app was never
+       affected. A debug build hands over to DDC, which loads ~1700 module
+       scripts and then calls main() from an *inline* <script>. That inline
+       script was refused, main() never ran, and because splash.js only removes
+       the spinner on `flutter-first-frame` - an event that needs a frame that
+       is never painted - the app sat on the splash screen forever. No Dart
+       error, no failed request, nothing in the `flutter run` output: the only
+       evidence was one CSP line in the browser console.
 
-       There is no 'unsafe-inline' for scripts, which is why the splash-removal
-       handler lives in splash.js. It is present for styles, where the inline
-       block has to paint before any request could return.
+       Reproducing that costs an afternoon. A policy that a build step could
+       have carried is not worth it, so the whole policy now lives where it can
+       also express the parts a meta tag never could:
 
-       STILL REQUIRED AT THE HOST, because a <meta> tag cannot express them:
-
-         Content-Security-Policy: frame-ancestors 'none';
-                                  connect-src 'self' https://<ref>.supabase.co;
-                                  img-src 'self' data: blob: https://<ref>.supabase.co
+         Content-Security-Policy: default-src 'self';
+                                  script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com;
+                                  style-src 'self' 'unsafe-inline';
+                                  img-src 'self' data: blob: https://<ref>.supabase.co;
+                                  connect-src 'self' https://<ref>.supabase.co wss://<ref>.supabase.co;
+                                  worker-src 'self' blob:;
+                                  object-src 'none';
+                                  base-uri 'self';
+                                  form-action 'self';
+                                  frame-ancestors 'none'
          Strict-Transport-Security: max-age=31536000; includeSubDomains
          X-Content-Type-Options: nosniff
          Referrer-Policy: strict-origin-when-cross-origin
 
-       frame-ancestors is ignored in a meta tag by every browser, so
-       clickjacking protection is a header or it does not exist. The same host
-       config has to rewrite unknown paths to index.html - the app uses path
-       URLs, so a hard refresh on /products/abc 404s without it. -->
-  <meta http-equiv="Content-Security-Policy" content="
-    script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com;
-    style-src 'self' 'unsafe-inline';
-    worker-src 'self' blob:;
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-  ">
+       Headers are strictly better here, not a concession: frame-ancestors is
+       ignored in a meta tag by every browser, so clickjacking protection is a
+       header or it does not exist, and connect-src can finally name the real
+       Supabase origin because the host config is per-environment while a meta
+       tag is baked into the bundle.
+
+       Two things the same host config must do: rewrite unknown paths to
+       index.html (the app uses path URLs, so a hard refresh on /products/abc
+       404s without it) while still serving files that exist, or
+       /legal/privacy.html gets swallowed too.
+
+       If a bundled default is ever wanted back, inject the meta tag into
+       build/web/index.html as a post-build step - never into this file, which
+       `flutter run` reads as well. Note that dart2js emits `new Function` under
+       some optimisations; `flutter build web --csp` turns that off and is what
+       makes a script-src without 'unsafe-eval' safe to promise. -->
+
+  <!-- Style-src note: the splash <style> below stays inline deliberately - it
+       has to paint before any extra request could return - so the host policy
+       keeps 'unsafe-inline' for styles only. The splash-removal *script* is
+       external (splash.js) so that scripts need no such exception. -->
   <!-- Without this, mobile browsers assume a desktop viewport and scale the
        whole app down, which makes every responsive breakpoint meaningless. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">

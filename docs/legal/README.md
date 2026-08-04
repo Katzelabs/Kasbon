@@ -13,6 +13,7 @@ is a static page that ships with the web build.
 |------|--------|
 | `app/web/legal/privacy.html` | Bahasa Indonesia — **the authoritative text** |
 | `app/web/legal/privacy-en.html` | English translation, for store reviewers |
+| `app/web/legal/terms.html`, `terms-en.html` | Syarat & Ketentuan — **draft, see below** |
 | `app/web/legal/hapus-akun.html`, `hapus-akun-en.html` | The account-deletion request page Play requires, shipped by the same mechanism |
 
 `flutter build web` copies everything under `app/web/` into `build/web/`
@@ -41,13 +42,16 @@ URL in a private window after the first deploy.
   because reviewers look for the policy from Settings and will not guess that
   "Tentang Aplikasi" hides it.
 - **Pengaturan → Tentang Aplikasi → Legal → Kebijakan Privasi**.
+- **Pengaturan → Tentang Aplikasi → Legal → Syarat & Ketentuan**.
 
-Both open the hosted page through `ExternalLink.openUrl`.
+All three open the hosted page through `ExternalLink.openUrl`, and each URL is
+covered by a test in `test/unit/legal/` that fails if the constant stops naming
+a file that ships.
 
-## Updating the policy
+## Updating the documents
 
-The policy states facts about the running system. Reopen it whenever one of
-these changes:
+Both documents state facts about the running system. Reopen the **policy**
+whenever one of these changes:
 
 | Change | Section to revisit |
 |--------|--------------------|
@@ -58,10 +62,21 @@ these changes:
 | Any third-party SDK that phones home is added | 3 — what we do not do |
 | The account-deletion flow changes | 10 — deleting your account |
 
+Reopen the **terms** whenever one of these changes:
+
+| Change | Section to revisit |
+|--------|--------------------|
+| The app gains offline capability | 8 — availability says it needs a connection |
+| A paid tier or in-app purchase ships | 10 — fees says the service is free today |
+| KASBON starts touching money rather than recording it | 4 — "does not process payments" |
+| The backup/export feature changes | 9 — backups |
+| The account-deletion flow changes | 11 — termination |
+
 Bump the version and effective date in the header and footer of **both**
-language files, then update the store declarations in `store-disclosures.md` if
-the data types changed. A material change also needs an in-app or email notice
-before it takes effect — that is what section 12 promises.
+language files of whichever document changed, then update the store
+declarations in `store-disclosures.md` if the data types changed. A material
+change also needs an in-app or email notice before it takes effect — that is
+what section 12 of the policy and section 14 of the terms promise.
 
 The English page is a translation. If the two ever disagree, the Indonesian
 text governs, and that is stated on the English page.
@@ -99,10 +114,19 @@ Blocking, in rough order:
       (`https://kasbon.app/legal/hapus-akun.html`) under App content → Data
       deletion; it is the same file-ships-with-the-web-build arrangement as the
       policy, and `test/unit/legal/account_deletion_page_test.dart` guards it.
-- [ ] **`https://kasbon.app/terms` still 404s.** Out of scope for this task, but
-      it is a live row in *Tentang Aplikasi → Legal* and a reviewer who taps it
-      sees a broken link. Either publish terms at `app/web/legal/terms.html` the
-      same way, or remove the row until they exist.
+- [ ] **Have the terms reviewed by a lawyer.** `terms.html` is drafted from what
+      the app actually does and is accurate about the product, but a terms of
+      service allocates legal risk in a way a privacy policy does not. Three
+      sections are drafting, not advice, and need a real decision: **12**
+      (limitation of liability — how far can you actually disclaim under
+      Indonesian consumer and contract law), **13** (indemnity), and **15**
+      (governing law — it names "the competent courts in Indonesia" rather than
+      a specific jurisdiction). Section 1 also has to name the legal entity, the
+      same gap as the policy. Both files carry an HTML comment saying this;
+      remove it once reviewed.
+      Neither store *requires* terms — Play requires only a privacy policy, and
+      Apple applies its standard EULA where you supply none — so this is not a
+      submission blocker. It is a blocker for the row being live in the app.
 - [ ] **Production SMTP is configured.** The policy names an email delivery
       provider as a processor. `config.toml` governs local dev only; without
       real SMTP on the hosted project, verification codes never arrive and the

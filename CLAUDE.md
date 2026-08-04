@@ -46,7 +46,7 @@ The project migrated from offline-first SQLite to **Supabase-only** (Feb–Mar 2
 | Frontend conventions | `app/CLAUDE.md` |
 | Logo, app icons, brand rules | `docs/BRAND.md` + `brand/` (`docs/BRAND.md` is current, not historical) |
 | Business vision | `docs/PROJECT_BRIEF.md` (business sections still valid) |
-| Privacy policy, store data declarations | `app/web/legal/privacy.html` (the published text) + `docs/legal/` (hosting, store answers, pre-submission checklist) |
+| Privacy policy, terms, store data declarations | `app/web/legal/` (the published pages) + `docs/legal/` (hosting, store answers, pre-submission checklist) |
 
 ## Claude Code Setup (Required Plugins)
 

@@ -20,7 +20,13 @@ class SupportContacts {
 
   static const String supportEmail = 'support@kasbon.app';
 
-  static const String termsUrl = 'https://kasbon.app/terms';
+  /// The published terms of service.
+  ///
+  /// Same arrangement as [privacyUrl]: `app/web/legal/terms.html` ships inside
+  /// the web build, so the URL path is the file path. This pointed at
+  /// `/terms` - a path nothing served - while the row for it sat live in
+  /// *Tentang Aplikasi → Legal*.
+  static const String termsUrl = 'https://kasbon.app/legal/terms.html';
 
   /// The published privacy policy.
   ///

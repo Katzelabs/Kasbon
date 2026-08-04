@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="id">
+<!--
+  DRAFT PENDING REVIEW. This text was written from what the app actually does,
+  but a terms of service allocates legal risk in a way a privacy policy does
+  not. Sections 12 (batasan tanggung jawab), 13 (ganti rugi) and 15 (hukum yang
+  berlaku) need a lawyer's eye and a named legal entity before this is
+  published. See docs/legal/README.md.
+-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Syarat & Ketentuan penggunaan KASBON — aturan pemakaian aplikasi kasir KASBON, tanggung jawab pengguna, dan ketersediaan layanan.">
+  <meta name="robots" content="index, follow">
+  <link rel="icon" href="../favicon.png">
+  <link rel="alternate" hreflang="en" href="terms-en.html">
+  <link rel="alternate" hreflang="id" href="terms.html">
+  <title>Syarat & Ketentuan — KASBON</title>
+  <style>
+    :root {
+      --brand: #2563EB;
+      --bg: #FFFFFF;
+      --surface: #F8FAFC;
+      --text: #0F172A;
+      --muted: #475569;
+      --border: #E2E8F0;
+      --warn-bg: #FEF3C7;
+      --warn-border: #F59E0B;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand: #60A5FA;
+        --bg: #0B1220;
+        --surface: #131C2E;
+        --text: #E2E8F0;
+        --muted: #94A3B8;
+        --border: #24314A;
+        --warn-bg: #2E2408;
+        --warn-border: #B45309;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0 20px 80px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    main { max-width: 720px; margin: 0 auto; }
+
+    header {
+      padding: 48px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+
+    .wordmark {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--brand);
+      text-transform: uppercase;
+      margin: 0 0 12px;
+    }
+
+    h1 { font-size: 32px; line-height: 1.2; margin: 0 0 12px; letter-spacing: -0.02em; }
+    h2 { font-size: 22px; line-height: 1.3; margin: 44px 0 12px; letter-spacing: -0.01em; }
+    h3 { font-size: 17px; margin: 28px 0 8px; }
+
+    .meta { color: var(--muted); font-size: 15px; margin: 0; }
+    .lang { margin-top: 16px; font-size: 15px; }
+    a { color: var(--brand); }
+
+    p, li { color: var(--text); }
+    ul { padding-left: 22px; }
+    li { margin-bottom: 8px; }
+
+    .lead {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin: 0 0 8px;
+    }
+    .lead ul { margin: 12px 0 0; }
+    .lead li { margin-bottom: 6px; }
+
+    .note {
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn-border);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin: 20px 0;
+    }
+    .note p { margin: 0; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0; }
+    table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 15px; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { background: var(--surface); font-weight: 600; }
+
+    footer {
+      margin-top: 56px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    @media (max-width: 480px) {
+      body { font-size: 16px; }
+      h1 { font-size: 27px; }
+      header { padding-top: 32px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="wordmark">KASBON</p>
+    <h1>Syarat &amp; Ketentuan</h1>
+    <p class="meta">Berlaku sejak 4 Agustus 2026 · Versi 1.0</p>
+    <p class="lang"><a href="terms-en.html">Read this page in English</a></p>
+  </header>
+
+  <div class="lead">
+    <strong>Ringkasnya:</strong>
+    <ul>
+      <li>KASBON adalah alat bantu pencatatan kasir. Data yang Anda catat tetap milik Anda.</li>
+      <li>Aplikasi memerlukan koneksi internet — seluruh data disimpan di server, bukan di perangkat.</li>
+      <li>Anda bertanggung jawab atas kebenaran data yang dicatat dan atas data pelanggan yang Anda masukkan.</li>
+      <li>Layanan diberikan apa adanya, tanpa jaminan tersedia tanpa henti. Ekspor cadangan Anda secara berkala.</li>
+      <li>Saat ini KASBON gratis. Bila kelak ada paket berbayar, Anda diberi tahu lebih dulu.</li>
+    </ul>
+  </div>
+
+  <h2>1. Persetujuan atas syarat ini</h2>
+  <p>
+    Dengan mendaftar atau menggunakan aplikasi KASBON ("Aplikasi", "Layanan"), Anda menyatakan telah membaca,
+    memahami, dan menyetujui Syarat &amp; Ketentuan ini. Bila Anda tidak menyetujuinya, jangan gunakan Layanan.
+  </p>
+  <p>
+    Syarat ini berlaku bersama <a href="privacy.html">Kebijakan Privasi</a>, yang menjelaskan data apa yang
+    dikumpulkan dan bagaimana ia diperlakukan. Keduanya merupakan satu kesatuan.
+  </p>
+
+  <h2>2. Siapa yang boleh menggunakan</h2>
+  <ul>
+    <li>Anda berusia sekurang-kurangnya 18 tahun, atau cakap secara hukum untuk mengikatkan diri pada perjanjian.</li>
+    <li>Anda menggunakan Layanan untuk keperluan usaha, bukan sebagai konsumen pribadi.</li>
+    <li>Data yang Anda daftarkan benar dan Anda perbarui bila berubah.</li>
+  </ul>
+
+  <h2>3. Akun Anda</h2>
+  <ul>
+    <li>Satu akun mewakili satu pemilik usaha. Anda boleh masuk dari beberapa perangkat dengan akun yang sama.</li>
+    <li>Anda bertanggung jawab menjaga kerahasiaan kata sandi dan atas seluruh aktivitas yang terjadi pada akun Anda.</li>
+    <li>
+      Perangkat kasir umumnya dibiarkan dalam keadaan sudah masuk (<em>signed in</em>) di meja kasir sepanjang hari.
+      Pastikan hanya orang yang Anda percaya dapat mengaksesnya — siapa pun yang memegang perangkat itu dapat
+      melihat dan mengubah data usaha Anda.
+    </li>
+    <li>Beri tahu kami segera bila Anda menduga akun Anda diakses pihak lain.</li>
+  </ul>
+
+  <h2>4. Apa yang Layanan ini lakukan — dan tidak lakukan</h2>
+  <p>KASBON membantu Anda mencatat penjualan, mengelola produk dan stok, mencatat hutang pelanggan, serta melihat ringkasan laba dan laporan atas data yang Anda catat sendiri.</p>
+  <div class="note">
+    <p>
+      <strong>KASBON tidak memproses pembayaran.</strong> Aplikasi hanya <em>mencatat</em> bahwa suatu pembayaran
+      terjadi — termasuk ketika Anda mengunggah foto bukti transfer atau QRIS. Uang tidak pernah melewati KASBON,
+      dan kami tidak pernah menerima nomor kartu atau kredensial rekening. Setiap sengketa pembayaran adalah urusan
+      antara Anda, pelanggan Anda, dan penyedia jasa pembayaran yang bersangkutan.
+    </p>
+  </div>
+  <p>Selain itu, perlu ditegaskan bahwa:</p>
+  <ul>
+    <li>
+      KASBON <strong>bukan perangkat lunak akuntansi resmi dan bukan alat pelaporan pajak.</strong> Angka yang
+      ditampilkan adalah ringkasan dari apa yang Anda catat. Kewajiban pembukuan dan perpajakan usaha Anda tetap
+      menjadi tanggung jawab Anda sendiri.
+    </li>
+    <li>KASBON tidak memberikan nasihat keuangan, hukum, atau perpajakan.</li>
+    <li>
+      Keakuratan seluruh angka bergantung sepenuhnya pada ketelitian Anda saat memasukkan harga modal, harga jual,
+      stok, dan transaksi. Kesalahan pencatatan akan menghasilkan laporan yang keliru.
+    </li>
+  </ul>
+
+  <h2>5. Kepemilikan data</h2>
+  <ul>
+    <li>
+      <strong>Data usaha Anda tetap milik Anda.</strong> Kami hanya memperoleh hak terbatas untuk menyimpan,
+      memproses, dan menampilkannya kembali kepada Anda sejauh diperlukan untuk menjalankan Layanan.
+    </li>
+    <li>Kami tidak menjual data Anda dan tidak menggunakannya untuk iklan.</li>
+    <li>
+      Anda dapat mengambil salinan data Anda kapan saja melalui fitur ekspor cadangan di dalam aplikasi.
+    </li>
+    <li>
+      Aplikasi, mereknya, tampilannya, dan kodenya tetap milik kami. Anda memperoleh hak pakai yang tidak eksklusif
+      dan tidak dapat dialihkan selama Anda mematuhi syarat ini.
+    </li>
+  </ul>
+
+  <h2>6. Tanggung jawab Anda atas data pelanggan</h2>
+  <p>
+    Nama pelanggan dan foto bukti pembayaran adalah data pribadi milik orang lain. Untuk data itu Andalah
+    pengendalinya menurut Undang-Undang No. 27 Tahun 2022; kami memprosesnya atas nama Anda. Anda menyatakan bahwa:
+  </p>
+  <ul>
+    <li>Anda memiliki dasar yang sah untuk memasukkan data tersebut ke dalam Aplikasi;</li>
+    <li>Anda memberi tahu dan meminta kesediaan pelanggan sebelum memotret bukti pembayaran mereka;</li>
+    <li>Anda hanya menyimpan data itu selama benar-benar diperlukan, dan mengatur masa simpan bukti pembayaran secara wajar;</li>
+    <li>Anda tidak menggunakan data pelanggan untuk tujuan di luar keperluan usaha Anda sendiri.</li>
+  </ul>
+  <p>Rincian selengkapnya ada di <a href="privacy.html">Kebijakan Privasi</a>, bagian 8.</p>
+
+  <h2>7. Penggunaan yang dilarang</h2>
+  <p>Anda tidak diperkenankan:</p>
+  <ul>
+    <li>menggunakan Layanan untuk kegiatan yang melanggar hukum, termasuk pencatatan perdagangan barang terlarang;</li>
+    <li>mencoba mengakses data pengguna lain, menembus pembatasan keamanan, atau menguji kerentanan tanpa izin tertulis;</li>
+    <li>membongkar, merekayasa balik, atau menyalin bagian Layanan untuk membuat produk sejenis;</li>
+    <li>membebani sistem secara tidak wajar, misalnya dengan permintaan otomatis dalam jumlah besar;</li>
+    <li>mengunggah gambar yang melanggar hukum atau tidak berkaitan dengan operasional usaha Anda;</li>
+    <li>menjual kembali atau menyewakan akses ke Layanan tanpa persetujuan kami.</li>
+  </ul>
+
+  <h2>8. Ketersediaan layanan</h2>
+  <ul>
+    <li>
+      <strong>Aplikasi memerlukan koneksi internet.</strong> Seluruh data disimpan di server dan bukan di perangkat
+      Anda, sehingga Aplikasi tidak dapat dipakai mencatat penjualan ketika perangkat sedang luring.
+      Pertimbangkan hal ini bila jaringan di lokasi usaha Anda kurang stabil.
+    </li>
+    <li>
+      Layanan diberikan <strong>"sebagaimana adanya"</strong>. Kami tidak menjanjikan tingkat ketersediaan tertentu
+      dan tidak menjamin Layanan bebas dari gangguan atau kesalahan.
+    </li>
+    <li>Kami dapat melakukan pemeliharaan, memperbarui, mengubah, atau menghentikan fitur sewaktu-waktu. Untuk perubahan besar, kami berusaha memberi tahu lebih dulu.</li>
+  </ul>
+
+  <h2>9. Cadangan data</h2>
+  <div class="note">
+    <p>
+      <strong>Simpan cadangan Anda sendiri secara berkala.</strong> Fitur ekspor di dalam aplikasi tersedia untuk itu.
+      Kami mengelola cadangan pada tingkat sistem, tetapi cadangan itu untuk memulihkan layanan, bukan untuk
+      mengembalikan satu data yang terhapus karena kekeliruan Anda.
+    </p>
+  </div>
+  <p>Perlu diingat juga bahwa foto bukti pembayaran dihapus otomatis setelah masa simpan yang Anda tetapkan berakhir (bawaan 90 hari). Simpan sendiri foto yang masih Anda perlukan sebelum masa itu lewat.</p>
+
+  <h2>10. Biaya</h2>
+  <p>
+    Saat ini Layanan disediakan tanpa biaya. Kami berhak memperkenalkan paket berbayar di kemudian hari.
+    Bila itu terjadi, Anda akan diberi tahu terlebih dahulu, fitur yang sudah Anda gunakan tidak akan tiba-tiba
+    dikunci tanpa pemberitahuan, dan Anda tetap dapat mengekspor data Anda. Anda tidak akan pernah ditagih tanpa
+    persetujuan Anda sebelumnya.
+  </p>
+
+  <h2>11. Penghentian</h2>
+  <ul>
+    <li>
+      <strong>Oleh Anda:</strong> kapan saja, dengan berhenti memakai Layanan atau menghapus akun melalui
+      <em>Pengaturan → Akun → Hapus Akun</em>. Penghapusan akun bersifat permanen — ekspor cadangan Anda lebih dulu.
+    </li>
+    <li>
+      <strong>Oleh kami:</strong> bila Anda melanggar syarat ini secara serius, atau bila penggunaan Anda
+      membahayakan pengguna lain atau sistem. Kecuali dalam hal pelanggaran hukum atau penyalahgunaan yang nyata,
+      kami akan memberi peringatan dan kesempatan yang wajar untuk mengekspor data Anda.
+    </li>
+  </ul>
+  <p>Setelah akun berakhir, hak pakai Anda atas Layanan berakhir dan data Anda dihapus sebagaimana diuraikan dalam Kebijakan Privasi bagian 10.</p>
+
+  <h2>12. Batasan tanggung jawab</h2>
+  <p>
+    Sepanjang diizinkan oleh hukum yang berlaku, kami tidak bertanggung jawab atas kerugian tidak langsung,
+    insidental, atau konsekuensial yang timbul dari penggunaan atau ketidakmampuan menggunakan Layanan —
+    termasuk kehilangan keuntungan, kehilangan penjualan, atau kehilangan data yang tidak Anda cadangkan.
+  </p>
+  <p>
+    Kami juga tidak bertanggung jawab atas kerugian yang timbul dari kesalahan pencatatan yang Anda lakukan,
+    dari sengketa antara Anda dan pelanggan Anda, atau dari gangguan pada jaringan internet dan layanan pihak
+    ketiga yang berada di luar kendali kami.
+  </p>
+  <p>
+    Ketentuan ini tidak membatasi tanggung jawab yang menurut hukum tidak dapat dibatasi.
+  </p>
+
+  <h2>13. Ganti rugi</h2>
+  <p>
+    Anda setuju untuk membebaskan kami dari tuntutan pihak ketiga yang timbul karena pelanggaran Anda atas syarat
+    ini atau atas ketentuan pelindungan data pribadi — termasuk tuntutan dari pelanggan Anda sehubungan dengan
+    data yang Anda masukkan ke dalam Aplikasi.
+  </p>
+
+  <h2>14. Perubahan syarat</h2>
+  <p>
+    Syarat ini dapat diperbarui. Tanggal berlaku di bagian atas halaman selalu menunjukkan versi terkini.
+    Untuk perubahan yang berdampak besar, kami memberi tahu melalui aplikasi atau email sebelum berlaku.
+    Melanjutkan penggunaan Layanan setelah perubahan berlaku berarti Anda menyetujuinya; bila tidak, Anda dapat
+    menghentikan penggunaan dan menghapus akun.
+  </p>
+
+  <h2>15. Hukum yang berlaku</h2>
+  <p>
+    Syarat ini tunduk pada hukum Republik Indonesia. Setiap sengketa diupayakan diselesaikan secara musyawarah
+    terlebih dahulu; bila tidak tercapai, sengketa diselesaikan melalui pengadilan yang berwenang di Indonesia.
+  </p>
+
+  <h2>16. Hubungi kami</h2>
+  <ul>
+    <li>Email: <a href="mailto:support@kasbon.app">support@kasbon.app</a></li>
+    <li>WhatsApp: <a href="https://wa.me/6281234567890">+62 812-3456-7890</a></li>
+  </ul>
+
+  <footer>
+    <p>© 2026 KASBON. Syarat &amp; Ketentuan versi 1.0, berlaku sejak 4 Agustus 2026.</p>
+  </footer>
+</main>
+</body>
+</html>

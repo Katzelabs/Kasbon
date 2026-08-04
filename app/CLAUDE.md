@@ -456,6 +456,16 @@ Web specifics worth knowing:
 - **Path URLs, not hash URLs** (`config/routes/url_strategy_web.dart`), so detail
   URLs are shareable. The host must rewrite unknown paths to `index.html` or a
   hard refresh on `/products/abc` 404s.
+- **The Content-Security-Policy is a host header, never a `<meta>` tag.** The
+  full policy to set is written out in the comment at the top of
+  `web/index.html`. It lived in a meta tag until it was found to break every
+  `flutter run -d chrome`: a release build bootstraps from an external
+  `flutter_bootstrap.js` and was fine, but a debug build calls `main()` from an
+  *inline* script, which `script-src 'self'` refuses. Nothing then paints, and
+  `splash.js` only clears the spinner on `flutter-first-frame` — so the app
+  hangs on the splash with no Dart error and a clean `flutter run` log. If a
+  bundled default is ever wanted, inject it into `build/web/index.html` after
+  the build, never into `web/index.html`.
 - Product images go to **Supabase Storage** on every platform. A device
   filesystem path in `products.image_url` never synced across devices.
 - `products.image_url` holds the **object path** inside the bucket, not a URL.
