@@ -1,9 +1,14 @@
 -- =============================================================================
 -- KASBON POS - Extensions
 -- =============================================================================
--- Only the two this project creates. pg_net, pgcrypto, uuid-ossp,
--- pg_stat_statements and supabase_vault are already present on a Supabase
--- database and are not ours to declare.
+-- Only the two this project creates. pgcrypto, uuid-ossp, pg_stat_statements
+-- and supabase_vault are already present on a Supabase database and are not
+-- ours to declare.
+--
+-- pg_net was on that list and did not belong there: a hosted project ships it
+-- *available* but not *installed*, while the local stack has it enabled out of
+-- the box. `010011` creates it - see that file for what the difference broke
+-- and why it is a separate migration rather than a line added here.
 --
 -- First, because everything after it depends on one or the other: the trigram
 -- indexes in 010002 need pg_trgm's operator classes, and the schedule in 010009

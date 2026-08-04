@@ -123,21 +123,34 @@ if [[ -z "$SERVICE_KEY" ]]; then
   exit 1
 fi
 
-# It has to be the *legacy* service_role JWT, not the newer `sb_secret_...`.
-# A project created now has both, the dashboard shows the new one first, and
-# picking wrong fails twice over: the gateway rejects a non-JWT before the
-# function runs (verify_jwt), and the function's own check compares against
-# `SUPABASE_SERVICE_ROLE_KEY`, which the runtime populates with the legacy key.
-# Both failures surface as an HTTP status with no hint about key families, so
-# the cheap thing is to refuse it here.
-if [[ "$SERVICE_KEY" == sb_secret_* ]]; then
-  echo "error: that is the new-format secret key (sb_secret_...)." >&2
-  echo "       This needs the legacy service_role JWT, which starts 'eyJ'." >&2
-  echo "       supabase projects api-keys --project-ref ${PROJECT_REF}" >&2
-  exit 1
-fi
-if [[ "$SERVICE_KEY" != eyJ* ]]; then
-  echo "error: that does not look like a JWT (expected it to start 'eyJ')." >&2
+# Which key family is correct is a property of the project, not a constant, so
+# this checks the shape and lets the dry run decide the rest.
+#
+# The function compares the bearer against its own `SUPABASE_SERVICE_ROLE_KEY`,
+# and what the runtime puts there depends on whether the project has the newer
+# API keys. On this one it is *not* the legacy service_role JWT: hashing each
+# key from `projects api-keys` against the digests in `supabase secrets list`
+# matches SUPABASE_ANON_KEY to the publishable key, and SUPABASE_SERVICE_ROLE_KEY
+# to neither legacy key - i.e. to the sb_secret_ one. So on a new project this
+# wants the secret key, and on an older one the legacy JWT.
+#
+# `supabase projects api-keys` cannot supply the secret key either way: it
+# returns it masked, padded with U+00B7 to its real length. Presenting that gets
+# a 401 that looks exactly like a rejected-key-family error and is not one. Only
+# the dashboard (or a rotation) yields the real value, so refuse the mask
+# explicitly rather than let it turn into a confusing round trip.
+case "$SERVICE_KEY" in
+  *[!A-Za-z0-9._-]*)
+    echo "error: the key contains characters no Supabase key uses - this is" >&2
+    echo "       almost certainly the masked value that \`projects api-keys\`" >&2
+    echo "       prints. Copy the real one from the dashboard:" >&2
+    echo "       Project Settings -> API Keys" >&2
+    exit 1
+    ;;
+esac
+if [[ "$SERVICE_KEY" != eyJ* && "$SERVICE_KEY" != sb_secret_* ]]; then
+  echo "error: expected either a legacy service_role JWT ('eyJ...') or a" >&2
+  echo "       new-format secret key ('sb_secret_...')." >&2
   exit 1
 fi
 
@@ -246,13 +259,17 @@ case "$RESPONSE" in
     exit 1
     ;;
   *'"status_code": 401'*)
-    # The gateway, not the function: verify_jwt rejected the bearer before the
-    # in-body check ever ran. Distinct from the 403 above, which means the
-    # function ran and disagreed about the value.
-    echo "error: the gateway rejected the token (verify_jwt), so the function" >&2
-    echo "       never ran. The stored key is not a valid JWT for this project" >&2
-    echo "       - most likely an sb_secret_... key rather than the legacy" >&2
-    echo "       service_role JWT." >&2
+    # The gateway, not the function: the bearer was rejected before the in-body
+    # check ever ran. Distinct from the 403 above, which means the function ran
+    # and disagreed about the value.
+    echo "error: the gateway rejected the token, so the function never ran." >&2
+    echo "       Either the key is not valid for this project, or it is a" >&2
+    echo "       secret key and the function still has verify_jwt = true," >&2
+    echo "       which only accepts a JWT. Check:" >&2
+    echo "         supabase functions list --project-ref ${PROJECT_REF}" >&2
+    echo "       If verify_jwt is true and the project uses the new API keys," >&2
+    echo "       set it false in config.toml and redeploy - the constant-time" >&2
+    echo "       check in the function body is the real gate either way." >&2
     exit 1
     ;;
   *)

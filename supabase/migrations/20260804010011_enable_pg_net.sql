@@ -1,0 +1,46 @@
+-- =============================================================================
+-- KASBON POS - Enable pg_net
+-- =============================================================================
+-- `010001` lists pg_net among the extensions that are "already present on a
+-- Supabase database and not ours to declare". That is true of pgcrypto,
+-- uuid-ossp, pg_stat_statements and supabase_vault. It is **not** true of
+-- pg_net, which a hosted project ships as *available* and leaves *uninstalled*
+-- until somebody asks for it:
+--
+--   select installed_version from pg_available_extensions where name = 'pg_net';
+--   -- local: 0.20.4      hosted, before this migration: null
+--
+-- The local stack has it enabled out of the box, which is exactly why this
+-- survived every local test and the CI database job: all three run against an
+-- image where the assumption happens to hold.
+--
+-- ## What it broke, and why nothing said so
+--
+-- `run_storage_janitor` calls `net.http_post`. A missing schema inside a
+-- plpgsql body is not resolved until the line executes, so `010009` created the
+-- function without complaint, `cron.schedule` registered the job without
+-- complaint, and the nightly run failed with
+--
+--   ERROR: 3F000: schema "net" does not exist
+--
+-- into a place nobody reads - pg_cron's own log. The Edge Function was
+-- deployed, the job was active on the right schedule, and the sweep had never
+-- once made an HTTP request. Found by the dry run at the end of
+-- `deploy-storage-janitor.sh`, which is the only step that exercises the whole
+-- chain rather than one link of it.
+--
+-- ## Why `WITH SCHEMA extensions` when the functions land in `net`
+--
+-- Both are true and it is confusing. pg_net's install script creates its own
+-- `net` schema and puts `http_post`, `http_get` and `_http_response` there; the
+-- WITH SCHEMA clause only sets where the *extension* is registered
+-- (`pg_extension.extnamespace`). Matching the local stack - registered in
+-- `extensions`, functions in `net` - keeps the two databases describable by the
+-- same query, which is the point of the fingerprint script.
+--
+-- Separate migration rather than an edit to `010001` because `010001` is
+-- already applied on the hosted project; editing an applied migration changes
+-- nothing there and desynchronises the two.
+-- =============================================================================
+
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
