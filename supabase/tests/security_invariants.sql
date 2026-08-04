@@ -178,13 +178,17 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- 6. the janitor's policy functions stay service-role only
+-- 6. the cross-tenant policy functions stay service-role only
 -- ---------------------------------------------------------------------------
 -- 20260725000001 sets ALTER DEFAULT PRIVILEGES granting EXECUTE on every new
--- public function to `authenticated`, so these four are only private because
--- their migration explicitly revokes it. A future migration that recreates one
+-- public function to `authenticated`, so these are only private because their
+-- migration explicitly revokes it. A future migration that recreates one
 -- without re-revoking would silently hand every signed-in user a cross-tenant
 -- read - the grant is the default, not the exception.
+--
+-- `account_object_paths` is the newest and the sharpest: it takes a uuid and
+-- answers with that account's storage folder, so an accidental grant here is a
+-- read of every shop's object paths, keyed by a value the caller supplies.
 DO $$
 DECLARE v_bad TEXT;
 BEGIN
@@ -195,13 +199,73 @@ BEGIN
    WHERE n.nspname = 'public'
      AND p.proname IN ('expired_payment_proofs','orphaned_object_paths',
                        'referenced_object_paths','clear_payment_proof_paths',
-                       'run_storage_janitor')
+                       'run_storage_janitor','account_object_paths')
      AND has_function_privilege('authenticated', p.oid, 'EXECUTE');
 
   IF v_bad IS NOT NULL THEN
-    RAISE EXCEPTION 'INVARIANT 6 FAILED: authenticated can execute janitor functions: %', v_bad;
+    RAISE EXCEPTION 'INVARIANT 6 FAILED: authenticated can execute cross-tenant functions: %', v_bad;
   END IF;
-  RAISE NOTICE 'ok  6. janitor policy functions are not executable by authenticated';
+  RAISE NOTICE 'ok  6. cross-tenant policy functions are not executable by authenticated';
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- 6b. account_object_paths returns one account's folder and nothing else
+-- ---------------------------------------------------------------------------
+-- Structural checks cannot catch a wrong LIKE pattern, and this one deletes
+-- files: every path it returns is handed straight to Storage `remove()`. The
+-- shape that matters is the separator - `<uuid>/%` and not `<uuid>%` - so the
+-- fixtures below are two folders whose names share a prefix.
+--
+-- Objects are inserted directly rather than through the Storage API because
+-- this runs in a transaction that rolls back; `storage.protect_delete()` only
+-- guards DELETE, so an INSERT here is fine and disappears with the ROLLBACK.
+DO $$
+DECLARE
+  v_mine   UUID := '00000000-0000-4000-8000-00000000aaaa';
+  v_theirs UUID := '00000000-0000-4000-8000-00000000bbbb';
+  v_found  TEXT;
+BEGIN
+  -- Invariants 1-3 leave an `authenticated` claim set for the transaction, and
+  -- `assert_service_role_caller` reads exactly that - so without this the
+  -- function correctly refuses to answer and the block below fails for the
+  -- wrong reason. This is also how the Edge Function actually reaches it.
+  PERFORM set_config('request.jwt.claims', '{"role":"service_role"}', true);
+
+  INSERT INTO storage.objects (bucket_id, name, owner)
+  VALUES ('product-images', v_mine   || '/p1/a.webp', NULL),
+         ('product-images', v_mine   || '/p2/b.webp', NULL),
+         ('product-images', v_theirs || '/p3/c.webp', NULL),
+         ('payment-proofs', v_mine   || '/t1/d.webp', NULL);
+
+  SELECT string_agg(object_path, ', ' ORDER BY object_path)
+    INTO v_found
+    FROM public.account_object_paths('product-images', v_mine);
+
+  IF v_found IS DISTINCT FROM
+     (v_mine || '/p1/a.webp, ' || v_mine || '/p2/b.webp') THEN
+    RAISE EXCEPTION 'INVARIANT 6b FAILED: wrong paths for own folder: %', v_found;
+  END IF;
+
+  -- The other bucket is a separate answer, not a merged one.
+  SELECT string_agg(object_path, ', ')
+    INTO v_found
+    FROM public.account_object_paths('payment-proofs', v_mine);
+
+  IF v_found IS DISTINCT FROM (v_mine || '/t1/d.webp') THEN
+    RAISE EXCEPTION 'INVARIANT 6b FAILED: wrong paths in payment-proofs: %', v_found;
+  END IF;
+
+  -- The keyset cursor, which is what stops the caller looping on page one.
+  SELECT string_agg(object_path, ', ')
+    INTO v_found
+    FROM public.account_object_paths('product-images', v_mine, 100,
+                                     v_mine || '/p1/a.webp');
+
+  IF v_found IS DISTINCT FROM (v_mine || '/p2/b.webp') THEN
+    RAISE EXCEPTION 'INVARIANT 6b FAILED: p_after did not advance: %', v_found;
+  END IF;
+
+  RAISE NOTICE 'ok  6b. account_object_paths is scoped to one folder and pages';
 END $$;
 
 -- ---------------------------------------------------------------------------

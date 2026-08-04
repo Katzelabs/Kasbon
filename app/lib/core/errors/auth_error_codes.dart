@@ -15,4 +15,13 @@ class AuthErrorCodes {
   /// A verification or recovery code was wrong, or has expired. Supabase does
   /// not distinguish the two - see the note in `_mapAuthErrorMessage`.
   static const String invalidOtp = 'invalid_otp';
+
+  /// The password re-entered to authorise a destructive action was wrong.
+  ///
+  /// Distinct from a failed login even though both come from
+  /// `signInWithPassword`: the user is already signed in, so "email atau
+  /// password salah" would be nonsense - there is only one field, and it is the
+  /// password. The delete-account dialog shows this against that field rather
+  /// than as a banner.
+  static const String wrongPassword = 'wrong_password';
 }

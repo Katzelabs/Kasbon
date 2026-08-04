@@ -6,6 +6,8 @@ import '../../../../config/routes/app_router.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
+import '../../../../core/constants/support_contacts.dart';
+import '../../../../core/utils/external_link.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/modern/modern.dart';
 import '../../../../shared/providers/providers.dart';
@@ -13,6 +15,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../receipt/domain/entities/shop_settings.dart';
 import '../providers/about_provider.dart';
 import '../providers/settings_provider.dart';
+import '../widgets/delete_account_dialog.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_tile.dart';
 
@@ -144,6 +147,22 @@ class SettingsScreen extends ConsumerWidget {
                       subtitle: 'Bantuan, kontak & legal',
                       onTap: () => context.go(AppRoutes.settingsAbout),
                     ),
+                    // The policy is also a row on the about page, but it is
+                    // named here too on purpose. Both stores review the app by
+                    // looking for the policy from Settings, and a reviewer who
+                    // has to guess that "Tentang Aplikasi" hides it is a
+                    // reviewer who may decide it is missing. It is the one
+                    // legal document the app is required to surface.
+                    SettingsTile.externalLink(
+                      icon: Icons.privacy_tip_outlined,
+                      iconColor: AppColors.textSecondary,
+                      title: 'Kebijakan Privasi',
+                      subtitle: 'Data apa yang disimpan & cara menghapusnya',
+                      onTap: () => ExternalLink.openUrl(
+                        context,
+                        SupportContacts.privacyUrl,
+                      ),
+                    ),
                     // The version is the first thing asked for when someone
                     // reports a problem, and it was two taps deep.
                     SettingsTile.info(
@@ -179,6 +198,17 @@ class SettingsScreen extends ConsumerWidget {
                         }
                       },
                     ),
+                    // Required by both stores - Play wants an in-app route and
+                    // a web one, Apple wants in-app deletion from anything that
+                    // creates accounts. It sits below "Keluar" and nowhere else:
+                    // a destructive row filed anywhere but the account section
+                    // is a row somebody taps by mistake.
+                    SettingsTile.destructive(
+                      icon: Icons.person_remove_rounded,
+                      title: 'Hapus Akun',
+                      subtitle: 'Hapus akun & seluruh data permanen',
+                      onTap: () => _confirmAccountDeletion(context),
+                    ),
                   ],
                 ),
 
@@ -189,6 +219,22 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Runs the delete-account flow and handles the two ways out of it.
+  ///
+  /// Nothing is shown on success: the account is gone, the datasource has
+  /// already signed out, and the router is mid-redirect to `/login` - a toast
+  /// fired here would be attached to a screen that is being torn down. The
+  /// failure cases never reach this method either; the dialog keeps them,
+  /// because it is the only thing that can still show them against the right
+  /// field.
+  Future<void> _confirmAccountDeletion(BuildContext context) async {
+    final outcome = await DeleteAccountDialog.show(context);
+
+    if (outcome == DeleteAccountOutcome.backupRequested && context.mounted) {
+      context.go(AppRoutes.settingsBackup);
+    }
   }
 
   /// What the Profil Toko row reports underneath its title.

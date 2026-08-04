@@ -43,6 +43,13 @@ abstract class AuthRemoteDataSource {
   /// Stamp the onboarding-complete marker onto the user's auth metadata.
   Future<void> markOnboardingComplete();
 
+  /// Permanently delete the signed-in account and everything it owns.
+  ///
+  /// [password] re-authorises the caller; a wrong one throws with
+  /// [AuthErrorCodes.wrongPassword] and nothing is deleted. On success the
+  /// session is gone - there is no account left to hold one.
+  Future<void> deleteAccount({required String password});
+
   /// Sign out the current user.
   Future<void> signOut();
 
@@ -295,6 +302,82 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
+  Future<void> deleteAccount({required String password}) async {
+    final user = _client.auth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null || email.isEmpty) {
+      throw const AuthException(
+        message: 'Sesi tidak ditemukan. Masuk kembali lalu coba lagi',
+        code: 'no_user',
+      );
+    }
+
+    try {
+      // 1. Re-authenticate.
+      //
+      // A POS device is signed in all day on a counter, so the session alone
+      // authorises nothing this destructive. `signInWithPassword` against the
+      // account's own address is the only way to check a password with the
+      // publishable key; it refreshes the session it replaces, which is
+      // harmless and about to be irrelevant.
+      await _client.auth.signInWithPassword(email: email, password: password);
+    } on sb.AuthException catch (e) {
+      throw AuthException(
+        message: _isWrongPassword(e.message)
+            ? 'Password salah'
+            : _mapAuthErrorMessage(e.message),
+        code: _isWrongPassword(e.message)
+            ? AuthErrorCodes.wrongPassword
+            : _mapAuthErrorCode(e.message, e.statusCode),
+        originalError: e,
+      );
+    } catch (e) {
+      throw AuthException(
+        message: 'Gagal memverifikasi password',
+        originalError: e,
+      );
+    }
+
+    try {
+      // 2. Delete, server-side.
+      //
+      // Removing an `auth.users` row needs the service role, which the app does
+      // not have and must not have. The function derives whose account to
+      // delete from this request's own token - it takes no uid - so there is
+      // nothing here to get wrong. See supabase/functions/delete-account.
+      await _client.functions.invoke('delete-account');
+    } on sb.FunctionException catch (e) {
+      throw AuthException(
+        message: 'Gagal menghapus akun. Silakan coba lagi',
+        code: '${e.status}',
+        originalError: e,
+      );
+    } catch (e) {
+      throw AuthException(
+        message: 'Gagal menghapus akun. Periksa koneksi Anda',
+        originalError: e,
+      );
+    }
+
+    // 3. Drop the local session.
+    //
+    // The account is already gone, so this is about the device: without it the
+    // app keeps a token for a user that no longer exists and the router leaves
+    // it sitting on the dashboard.
+    //
+    // gotrue drops the local session and emits `signedOut` *before* it calls
+    // the server, and ignores the 403/404 that a deleted user's token earns
+    // there - so the redirect happens either way. The catch is for the case
+    // that leaves: reporting a throw here would say "deletion failed" about a
+    // deletion that succeeded.
+    try {
+      await _client.auth.signOut();
+    } catch (_) {
+      // Deliberately ignored - see above.
+    }
+  }
+
+  @override
   Future<void> signOut() async {
     try {
       await _client.auth.signOut();
@@ -360,6 +443,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       tier: 'free',
       createdAt: DateTime.parse(user.createdAt),
     );
+  }
+
+  /// Whether a re-authentication failed because the password was wrong.
+  ///
+  /// The address is the account's own and cannot be the thing that is wrong, so
+  /// `invalid_credentials` here means exactly one field.
+  bool _isWrongPassword(String message) {
+    final lower = message.toLowerCase();
+    return lower.contains('invalid login credentials') ||
+        lower.contains('invalid_credentials');
   }
 
   /// Substitute a semantic code for Supabase's HTTP status where the UI needs

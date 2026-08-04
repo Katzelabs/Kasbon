@@ -23,6 +23,11 @@
 --
 -- ## Deployment
 --
+--   ./supabase/scripts/deploy-storage-janitor.sh --linked
+--
+-- which deploys the function, stores both secrets and finishes with a dry run.
+-- By hand it is:
+--
 --   supabase functions deploy storage-janitor
 --
 --   select vault.create_secret(
@@ -30,10 +35,13 @@
 --     'storage_janitor_url');
 --   select vault.create_secret('<service-role-key>', 'storage_janitor_service_key');
 --
--- Then verify without deleting anything:
---
 --   select public.run_storage_janitor(dry_run => true);
 --   select * from net._http_response order by created desc limit 1;
+--
+-- Prefer the script. `create_secret` raises on a name that already exists, so
+-- the sequence above works exactly once and fails on every rotation; and that
+-- last select takes the newest row, which right after the call is usually the
+-- *previous* run's, since pg_net answers from a background worker.
 -- =============================================================================
 
 CREATE EXTENSION IF NOT EXISTS pg_cron;

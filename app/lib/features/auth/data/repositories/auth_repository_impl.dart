@@ -146,6 +146,22 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> deleteAccount({
+    required String password,
+  }) async {
+    try {
+      await _remoteDataSource.deleteAccount(password: password);
+      return const Right(null);
+    } on AuthException catch (e) {
+      return Left(AuthFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return const Left(
+        AuthFailure(message: 'Gagal menghapus akun'),
+      );
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> signOut() async {
     try {
       await _remoteDataSource.signOut();

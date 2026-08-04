@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kasbon_pos/features/auth/domain/usecases/delete_account.dart';
 import 'package:kasbon_pos/features/auth/domain/usecases/get_current_user.dart';
 import 'package:kasbon_pos/features/auth/domain/usecases/request_password_reset.dart';
 import 'package:kasbon_pos/features/auth/domain/usecases/resend_sign_up_otp.dart';
@@ -28,12 +29,19 @@ class MockRequestPasswordReset extends Mock implements RequestPasswordReset {}
 
 class MockResetPassword extends Mock implements ResetPassword {}
 
+class MockDeleteAccount extends Mock implements DeleteAccount {}
+
 /// A fully-mocked [AuthNotifier].
 ///
 /// Every auth widget test wants one, which is why it lives here rather than
-/// being restated per file - the notifier takes eight use cases, and each new
+/// being restated per file - the notifier takes nine use cases, and each new
 /// one used to mean editing every test that builds it.
-AuthNotifier createMockAuthNotifier() => AuthNotifier(
+///
+/// [deleteAccount] is the one callers routinely want to stub, since the
+/// delete-account dialog is the only screen that drives a use case rather than
+/// just reading state, so it is a parameter instead of a fresh bare mock.
+AuthNotifier createMockAuthNotifier({DeleteAccount? deleteAccount}) =>
+    AuthNotifier(
       signIn: MockSignIn(),
       signUp: MockSignUp(),
       signOut: MockSignOut(),
@@ -42,9 +50,13 @@ AuthNotifier createMockAuthNotifier() => AuthNotifier(
       resendSignUpOtp: MockResendSignUpOtp(),
       requestPasswordReset: MockRequestPasswordReset(),
       resetPassword: MockResetPassword(),
+      deleteAccount: deleteAccount ?? MockDeleteAccount(),
     );
 
 /// Provider overrides pointing [authNotifierProvider] at a mocked notifier.
-List<Override> authProviderOverrides() => <Override>[
-      authNotifierProvider.overrideWith((ref) => createMockAuthNotifier()),
+List<Override> authProviderOverrides({DeleteAccount? deleteAccount}) =>
+    <Override>[
+      authNotifierProvider.overrideWith(
+        (ref) => createMockAuthNotifier(deleteAccount: deleteAccount),
+      ),
     ];

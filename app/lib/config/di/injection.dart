@@ -10,6 +10,7 @@ import '../../core/services/supabase_client_provider.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/usecases/delete_account.dart';
 import '../../features/auth/domain/usecases/get_current_user.dart';
 import '../../features/auth/domain/usecases/mark_onboarding_complete.dart';
 import '../../features/auth/domain/usecases/request_password_reset.dart';
@@ -159,6 +160,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton(
     () => MarkOnboardingComplete(getIt<AuthRepository>()),
   );
+  getIt.registerLazySingleton(() => DeleteAccount(getIt<AuthRepository>()));
 
   // ===========================================
   // PRODUCTS FEATURE

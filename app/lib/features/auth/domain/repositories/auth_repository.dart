@@ -52,6 +52,16 @@ abstract class AuthRepository {
   /// Record that this user has finished the onboarding wizard.
   Future<Either<Failure, void>> markOnboardingComplete();
 
+  /// Permanently delete the signed-in account and every row and file it owns.
+  ///
+  /// [password] re-authorises the request: a signed-in device on a shop counter
+  /// is not authorisation for this. A wrong one comes back as an [AuthFailure]
+  /// carrying [AuthErrorCodes.wrongPassword] and deletes nothing.
+  ///
+  /// On success there is no session, because there is no account. Irreversible
+  /// - the caller is responsible for having asked properly first.
+  Future<Either<Failure, void>> deleteAccount({required String password});
+
   /// Sign out the current user.
   Future<Either<Failure, void>> signOut();
 

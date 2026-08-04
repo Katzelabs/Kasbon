@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Kebijakan Privasi KASBON — data apa yang dikumpulkan aplikasi kasir KASBON, di mana disimpan, berapa lama, dan bagaimana cara menghapusnya.">
+  <meta name="robots" content="index, follow">
+  <link rel="icon" href="../favicon.png">
+  <link rel="alternate" hreflang="en" href="privacy-en.html">
+  <link rel="alternate" hreflang="id" href="privacy.html">
+  <title>Kebijakan Privasi — KASBON</title>
+  <style>
+    :root {
+      --brand: #2563EB;
+      --bg: #FFFFFF;
+      --surface: #F8FAFC;
+      --text: #0F172A;
+      --muted: #475569;
+      --border: #E2E8F0;
+      --warn-bg: #FEF3C7;
+      --warn-border: #F59E0B;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand: #60A5FA;
+        --bg: #0B1220;
+        --surface: #131C2E;
+        --text: #E2E8F0;
+        --muted: #94A3B8;
+        --border: #24314A;
+        --warn-bg: #2E2408;
+        --warn-border: #B45309;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0 20px 80px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    main { max-width: 720px; margin: 0 auto; }
+
+    header {
+      padding: 48px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+
+    .wordmark {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--brand);
+      text-transform: uppercase;
+      margin: 0 0 12px;
+    }
+
+    h1 { font-size: 32px; line-height: 1.2; margin: 0 0 12px; letter-spacing: -0.02em; }
+    h2 { font-size: 22px; line-height: 1.3; margin: 44px 0 12px; letter-spacing: -0.01em; }
+    h3 { font-size: 17px; margin: 28px 0 8px; }
+
+    .meta { color: var(--muted); font-size: 15px; margin: 0; }
+    .lang { margin-top: 16px; font-size: 15px; }
+    a { color: var(--brand); }
+
+    p, li { color: var(--text); }
+    ul { padding-left: 22px; }
+    li { margin-bottom: 8px; }
+
+    .lead {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin: 0 0 8px;
+    }
+    .lead ul { margin: 12px 0 0; }
+    .lead li { margin-bottom: 6px; }
+
+    .note {
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn-border);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin: 20px 0;
+    }
+    .note p { margin: 0; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0; }
+    table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 15px; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { background: var(--surface); font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    footer {
+      margin-top: 56px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    @media (max-width: 480px) {
+      body { font-size: 16px; }
+      h1 { font-size: 27px; }
+      header { padding-top: 32px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="wordmark">KASBON</p>
+    <h1>Kebijakan Privasi</h1>
+    <p class="meta">Berlaku sejak 4 Agustus 2026 · Versi 1.0</p>
+    <p class="lang"><a href="privacy-en.html">Read this page in English</a></p>
+  </header>
+
+  <div class="lead">
+    <strong>Ringkasnya:</strong>
+    <ul>
+      <li>KASBON menyimpan data akun Anda dan seluruh data usaha yang Anda catat (produk, penjualan, hutang pelanggan, foto bukti pembayaran).</li>
+      <li>Data disimpan di server Supabase di <strong>Singapura</strong>, dan hanya akun Anda yang bisa membacanya.</li>
+      <li>Kami <strong>tidak menjual</strong> data Anda, <strong>tidak memasang iklan</strong>, dan <strong>tidak melacak</strong> Anda di aplikasi atau situs lain.</li>
+      <li>Foto bukti pembayaran dihapus otomatis setelah masa simpan yang Anda tentukan sendiri (bawaan: 90 hari).</li>
+      <li>Anda dapat meminta salinan atau penghapusan seluruh data Anda kapan saja.</li>
+    </ul>
+  </div>
+
+  <h2>1. Siapa kami</h2>
+  <p>
+    KASBON (Kasir Bisnis Online) adalah aplikasi kasir untuk usaha mikro, kecil dan menengah di Indonesia.
+    Dalam kebijakan ini, "kami" berarti pengelola aplikasi KASBON, yang bertindak sebagai
+    <em>Pengendali Data Pribadi</em> atas data akun Anda, dan sebagai <em>Prosesor Data Pribadi</em>
+    atas data pelanggan yang Anda masukkan ke dalam aplikasi.
+  </p>
+  <p>
+    Pertanyaan tentang kebijakan ini dapat dikirim ke
+    <a href="mailto:support@kasbon.app">support@kasbon.app</a>.
+  </p>
+
+  <h2>2. Data yang kami kumpulkan</h2>
+  <p>Semua data di bawah ini berasal dari Anda — kami tidak membelinya dari pihak lain dan tidak mengumpulkannya diam-diam.</p>
+
+  <h3>2.1 Data akun</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Wajib?</th><th>Untuk apa</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Alamat email</td><td>Wajib</td><td>Identitas login, verifikasi akun lewat kode 6 digit, pemulihan kata sandi</td></tr>
+        <tr><td>Kata sandi</td><td>Wajib</td><td>Disimpan dalam bentuk <em>hash</em> oleh Supabase Auth — kami tidak pernah dapat membacanya</td></tr>
+        <tr><td>Nama lengkap</td><td>Opsional</td><td>Sapaan di dalam aplikasi dan nama kasir pada struk</td></tr>
+        <tr><td>Nomor telepon</td><td>Opsional</td><td>Kontak akun</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>2.2 Data toko dan usaha Anda</h3>
+  <ul>
+    <li><strong>Profil toko:</strong> nama toko, jenis usaha, alamat, nomor telepon, logo, teks header dan footer struk.</li>
+    <li><strong>Katalog:</strong> kategori, produk beserta SKU, barcode, deskripsi, harga modal, harga jual, stok, dan foto produk.</li>
+    <li><strong>Transaksi:</strong> nomor transaksi, tanggal, rincian barang, diskon, pajak, total, metode pembayaran, uang diterima dan kembalian, catatan, serta nama kasir.</li>
+    <li><strong>Hutang (kasbon):</strong> status pembayaran dan tanggal pelunasan.</li>
+    <li><strong>Pengaturan aplikasi:</strong> batas stok rendah, mata uang, dan lama penyimpanan bukti pembayaran.</li>
+  </ul>
+
+  <h3>2.3 Data pelanggan yang Anda masukkan</h3>
+  <p>
+    Ketika Anda mencatat penjualan atau hutang, Anda dapat mengisi <strong>nama pelanggan</strong>.
+    Nama itu tersimpan pada transaksi yang bersangkutan dan dipakai untuk menampilkan daftar hutang
+    dan laporan pelanggan teratas. Aplikasi tidak meminta nomor telepon, alamat, atau NIK pelanggan.
+  </p>
+
+  <h3>2.4 Foto</h3>
+  <ul>
+    <li><strong>Foto produk</strong> — diambil dari kamera atau galeri, dikompresi, lalu disimpan di penyimpanan awan.</li>
+    <li>
+      <strong>Foto bukti pembayaran</strong> — biasanya foto layar ponsel pelanggan yang menampilkan bukti transfer atau QRIS.
+      Foto seperti ini <strong>dapat memuat data pribadi orang lain</strong>, misalnya nama atau sebagian nomor telepon
+      atau nomor rekening. Karena itu foto bukti pembayaran disimpan di <em>bucket</em> tertutup yang hanya bisa dibuka
+      oleh akun pemiliknya lewat tautan bertanda tangan yang berumur pendek, dan dihapus otomatis sesuai masa simpan
+      (lihat bagian 6).
+    </li>
+  </ul>
+
+  <h3>2.5 Izin perangkat</h3>
+  <p>
+    Aplikasi hanya meminta izin <strong>kamera</strong> dan <strong>galeri/foto</strong>, dan hanya pada saat Anda
+    benar-benar memotret atau memilih gambar. Aplikasi tidak meminta izin lokasi, kontak, mikrofon, atau
+    penyimpanan eksternal. Menolak izin kamera hanya membuat fitur foto tidak dapat dipakai; fungsi kasir lainnya tetap berjalan.
+  </p>
+
+  <h3>2.6 Data teknis</h3>
+  <ul>
+    <li>
+      <strong>Log server.</strong> Penyedia infrastruktur kami (Supabase) mencatat log operasional berisi alamat IP,
+      waktu permintaan, dan jenis permintaan. Log ini dipakai untuk keamanan, pencegahan penyalahgunaan, dan
+      penelusuran gangguan — bukan untuk membuat profil Anda.
+    </li>
+    <li>
+      <strong>Data di perangkat Anda.</strong> Token sesi login disimpan di penyimpanan aman perangkat, dan beberapa
+      preferensi tampilan disimpan secara lokal. Semuanya hilang ketika Anda keluar dari akun atau mencopot aplikasi.
+    </li>
+  </ul>
+
+  <h2>3. Yang tidak kami lakukan</h2>
+  <ul>
+    <li>Kami tidak menjual atau menyewakan data Anda kepada siapa pun.</li>
+    <li>Kami tidak menampilkan iklan dan tidak mengirim data Anda ke jaringan iklan.</li>
+    <li>Kami tidak memasang SDK analitik pihak ketiga, pelacak, atau <em>fingerprinting</em> di dalam aplikasi.</li>
+    <li>Kami tidak melacak aktivitas Anda di aplikasi atau situs milik pihak lain.</li>
+    <li>Kami tidak mengumpulkan lokasi, daftar kontak, maupun data biometrik.</li>
+    <li>Kami tidak memproses pembayaran dan tidak pernah menerima nomor kartu atau kredensial rekening.</li>
+  </ul>
+
+  <h2>4. Dasar dan tujuan pemrosesan</h2>
+  <p>Kami memproses data di atas untuk:</p>
+  <ul>
+    <li>menjalankan fungsi aplikasi — mencatat penjualan, menghitung laba, mengelola hutang, dan menampilkan laporan;</li>
+    <li>mengelola akun Anda, termasuk verifikasi email dan pemulihan kata sandi;</li>
+    <li>menyinkronkan data Anda antar perangkat;</li>
+    <li>menjaga keamanan layanan dan mencegah penyalahgunaan;</li>
+    <li>memenuhi kewajiban hukum yang berlaku.</li>
+  </ul>
+  <p>
+    Dasar pemrosesannya adalah <strong>persetujuan Anda</strong> saat mendaftar dan <strong>pelaksanaan perjanjian</strong>
+    penggunaan layanan, sebagaimana diatur dalam Undang-Undang No. 27 Tahun 2022 tentang Pelindungan Data Pribadi.
+  </p>
+
+  <h2>5. Tempat penyimpanan dan keamanan</h2>
+  <p>
+    Data KASBON disimpan pada infrastruktur <strong>Supabase</strong> (basis data PostgreSQL dan penyimpanan objek)
+    di wilayah <strong>Singapura (ap-southeast-1)</strong>. Artinya data Anda disimpan dan diproses di luar wilayah
+    Indonesia; dengan menggunakan aplikasi ini Anda menyetujui transfer tersebut.
+  </p>
+  <ul>
+    <li>Seluruh lalu lintas antara aplikasi dan server berjalan lewat koneksi terenkripsi (HTTPS/TLS).</li>
+    <li>
+      Setiap baris data terikat pada akun pemiliknya dan dilindungi <em>Row Level Security</em> di tingkat basis data,
+      sehingga satu pengguna tidak dapat membaca data pengguna lain — termasuk apabila terjadi kesalahan di sisi aplikasi.
+    </li>
+    <li>Bucket bukti pembayaran bersifat tertutup; aksesnya hanya melalui tautan bertanda tangan yang berumur pendek.</li>
+    <li>Kata sandi tidak pernah disimpan dalam bentuk aslinya.</li>
+  </ul>
+  <p>
+    Tidak ada sistem yang sepenuhnya kebal. Bila terjadi kebocoran data pribadi, kami akan memberi tahu pengguna
+    yang terdampak dan otoritas yang berwenang sesuai ketentuan UU PDP.
+  </p>
+
+  <h2>6. Berapa lama data disimpan</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Jenis data</th><th>Masa simpan</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Data akun, toko, produk, transaksi, hutang</td>
+          <td>Selama akun Anda aktif, sampai Anda menghapusnya atau menghapus akun</td>
+        </tr>
+        <tr>
+          <td>Foto bukti pembayaran</td>
+          <td>
+            Sesuai masa simpan yang Anda atur sendiri di aplikasi — <strong>bawaan 90 hari</strong>,
+            dapat diubah antara 7 hari sampai 10 tahun. Foto yang lewat masa simpan dihapus otomatis
+            setiap malam pukul 03.00 WIB.
+          </td>
+        </tr>
+        <tr>
+          <td>Foto produk</td>
+          <td>Selama produknya ada; terhapus setelah produk dihapus</td>
+        </tr>
+        <tr>
+          <td>Berkas yatim di penyimpanan</td>
+          <td>Dihapus otomatis setelah lebih dari 24 jam tidak dirujuk data mana pun</td>
+        </tr>
+        <tr>
+          <td>Log server</td>
+          <td>Mengikuti kebijakan retensi Supabase sebagai penyedia infrastruktur</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <p>
+      <strong>Perhatikan masa simpan bukti pembayaran.</strong> Foto bukti pembayaran memuat data orang lain.
+      Simpanlah selama Anda benar-benar membutuhkannya untuk menyelesaikan sengketa penjualan — bukan lebih lama.
+      Pengaturannya ada di aplikasi dan berlaku untuk seluruh toko Anda.
+    </p>
+  </div>
+
+  <h2>7. Berbagi data dengan pihak lain</h2>
+  <p>Kami tidak membagikan data Anda kecuali kepada pihak berikut, sebatas yang diperlukan agar layanan berjalan:</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Pihak</th><th>Peran</th><th>Data yang diproses</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Supabase, Inc.</td>
+          <td>Penyedia basis data, autentikasi, dan penyimpanan berkas</td>
+          <td>Seluruh data akun dan data usaha Anda</td>
+        </tr>
+        <tr>
+          <td>Penyedia layanan email</td>
+          <td>Pengiriman email verifikasi dan pemulihan kata sandi</td>
+          <td>Alamat email dan kode sekali pakai</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Selain itu, data hanya dapat keluar dari aplikasi <strong>atas perintah Anda sendiri</strong>: ketika Anda
+    membagikan struk lewat WhatsApp atau aplikasi lain, mencetaknya, atau mengekspor laporan dan cadangan data
+    ke perangkat Anda. Berkas yang sudah Anda ekspor berada di luar kendali kami dan menjadi tanggung jawab Anda.
+  </p>
+  <p>
+    Kami dapat mengungkapkan data apabila diwajibkan oleh hukum atau permintaan resmi dari otoritas yang berwenang.
+  </p>
+
+  <h2>8. Tanggung jawab Anda sebagai pemilik toko</h2>
+  <p>
+    Nama pelanggan dan foto bukti pembayaran adalah data pribadi <em>orang lain</em> yang Anda masukkan sendiri.
+    Untuk data itu, Andalah pengendalinya dan kami hanya memprosesnya atas nama Anda. Karena itu:
+  </p>
+  <ul>
+    <li>masukkan nama pelanggan hanya bila memang diperlukan, misalnya untuk mencatat hutang;</li>
+    <li>mintalah kesediaan pelanggan sebelum memotret bukti pembayaran mereka;</li>
+    <li>hapus foto bukti pembayaran yang keliru atau tidak lagi diperlukan, dan atur masa simpan sependek yang masuk akal bagi usaha Anda;</li>
+    <li>teruskan permintaan pelanggan mengenai datanya kepada kami bila Anda memerlukan bantuan.</li>
+  </ul>
+
+  <h2>9. Hak Anda</h2>
+  <p>Berdasarkan UU No. 27 Tahun 2022, Anda berhak untuk:</p>
+  <ul>
+    <li>mengetahui data apa saja yang kami proses dan untuk tujuan apa;</li>
+    <li>memperoleh salinan data Anda — fitur ekspor cadangan di dalam aplikasi memberikan seluruh data usaha Anda dalam format JSON;</li>
+    <li>memperbaiki data yang keliru — sebagian besar dapat Anda ubah sendiri lewat aplikasi;</li>
+    <li>menghapus data Anda, seluruhnya maupun sebagian (lihat bagian 10);</li>
+    <li>menarik persetujuan dan menghentikan penggunaan layanan;</li>
+    <li>mengajukan keberatan atau keluhan kepada kami maupun kepada otoritas pelindungan data.</li>
+  </ul>
+  <p>
+    Kirimkan permintaan Anda ke <a href="mailto:support@kasbon.app">support@kasbon.app</a> dari alamat email yang
+    Anda pakai mendaftar. Kami menanggapi paling lambat <strong>30 hari kalender</strong>.
+  </p>
+
+  <h2>10. Menghapus akun dan data Anda</h2>
+  <p>Ada dua cara:</p>
+  <ul>
+    <li>
+      <strong>Lewat aplikasi.</strong> Buka <em>Pengaturan → Akun → Hapus Akun</em> dan ikuti konfirmasinya.
+    </li>
+    <li>
+      <strong>Lewat email.</strong> Kirim permintaan penghapusan ke
+      <a href="mailto:support@kasbon.app?subject=Permintaan%20Penghapusan%20Akun%20KASBON">support@kasbon.app</a>
+      dari alamat email akun Anda. Kami memprosesnya paling lambat 30 hari kalender.
+    </li>
+  </ul>
+  <p>
+    Menghapus akun akan menghapus profil, pengaturan toko, kategori, produk, transaksi beserta rinciannya,
+    catatan hutang, foto produk, dan foto bukti pembayaran milik akun tersebut. Penghapusan bersifat permanen
+    dan tidak dapat dibatalkan — ekspor cadangan Anda lebih dulu bila datanya masih dibutuhkan.
+    Salinan pada cadangan sistem penyedia infrastruktur akan hilang dengan sendirinya mengikuti siklus cadangan mereka.
+  </p>
+  <p>
+    Anda juga dapat menghapus sebagian data tanpa menutup akun: hapus produk, hapus foto bukti pembayaran pada
+    transaksi tertentu, atau perpendek masa simpan bukti pembayaran.
+  </p>
+
+  <h2>11. Anak-anak</h2>
+  <p>
+    KASBON adalah perkakas usaha dan tidak ditujukan bagi anak-anak. Kami tidak dengan sengaja mengumpulkan data
+    pribadi anak di bawah 18 tahun. Bila Anda mengetahui hal itu terjadi, hubungi kami agar datanya dihapus.
+  </p>
+
+  <h2>12. Perubahan kebijakan ini</h2>
+  <p>
+    Kebijakan ini dapat diperbarui bila fitur aplikasi berubah. Tanggal berlaku di bagian atas halaman selalu
+    menunjukkan versi terkini. Untuk perubahan yang berdampak besar pada data Anda, kami memberi tahu lewat
+    aplikasi atau email sebelum perubahan berlaku.
+  </p>
+
+  <h2>13. Hubungi kami</h2>
+  <ul>
+    <li>Email: <a href="mailto:support@kasbon.app">support@kasbon.app</a></li>
+    <li>WhatsApp: <a href="https://wa.me/6281234567890">+62 812-3456-7890</a></li>
+  </ul>
+
+  <footer>
+    <p>© 2026 KASBON. Kebijakan Privasi versi 1.0, berlaku sejak 4 Agustus 2026.</p>
+  </footer>
+</main>
+</body>
+</html>

@@ -7,6 +7,7 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_dimensions.dart';
 import '../../../../config/theme/app_text_styles.dart';
 import '../../../../core/constants/support_contacts.dart';
+import '../../../../core/utils/external_link.dart';
 import '../../../../core/utils/responsive_utils.dart';
 import '../../../../shared/brand/kasbon_mark.dart';
 import '../../../../shared/modern/modern.dart';
@@ -175,7 +176,7 @@ class AboutScreen extends ConsumerWidget {
   }
 
   Future<void> _launchWhatsApp(BuildContext context) async {
-    await _launch(
+    await ExternalLink.open(
       context,
       SupportContacts.whatsAppUri,
       failureMessage: 'Tidak dapat membuka WhatsApp',
@@ -183,7 +184,7 @@ class AboutScreen extends ConsumerWidget {
   }
 
   Future<void> _launchEmail(BuildContext context) async {
-    await _launch(
+    await ExternalLink.open(
       context,
       SupportContacts.supportEmailUri,
       // `mailto:` has no external-application equivalent to fall back on, so
@@ -194,35 +195,6 @@ class AboutScreen extends ConsumerWidget {
   }
 
   Future<void> _launchUrl(BuildContext context, String urlString) async {
-    await _launch(
-      context,
-      Uri.parse(urlString),
-      failureMessage: 'Tidak dapat membuka link',
-    );
-  }
-
-  /// One launch path for all four rows.
-  ///
-  /// `canLaunchUrl` is consulted but not trusted as a veto: on the web it
-  /// answers for a scheme rather than for a handler, and on Android it needs a
-  /// `<queries>` entry to answer honestly at all - so a false there is a
-  /// "probably not", and the attempt is still worth making. The error only
-  /// surfaces once the launch itself has actually failed.
-  Future<void> _launch(
-    BuildContext context,
-    Uri url, {
-    LaunchMode mode = LaunchMode.externalApplication,
-    required String failureMessage,
-  }) async {
-    var launched = false;
-    try {
-      launched = await launchUrl(url, mode: mode);
-    } catch (_) {
-      launched = false;
-    }
-
-    if (!launched && context.mounted) {
-      ModernToast.error(context, failureMessage);
-    }
+    await ExternalLink.openUrl(context, urlString);
   }
 }

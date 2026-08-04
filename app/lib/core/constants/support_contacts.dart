@@ -21,7 +21,26 @@ class SupportContacts {
   static const String supportEmail = 'support@kasbon.app';
 
   static const String termsUrl = 'https://kasbon.app/terms';
-  static const String privacyUrl = 'https://kasbon.app/privacy';
+
+  /// The published privacy policy.
+  ///
+  /// This is the same URL declared in the Play Console and App Store Connect,
+  /// and both stores check that it resolves - so it points at a file that
+  /// actually ships rather than at a path someone intends to create.
+  /// `app/web/legal/privacy.html` is copied into the web build verbatim, so
+  /// whatever host serves the web app serves the policy at this address.
+  static const String privacyUrl = 'https://kasbon.app/legal/privacy.html';
+
+  /// The account-deletion page, declared in the Play Console as the app's
+  /// deletion URL.
+  ///
+  /// Play requires *both* an in-app route and a web-reachable one, and the web
+  /// one has to work for someone who no longer has the app installed - which is
+  /// why it is a page describing the two routes rather than a link back into
+  /// the app. Same arrangement as [privacyUrl]: `app/web/legal/hapus-akun.html`
+  /// ships inside the web build, so the URL path is the file path.
+  static const String accountDeletionUrl =
+      'https://kasbon.app/legal/hapus-akun.html';
 
   /// Deep link into WhatsApp with the greeting already typed.
   static Uri get whatsAppUri => Uri.parse(

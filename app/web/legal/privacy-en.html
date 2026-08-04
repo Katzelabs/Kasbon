@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="KASBON Privacy Policy — what the KASBON point-of-sale app collects, where it is stored, how long it is kept, and how to have it deleted.">
+  <meta name="robots" content="index, follow">
+  <link rel="icon" href="../favicon.png">
+  <link rel="alternate" hreflang="id" href="privacy.html">
+  <link rel="alternate" hreflang="en" href="privacy-en.html">
+  <title>Privacy Policy — KASBON</title>
+  <style>
+    :root {
+      --brand: #2563EB;
+      --bg: #FFFFFF;
+      --surface: #F8FAFC;
+      --text: #0F172A;
+      --muted: #475569;
+      --border: #E2E8F0;
+      --warn-bg: #FEF3C7;
+      --warn-border: #F59E0B;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand: #60A5FA;
+        --bg: #0B1220;
+        --surface: #131C2E;
+        --text: #E2E8F0;
+        --muted: #94A3B8;
+        --border: #24314A;
+        --warn-bg: #2E2408;
+        --warn-border: #B45309;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0 20px 80px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    main { max-width: 720px; margin: 0 auto; }
+
+    header {
+      padding: 48px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+
+    .wordmark {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--brand);
+      text-transform: uppercase;
+      margin: 0 0 12px;
+    }
+
+    h1 { font-size: 32px; line-height: 1.2; margin: 0 0 12px; letter-spacing: -0.02em; }
+    h2 { font-size: 22px; line-height: 1.3; margin: 44px 0 12px; letter-spacing: -0.01em; }
+    h3 { font-size: 17px; margin: 28px 0 8px; }
+
+    .meta { color: var(--muted); font-size: 15px; margin: 0; }
+    .lang { margin-top: 16px; font-size: 15px; }
+    a { color: var(--brand); }
+
+    p, li { color: var(--text); }
+    ul { padding-left: 22px; }
+    li { margin-bottom: 8px; }
+
+    .lead {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin: 0 0 8px;
+    }
+    .lead ul { margin: 12px 0 0; }
+    .lead li { margin-bottom: 6px; }
+
+    .note {
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn-border);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin: 20px 0;
+    }
+    .note p { margin: 0; }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0; }
+    table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 15px; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { background: var(--surface); font-weight: 600; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+
+    footer {
+      margin-top: 56px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    @media (max-width: 480px) {
+      body { font-size: 16px; }
+      h1 { font-size: 27px; }
+      header { padding-top: 32px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="wordmark">KASBON</p>
+    <h1>Privacy Policy</h1>
+    <p class="meta">Effective 4 August 2026 · Version 1.0</p>
+    <p class="lang">
+      <a href="privacy.html">Baca halaman ini dalam Bahasa Indonesia</a> —
+      the Indonesian version is the authoritative text; this translation is provided for convenience.
+    </p>
+  </header>
+
+  <div class="lead">
+    <strong>In short:</strong>
+    <ul>
+      <li>KASBON stores your account details and everything you record about your business — products, sales, customer debts, and payment-proof photos.</li>
+      <li>Data is stored on Supabase infrastructure in <strong>Singapore</strong>, readable only by your own account.</li>
+      <li>We do <strong>not sell</strong> your data, do <strong>not show ads</strong>, and do <strong>not track</strong> you across other apps or websites.</li>
+      <li>Payment-proof photos are deleted automatically once your chosen retention window passes (90 days by default).</li>
+      <li>You can request a copy of your data, or its deletion, at any time.</li>
+    </ul>
+  </div>
+
+  <h2>1. Who we are</h2>
+  <p>
+    KASBON (Kasir Bisnis Online) is a point-of-sale app for small and medium businesses in Indonesia.
+    In this policy, "we" means the operator of the KASBON app, acting as the <em>data controller</em> for your
+    account data and as a <em>data processor</em> for the customer data you enter into the app.
+  </p>
+  <p>
+    Questions about this policy can be sent to <a href="mailto:support@kasbon.app">support@kasbon.app</a>.
+  </p>
+
+  <h2>2. What we collect</h2>
+  <p>Everything below comes from you. We do not buy data about you and we do not collect anything silently.</p>
+
+  <h3>2.1 Account data</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Required?</th><th>Why</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Email address</td><td>Required</td><td>Sign-in identity, account verification by 6-digit code, password recovery</td></tr>
+        <tr><td>Password</td><td>Required</td><td>Stored only as a hash by Supabase Auth — we can never read it</td></tr>
+        <tr><td>Full name</td><td>Optional</td><td>How the app addresses you, and the cashier name on receipts</td></tr>
+        <tr><td>Phone number</td><td>Optional</td><td>Account contact</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>2.2 Your shop and business data</h3>
+  <ul>
+    <li><strong>Shop profile:</strong> shop name, business type, address, phone number, logo, receipt header and footer text.</li>
+    <li><strong>Catalogue:</strong> categories and products, including SKU, barcode, description, cost price, selling price, stock, and product photos.</li>
+    <li><strong>Transactions:</strong> transaction number, date, line items, discounts, tax, total, payment method, cash received and change, notes, and cashier name.</li>
+    <li><strong>Debts (kasbon):</strong> payment status and settlement date.</li>
+    <li><strong>App settings:</strong> low-stock threshold, currency, and the payment-proof retention window.</li>
+  </ul>
+
+  <h3>2.3 Customer data you enter</h3>
+  <p>
+    When you record a sale or a debt you may enter a <strong>customer name</strong>. It is stored on that transaction
+    and used to show your debt list and top-customer report. The app never asks for a customer's phone number,
+    address, or national ID.
+  </p>
+
+  <h3>2.4 Photos</h3>
+  <ul>
+    <li><strong>Product photos</strong> — taken with the camera or picked from the gallery, compressed, then stored in cloud storage.</li>
+    <li>
+      <strong>Payment-proof photos</strong> — usually a photograph of a customer's phone screen showing a transfer or QRIS receipt.
+      Such photos <strong>can contain another person's personal data</strong>, such as a name or part of a phone or account number.
+      They are therefore kept in a private bucket that only the owning account can open, through short-lived signed links,
+      and are deleted automatically at the end of the retention window (see section 6).
+    </li>
+  </ul>
+
+  <h3>2.5 Device permissions</h3>
+  <p>
+    The app asks only for <strong>camera</strong> and <strong>photo library</strong> access, and only at the moment you
+    actually take or choose a picture. It does not ask for location, contacts, microphone, or external storage.
+    Denying camera access only disables the photo features; the rest of the app keeps working.
+  </p>
+
+  <h3>2.6 Technical data</h3>
+  <ul>
+    <li>
+      <strong>Server logs.</strong> Our infrastructure provider (Supabase) keeps operational logs containing IP addresses,
+      request times, and request types. These are used for security, abuse prevention, and troubleshooting — not to profile you.
+    </li>
+    <li>
+      <strong>On-device data.</strong> Your session token is kept in the device's secure storage and a few display preferences
+      are stored locally. All of it disappears when you sign out or uninstall the app.
+    </li>
+  </ul>
+
+  <h2>3. What we do not do</h2>
+  <ul>
+    <li>We do not sell or rent your data to anyone.</li>
+    <li>We show no advertising and send nothing to ad networks.</li>
+    <li>The app contains no third-party analytics SDK, tracker, or fingerprinting code.</li>
+    <li>We do not track you across other companies' apps or websites.</li>
+    <li>We do not collect location, contact lists, or biometric data.</li>
+    <li>We do not process payments and never receive card numbers or bank credentials.</li>
+  </ul>
+
+  <h2>4. Purpose and legal basis</h2>
+  <p>We process the data above to:</p>
+  <ul>
+    <li>run the app — recording sales, calculating profit, tracking debts, and producing reports;</li>
+    <li>manage your account, including email verification and password recovery;</li>
+    <li>synchronise your data across your devices;</li>
+    <li>keep the service secure and prevent abuse;</li>
+    <li>comply with applicable legal obligations.</li>
+  </ul>
+  <p>
+    The legal basis is <strong>your consent</strong> given at registration and <strong>performance of the contract</strong>
+    for the service, under Indonesian Law No. 27 of 2022 on Personal Data Protection (UU PDP).
+  </p>
+
+  <h2>5. Where data is stored, and how it is protected</h2>
+  <p>
+    KASBON data is stored on <strong>Supabase</strong> infrastructure (PostgreSQL database and object storage)
+    in the <strong>Singapore (ap-southeast-1)</strong> region. Your data is therefore stored and processed outside
+    Indonesia; by using the app you consent to that transfer.
+  </p>
+  <ul>
+    <li>All traffic between the app and the server runs over encrypted connections (HTTPS/TLS).</li>
+    <li>
+      Every row belongs to one account and is protected by Row Level Security in the database itself, so one user
+      cannot read another user's data — even if the app layer were to get something wrong.
+    </li>
+    <li>The payment-proof bucket is private; access is only through short-lived signed links.</li>
+    <li>Passwords are never stored in readable form.</li>
+  </ul>
+  <p>
+    No system is perfectly secure. If a personal data breach occurs, we will notify affected users and the relevant
+    authority as required by UU PDP.
+  </p>
+
+  <h2>6. How long we keep it</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Retention</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Account, shop, product, transaction and debt data</td>
+          <td>For as long as your account exists, until you delete it or delete your account</td>
+        </tr>
+        <tr>
+          <td>Payment-proof photos</td>
+          <td>
+            The retention window you set in the app — <strong>90 days by default</strong>, adjustable between
+            7 days and 10 years. Expired photos are deleted automatically every night at 03:00 WIB.
+          </td>
+        </tr>
+        <tr>
+          <td>Product photos</td>
+          <td>For as long as the product exists; removed after the product is deleted</td>
+        </tr>
+        <tr>
+          <td>Orphaned storage objects</td>
+          <td>Deleted automatically once nothing has referenced them for more than 24 hours</td>
+        </tr>
+        <tr>
+          <td>Server logs</td>
+          <td>Per Supabase's retention policy as our infrastructure provider</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <p>
+      <strong>Mind the payment-proof window.</strong> These photos contain other people's data. Keep them only as long as
+      you genuinely need them to settle a dispute over a sale — no longer. The setting lives in the app and applies to your whole shop.
+    </p>
+  </div>
+
+  <h2>7. Who else sees your data</h2>
+  <p>We share your data with no one except the following, and only as far as running the service requires:</p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Party</th><th>Role</th><th>Data processed</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Supabase, Inc.</td>
+          <td>Database, authentication and file storage provider</td>
+          <td>All of your account and business data</td>
+        </tr>
+        <tr>
+          <td>Email delivery provider</td>
+          <td>Sends verification and password-recovery emails</td>
+          <td>Your email address and the one-time code</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Beyond that, data leaves the app only <strong>when you make it</strong>: sharing a receipt over WhatsApp or another app,
+    printing it, or exporting a report or backup to your device. Files you have exported are outside our control and
+    become your responsibility.
+  </p>
+  <p>We may disclose data where required by law or by a valid request from a competent authority.</p>
+
+  <h2>8. Your responsibilities as a shop owner</h2>
+  <p>
+    Customer names and payment-proof photos are <em>other people's</em> personal data, entered by you. For that data you
+    are the controller and we process it on your behalf. So:
+  </p>
+  <ul>
+    <li>enter a customer name only where you need one, for instance to track a debt;</li>
+    <li>ask the customer before photographing their payment proof;</li>
+    <li>delete payment-proof photos that are wrong or no longer needed, and set the retention window as short as your business allows;</li>
+    <li>forward any customer request about their data to us if you need help answering it.</li>
+  </ul>
+
+  <h2>9. Your rights</h2>
+  <p>Under Law No. 27 of 2022 you have the right to:</p>
+  <ul>
+    <li>know what data we process and why;</li>
+    <li>obtain a copy of your data — the backup export inside the app gives you all of your business data as JSON;</li>
+    <li>correct inaccurate data — most of it you can edit yourself in the app;</li>
+    <li>delete your data, in whole or in part (see section 10);</li>
+    <li>withdraw consent and stop using the service;</li>
+    <li>object or complain, to us or to the data protection authority.</li>
+  </ul>
+  <p>
+    Send requests to <a href="mailto:support@kasbon.app">support@kasbon.app</a> from the email address you registered with.
+    We respond within <strong>30 calendar days</strong>.
+  </p>
+
+  <h2>10. Deleting your account and data</h2>
+  <p>There are two routes:</p>
+  <ul>
+    <li><strong>In the app.</strong> Open <em>Settings → Account → Delete Account</em> and confirm.</li>
+    <li>
+      <strong>By email.</strong> Send a deletion request to
+      <a href="mailto:support@kasbon.app?subject=KASBON%20Account%20Deletion%20Request">support@kasbon.app</a>
+      from your account's email address. We process it within 30 calendar days.
+    </li>
+  </ul>
+  <p>
+    Deleting your account removes the profile, shop settings, categories, products, transactions and their line items,
+    debt records, product photos, and payment-proof photos belonging to that account. Deletion is permanent and cannot
+    be undone — export a backup first if you still need the data. Copies held in our infrastructure provider's system
+    backups age out on their own backup cycle.
+  </p>
+  <p>
+    You can also delete parts of your data without closing your account: delete products, remove the payment proof on a
+    specific transaction, or shorten the payment-proof retention window.
+  </p>
+
+  <h2>11. Children</h2>
+  <p>
+    KASBON is a business tool and is not directed at children. We do not knowingly collect personal data from anyone
+    under 18. If you believe that has happened, contact us and we will delete it.
+  </p>
+
+  <h2>12. Changes to this policy</h2>
+  <p>
+    This policy may be updated as the app changes. The effective date at the top always reflects the current version.
+    For changes that materially affect your data, we will notify you in the app or by email before they take effect.
+  </p>
+
+  <h2>13. Contact us</h2>
+  <ul>
+    <li>Email: <a href="mailto:support@kasbon.app">support@kasbon.app</a></li>
+    <li>WhatsApp: <a href="https://wa.me/6281234567890">+62 812-3456-7890</a></li>
+  </ul>
+
+  <footer>
+    <p>© 2026 KASBON. Privacy Policy version 1.0, effective 4 August 2026.</p>
+  </footer>
+</main>
+</body>
+</html>

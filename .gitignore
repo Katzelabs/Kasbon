@@ -24,3 +24,9 @@ __pycache__/
 
 # Flutter golden-test diff output, written on every failed comparison.
 failures/
+
+# Supabase CLI scratch state: the linked project ref, pooler URL and the
+# version checks it caches. Per-developer and per-machine - `cli-latest` was
+# tracked and turned up modified in every unrelated diff, and after `supabase
+# link` this directory also names the production project.
+supabase/.temp/

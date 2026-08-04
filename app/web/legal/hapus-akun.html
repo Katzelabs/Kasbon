@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Cara menghapus akun KASBON beserta seluruh data usaha Anda — lewat aplikasi atau lewat permintaan email.">
+  <meta name="robots" content="index, follow">
+  <link rel="icon" href="../favicon.png">
+  <link rel="alternate" hreflang="en" href="hapus-akun-en.html">
+  <link rel="alternate" hreflang="id" href="hapus-akun.html">
+  <title>Hapus Akun — KASBON</title>
+  <style>
+    :root {
+      --brand: #2563EB;
+      --bg: #FFFFFF;
+      --surface: #F8FAFC;
+      --text: #0F172A;
+      --muted: #475569;
+      --border: #E2E8F0;
+      --warn-bg: #FEF3C7;
+      --warn-border: #F59E0B;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --brand: #60A5FA;
+        --bg: #0B1220;
+        --surface: #131C2E;
+        --text: #E2E8F0;
+        --muted: #94A3B8;
+        --border: #24314A;
+        --warn-bg: #2E2408;
+        --warn-border: #B45309;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0 20px 80px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 17px;
+      line-height: 1.65;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    main { max-width: 720px; margin: 0 auto; }
+
+    header {
+      padding: 48px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 32px;
+    }
+
+    .wordmark {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--brand);
+      text-transform: uppercase;
+      margin: 0 0 12px;
+    }
+
+    h1 { font-size: 32px; line-height: 1.2; margin: 0 0 12px; letter-spacing: -0.02em; }
+    h2 { font-size: 22px; line-height: 1.3; margin: 44px 0 12px; letter-spacing: -0.01em; }
+
+    .meta { color: var(--muted); font-size: 15px; margin: 0; }
+    .lang { margin-top: 16px; font-size: 15px; }
+    a { color: var(--brand); }
+
+    p, li { color: var(--text); }
+    ul, ol { padding-left: 22px; }
+    li { margin-bottom: 8px; }
+
+    .lead {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      margin: 0 0 8px;
+    }
+    .lead ul { margin: 12px 0 0; }
+    .lead li { margin-bottom: 6px; }
+
+    .note {
+      background: var(--warn-bg);
+      border-left: 4px solid var(--warn-border);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin: 20px 0;
+    }
+    .note p { margin: 0; }
+
+    .steps { counter-reset: step; list-style: none; padding-left: 0; }
+    .steps li {
+      counter-increment: step;
+      position: relative;
+      padding-left: 44px;
+      margin-bottom: 16px;
+    }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 1px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--brand);
+      color: #FFFFFF;
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0; }
+    table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: 15px; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { background: var(--surface); font-weight: 600; }
+
+    footer {
+      margin-top: 56px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    @media (max-width: 480px) {
+      body { font-size: 16px; }
+      h1 { font-size: 27px; }
+      header { padding-top: 32px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="wordmark">KASBON</p>
+    <h1>Menghapus Akun KASBON</h1>
+    <p class="meta">Aplikasi: KASBON — Kasir Bisnis Online · Diperbarui 4 Agustus 2026</p>
+    <p class="lang"><a href="hapus-akun-en.html">Read this page in English</a></p>
+  </header>
+
+  <div class="lead">
+    <strong>Ringkasnya:</strong>
+    <ul>
+      <li>Anda dapat menghapus akun sendiri langsung di aplikasi, tanpa menghubungi siapa pun.</li>
+      <li>Penghapusan berlaku <strong>seketika</strong> dan <strong>permanen</strong> — tidak ada masa tenggang dan tidak dapat dibatalkan.</li>
+      <li>Seluruh data usaha Anda ikut terhapus, termasuk foto produk dan foto bukti pembayaran.</li>
+      <li>Ekspor cadangan lebih dulu bila data Anda masih dibutuhkan.</li>
+    </ul>
+  </div>
+
+  <h2>Cara 1 — Lewat aplikasi (paling cepat)</h2>
+  <ol class="steps">
+    <li>Buka aplikasi KASBON dan masuk ke akun Anda.</li>
+    <li>Pilih tab <strong>Pengaturan</strong>.</li>
+    <li>Gulir ke bagian <strong>Akun</strong>, lalu ketuk <strong>Hapus Akun</strong>.</li>
+    <li>Baca daftar data yang akan dihapus. Bila masih memerlukan datanya, ketuk <strong>Buat Backup Dulu</strong> untuk mengunduh seluruh data Anda sebagai satu file JSON, lalu kembali ke langkah ini.</li>
+    <li>Masukkan <strong>password</strong> akun Anda dan ketik <strong>HAPUS</strong> pada kolom konfirmasi.</li>
+    <li>Ketuk <strong>Hapus Akun</strong>. Akun langsung terhapus dan Anda keluar dari aplikasi.</li>
+  </ol>
+
+  <div class="note">
+    <p>
+      Password diminta karena perangkat kasir biasanya dibiarkan dalam keadaan sudah masuk di meja toko.
+      Tanpa itu, siapa pun yang memegang perangkat Anda dapat menghapus seluruh data usaha Anda.
+    </p>
+  </div>
+
+  <h2>Cara 2 — Lewat email</h2>
+  <p>
+    Bila Anda tidak lagi dapat masuk ke aplikasi — misalnya perangkat hilang atau lupa password dan email
+    pemulihan tidak sampai — kirim permintaan penghapusan ke
+    <a href="mailto:support@kasbon.app?subject=Permintaan%20Penghapusan%20Akun%20KASBON">support@kasbon.app</a>
+    <strong>dari alamat email akun Anda</strong>, dengan isi:
+  </p>
+  <ul>
+    <li>alamat email akun yang ingin dihapus;</li>
+    <li>nama toko yang terdaftar, sebagai pemeriksaan tambahan.</li>
+  </ul>
+  <p>
+    Permintaan diproses paling lambat <strong>30 hari kalender</strong>. Kami hanya menerima permintaan dari
+    alamat email akun itu sendiri, karena tidak ada cara lain untuk memastikan bahwa yang meminta adalah pemiliknya.
+  </p>
+
+  <h2>Data apa yang dihapus</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Kapan dihapus</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Akun dan kredensial login (email, hash password, nama, nomor telepon)</td><td>Seketika</td></tr>
+        <tr><td>Profil dan pengaturan toko</td><td>Seketika</td></tr>
+        <tr><td>Kategori dan produk</td><td>Seketika</td></tr>
+        <tr><td>Transaksi, rincian penjualan, dan catatan hutang</td><td>Seketika</td></tr>
+        <tr><td>Nama pelanggan yang Anda catat pada transaksi</td><td>Seketika</td></tr>
+        <tr><td>Foto produk dan foto bukti pembayaran</td><td>Seketika; sisa berkas yang gagal terhapus dibersihkan otomatis dalam 24 jam</td></tr>
+        <tr><td>Data yang tersimpan di perangkat (sesi login, preferensi tampilan)</td><td>Saat aplikasi keluar dari akun</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Data apa yang mungkin masih tersimpan sebentar</h2>
+  <ul>
+    <li>
+      <strong>Cadangan sistem penyedia infrastruktur.</strong> Salinan pada cadangan otomatis Supabase hilang
+      dengan sendirinya mengikuti siklus cadangan mereka. Salinan itu tidak dapat diakses lewat aplikasi.
+    </li>
+    <li>
+      <strong>Catatan teknis.</strong> Log server yang tidak memuat isi data usaha Anda dapat tersimpan singkat
+      untuk keperluan keamanan dan diagnosis.
+    </li>
+    <li>
+      <strong>File yang sudah Anda unduh sendiri.</strong> Backup JSON dan struk yang tersimpan di perangkat
+      Anda adalah milik Anda dan tidak tersentuh oleh penghapusan ini.
+    </li>
+  </ul>
+
+  <h2>Menghapus sebagian data tanpa menutup akun</h2>
+  <p>
+    Bila yang Anda inginkan hanya membersihkan sebagian data, akun tidak perlu ditutup:
+  </p>
+  <ul>
+    <li>hapus produk atau kategori satu per satu dari daftarnya;</li>
+    <li>hapus foto bukti pembayaran pada transaksi tertentu;</li>
+    <li>perpendek masa simpan bukti pembayaran di <em>Pengaturan → Pengaturan Aplikasi</em> (bawaan 90 hari, dapat diatur 7 hari sampai 10 tahun);</li>
+    <li>gunakan <em>Pengaturan → Backup &amp; Restore → Hapus Semua Data</em> untuk mengosongkan seluruh data usaha namun tetap mempertahankan akun.</li>
+  </ul>
+
+  <h2>Pertanyaan</h2>
+  <ul>
+    <li>Email: <a href="mailto:support@kasbon.app">support@kasbon.app</a></li>
+    <li>WhatsApp: <a href="https://wa.me/6281234567890">+62 812-3456-7890</a></li>
+    <li>Kebijakan Privasi: <a href="privacy.html">kasbon.app/legal/privacy.html</a></li>
+  </ul>
+
+  <footer>
+    <p>© 2026 KASBON. Halaman ini adalah alamat penghapusan akun yang terdaftar pada Google Play dan App Store.</p>
+  </footer>
+</main>
+</body>
+</html>

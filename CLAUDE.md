@@ -46,6 +46,7 @@ The project migrated from offline-first SQLite to **Supabase-only** (Feb–Mar 2
 | Frontend conventions | `app/CLAUDE.md` |
 | Logo, app icons, brand rules | `docs/BRAND.md` + `brand/` (`docs/BRAND.md` is current, not historical) |
 | Business vision | `docs/PROJECT_BRIEF.md` (business sections still valid) |
+| Privacy policy, store data declarations | `app/web/legal/privacy.html` (the published text) + `docs/legal/` (hosting, store answers, pre-submission checklist) |
 
 ## Claude Code Setup (Required Plugins)
 
@@ -260,19 +261,22 @@ otherwise hand any signed-in user a cross-tenant read.
 
 **Deployment is not automatic.** The schedule ships in `20260801000002`, but it
 no-ops with a `NOTICE` until two Vault secrets exist — they hold a service key
-and a per-environment URL, so they cannot live in a migration:
+and a per-environment URL, so they cannot live in a migration. One script does
+the whole sequence — deploy, both secrets, then a dry run that deletes nothing:
 
-```sql
-select vault.create_secret('https://<ref>.supabase.co/functions/v1/storage-janitor', 'storage_janitor_url');
-select vault.create_secret('<service-role-key>', 'storage_janitor_service_key');
+```bash
+./supabase/scripts/deploy-storage-janitor.sh --linked   # or --local
 ```
 
-Then `supabase functions deploy storage-janitor`, and verify without deleting:
+It reads the key from `$SUPABASE_SERVICE_ROLE_KEY` or prompts for it silently,
+and is safe to re-run — which is also how you rotate the key. Prefer it to the
+three commands in the migration header: `vault.create_secret` raises on a name
+that already exists, so those work exactly once, and the `order by created desc
+limit 1` they end with races pg_net's background worker.
 
-```sql
-select public.run_storage_janitor(dry_run => true);
-select status_code, content from net._http_response order by created desc limit 1;
-```
+**Until this is run, the janitor is not merely unscheduled — the security fix in
+`341a497` is not in effect either**, since it lives in the function body that has
+never been deployed.
 
 ## Authentication
 
@@ -294,6 +298,59 @@ which carry `{{ .Token }}`. **Production additionally needs real SMTP** in
 Whether a user has onboarded is recorded in
 `auth.users.raw_user_meta_data.onboarding_completed_at`, not in a table, because
 the router redirect is synchronous. See `app/CLAUDE.md` for the full flow.
+
+## Account Deletion (`delete-account`)
+
+Both stores block submission without it: Play wants an in-app route **and** a
+web-reachable one, Apple wants in-app deletion from anything that creates
+accounts. Four pieces, deployed three different ways:
+
+| Piece | Where | Ships with |
+|-------|-------|-----------|
+| The row query | `20260804000001_account_deletion.sql` | `db push` |
+| The deleting | `functions/delete-account` | `functions deploy` |
+| The dialog | `settings/.../delete_account_dialog.dart` | the app |
+| The public page | `app/web/legal/hapus-akun{,-en}.html` | `flutter build web` |
+
+**Almost all of it is a cascade nobody wrote.** Every tenant table keys off
+`auth.users(id) ON DELETE CASCADE`, so `auth.admin.deleteUser()` takes the
+profile, shop settings, categories, products, transactions and items with it.
+Storage is the exception and the reason any of this exists: `storage.objects`
+has no foreign key to `auth.users`, so a deleted account's photos would simply
+stay in the buckets. `account_object_paths` names them (prefix match on the
+tenant folder — **not** a join against the rows, which would miss exactly the
+unreferenced uploads a deletion must not leave behind) and the function removes
+them.
+
+**Order is load-bearing: the auth row first, storage second.** If the delete
+fails, nothing has been destroyed and the user retries. If a storage batch
+fails afterwards, the rows are already gone, so those objects are orphans and
+`storage-janitor` sweeps them within 24h — the failure degrades to the slow
+path instead of leaking. The reverse order deletes photos out from under an
+account that still exists.
+
+**Auth is the opposite of the janitor's.** That one must be callable by cron and
+nobody else, so it compares the presented credential against the service key.
+This one is called by every user and must act only on themselves, so
+`verify_jwt` is **off** (see the note in `config.toml`) and the function
+verifies the caller's token with `auth.getUser()` and derives the uid from
+that. There is no uid parameter, so there is nothing to tamper with — and a
+service key presented here is rejected, since it identifies no user.
+
+Deployment needs no Vault secrets, unlike the janitor:
+
+```bash
+supabase functions deploy delete-account   # verify_jwt comes from config.toml
+```
+
+The in-app flow is Pengaturan → Akun → Hapus Akun, behind two gates: typing
+`HAPUS` ("I read the list") and the account password ("I am the owner" — a POS
+device sits signed in on a counter all day). It offers a backup export first,
+which leaves the dialog for the backup screen rather than reimplementing it.
+
+`SupportContacts.accountDeletionUrl` is the URL declared in the Play Console;
+`test/unit/legal/account_deletion_page_test.dart` fails if it stops naming a
+file that ships.
 
 ## Key Patterns
 

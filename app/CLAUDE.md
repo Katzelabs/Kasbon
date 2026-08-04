@@ -157,6 +157,16 @@ half-onboarded user away from it on every cold start. It is deliberately not
 mirrored anywhere. `MarkOnboardingComplete` must land **before** the wizard
 navigates, or the gate sends the user straight back.
 
+**Deleting the account** is the one auth action the client cannot perform:
+removing an `auth.users` row needs the service role, which this app must never
+hold. `DeleteAccount` re-authenticates with `signInWithPassword` (the only way
+to check a password with a publishable key), invokes the `delete-account` Edge
+Function, then signs out locally — the sign-out failure is swallowed on purpose,
+because reporting it would say "deletion failed" about a deletion that
+succeeded. `DeleteAccountDialog` owns the confirmation; a wrong password comes
+back as `AuthErrorCodes.wrongPassword` so it lands on the field rather than in a
+banner. See the root `CLAUDE.md` for the server half.
+
 ## Onboarding
 
 `lib/features/onboarding/` — three steps, one of which blocks.

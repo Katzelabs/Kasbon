@@ -133,9 +133,23 @@ void main() {
       const SettingsScreen(),
     );
 
-    // Five groups holding seven rows. Before the restyle every row carried its
+    // Five groups holding nine rows. Before the restyle every row carried its
     // own outlined card, so the count of cards tracked the count of rows.
-    expect(find.byType(SettingsTile), findsNWidgets(7));
-    expect(find.byType(Divider), findsNWidgets(2));
+    expect(find.byType(SettingsTile), findsNWidgets(9));
+    expect(find.byType(Divider), findsNWidgets(4));
+  });
+
+  testWidgets('names the privacy policy on the hub itself', (tester) async {
+    register(settings());
+
+    await pumpScreenAtWidth(
+      tester,
+      ResponsiveWidths.compact,
+      const SettingsScreen(),
+    );
+
+    // Both stores look for the policy from Settings, and it used to be
+    // reachable only by opening "Tentang Aplikasi" first.
+    expect(find.text('Kebijakan Privasi'), findsOneWidget);
   });
 }

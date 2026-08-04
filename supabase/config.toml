@@ -373,6 +373,24 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# storage-janitor takes the default verify_jwt = true and is not listed here.
+# It compares the presented credential against the service key itself, so the
+# platform check is one of two locks rather than the only one.
+
+[functions.delete-account]
+# Off, and the function is *more* locked down for it, not less.
+#
+# The platform's verify_jwt only proves the caller holds some valid JWT for this
+# project. delete-account has to know *which user* is calling, so it verifies
+# the token against the auth server itself (`auth.getUser`) and derives the uid
+# from that - a check that subsumes verify_jwt and is the one thing standing
+# between a signed-in shop owner and someone else's account.
+#
+# Leaving it on breaks the browser instead: the web build is a must-ship target,
+# a cross-origin invoke sends a preflight OPTIONS with no Authorization header,
+# and the platform answers that with 401 before the function can reply to it.
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../config/di/injection.dart';
 import '../../domain/entities/user_profile.dart';
+import '../../domain/usecases/delete_account.dart';
 import '../../domain/usecases/get_current_user.dart';
 import '../../domain/usecases/request_password_reset.dart';
 import '../../domain/usecases/resend_sign_up_otp.dart';
@@ -52,6 +53,7 @@ final authNotifierProvider =
     resendSignUpOtp: getIt<ResendSignUpOtp>(),
     requestPasswordReset: getIt<RequestPasswordReset>(),
     resetPassword: getIt<ResetPassword>(),
+    deleteAccount: getIt<DeleteAccount>(),
   );
 });
 
@@ -120,6 +122,7 @@ class AuthNotifier extends StateNotifier<AuthUiState> {
   final ResendSignUpOtp _resendSignUpOtp;
   final RequestPasswordReset _requestPasswordReset;
   final ResetPassword _resetPassword;
+  final DeleteAccount _deleteAccount;
 
   AuthNotifier({
     required SignIn signIn,
@@ -130,6 +133,7 @@ class AuthNotifier extends StateNotifier<AuthUiState> {
     required ResendSignUpOtp resendSignUpOtp,
     required RequestPasswordReset requestPasswordReset,
     required ResetPassword resetPassword,
+    required DeleteAccount deleteAccount,
   })  : _signIn = signIn,
         _signUp = signUp,
         _signOut = signOut,
@@ -138,6 +142,7 @@ class AuthNotifier extends StateNotifier<AuthUiState> {
         _resendSignUpOtp = resendSignUpOtp,
         _requestPasswordReset = requestPasswordReset,
         _resetPassword = resetPassword,
+        _deleteAccount = deleteAccount,
         super(const AuthUiState());
 
   /// Attempt to sign in with email and password.
@@ -335,6 +340,39 @@ class AuthNotifier extends StateNotifier<AuthUiState> {
       },
       (_) {
         state = const AuthUiState(status: AuthStatus.unauthenticated);
+      },
+    );
+  }
+
+  /// Permanently delete the account, re-authorised by [password].
+  ///
+  /// Returns false and leaves the failure in state on any error - including a
+  /// wrong password, which arrives as [AuthErrorCodes.wrongPassword] so the
+  /// dialog can show it against its one field instead of as a banner.
+  ///
+  /// On success the datasource has already signed out, and the router's
+  /// redirect follows from Supabase's own auth stream. The state is set
+  /// `unauthenticated` for the same reason `logout` does: nothing should be
+  /// left claiming there is a user.
+  Future<bool> deleteAccount({required String password}) async {
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+
+    final result = await _deleteAccount(DeleteAccountParams(
+      password: password,
+    ));
+
+    return result.fold(
+      (failure) {
+        state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: failure.message,
+          errorCode: failure.code,
+        );
+        return false;
+      },
+      (_) {
+        state = const AuthUiState(status: AuthStatus.unauthenticated);
+        return true;
       },
     );
   }
