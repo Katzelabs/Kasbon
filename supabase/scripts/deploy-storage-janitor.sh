@@ -113,13 +113,31 @@ elif [[ "$TARGET" == local ]]; then
 else
   # -s so it is not echoed, and it is never passed on to anything that would
   # put it in argv or a file.
-  read -rsp "     service role key for ${PROJECT_REF}: " SERVICE_KEY
+  read -rsp "     legacy service_role key (eyJ...) for ${PROJECT_REF}: " SERVICE_KEY
   echo
 fi
 readonly SERVICE_KEY
 
 if [[ -z "$SERVICE_KEY" ]]; then
   echo "error: no service role key" >&2
+  exit 1
+fi
+
+# It has to be the *legacy* service_role JWT, not the newer `sb_secret_...`.
+# A project created now has both, the dashboard shows the new one first, and
+# picking wrong fails twice over: the gateway rejects a non-JWT before the
+# function runs (verify_jwt), and the function's own check compares against
+# `SUPABASE_SERVICE_ROLE_KEY`, which the runtime populates with the legacy key.
+# Both failures surface as an HTTP status with no hint about key families, so
+# the cheap thing is to refuse it here.
+if [[ "$SERVICE_KEY" == sb_secret_* ]]; then
+  echo "error: that is the new-format secret key (sb_secret_...)." >&2
+  echo "       This needs the legacy service_role JWT, which starts 'eyJ'." >&2
+  echo "       supabase projects api-keys --project-ref ${PROJECT_REF}" >&2
+  exit 1
+fi
+if [[ "$SERVICE_KEY" != eyJ* ]]; then
+  echo "error: that does not look like a JWT (expected it to start 'eyJ')." >&2
   exit 1
 fi
 
@@ -223,6 +241,18 @@ case "$RESPONSE" in
   *'"status_code": 403'*)
     echo "error: the function rejected the key. The Vault secret and the" >&2
     echo "       project's SUPABASE_SERVICE_ROLE_KEY are not the same value." >&2
+    echo "       A rotated key that was never re-run through this script does" >&2
+    echo "       exactly this - run it again to store the current one." >&2
+    exit 1
+    ;;
+  *'"status_code": 401'*)
+    # The gateway, not the function: verify_jwt rejected the bearer before the
+    # in-body check ever ran. Distinct from the 403 above, which means the
+    # function ran and disagreed about the value.
+    echo "error: the gateway rejected the token (verify_jwt), so the function" >&2
+    echo "       never ran. The stored key is not a valid JWT for this project" >&2
+    echo "       - most likely an sb_secret_... key rather than the legacy" >&2
+    echo "       service_role JWT." >&2
     exit 1
     ;;
   *)

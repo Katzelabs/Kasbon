@@ -48,9 +48,14 @@
 --
 -- Prefer it to doing this by hand: `vault.create_secret` raises on a name that
 -- already exists, so the manual sequence works exactly once and fails on every
--- rotation. Until it is run, the janitor is not merely unscheduled - the
--- service-role check inside the Edge Function body has never been deployed
--- either.
+-- rotation.
+--
+-- Note that `functions deploy` and the secrets are genuinely independent, and a
+-- project can sit in the state where the function is deployed, the cron job is
+-- scheduled and active, and the sweep still runs nightly doing nothing at all -
+-- because `run_storage_janitor` finds no secrets and returns early. Everything
+-- an inspection would look at appears healthy. The only proof is a dry run that
+-- comes back 200, which is why the script ends with one.
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------

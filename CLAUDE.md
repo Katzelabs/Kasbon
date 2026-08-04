@@ -274,9 +274,12 @@ three commands in the migration header: `vault.create_secret` raises on a name
 that already exists, so those work exactly once, and the `order by created desc
 limit 1` they end with races pg_net's background worker.
 
-**Until this is run, the janitor is not merely unscheduled — the security fix in
-`341a497` is not in effect either**, since it lives in the function body that has
-never been deployed.
+**A deployed function and an active cron job are not evidence the sweep runs.**
+The two halves are independent: `functions deploy` can succeed, `cron.job` can
+show `storage-janitor-daily` active on `0 20 * * *`, and the nightly run can
+still do nothing, because `run_storage_janitor` finds no Vault secrets and
+returns early by design. Nothing in that state looks broken. The dry run at the
+end of the script — a 200 with a report body — is the only thing that proves it.
 
 ## Authentication
 
