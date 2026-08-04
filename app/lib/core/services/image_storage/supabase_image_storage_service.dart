@@ -30,7 +30,7 @@ import 'image_storage_service.dart';
 /// replaced photo cannot be served stale from a CDN or an `Image.network`
 /// cache keyed on the URL.
 class SupabaseImageStorageService implements ImageStorageService {
-  /// Bucket created by `20260727000001_create_product_images_bucket.sql`.
+  /// Bucket created by `20260804010006_storage_buckets.sql`.
   static const String bucketName = 'product-images';
 
   /// The marker that separates a Supabase public URL from the object path

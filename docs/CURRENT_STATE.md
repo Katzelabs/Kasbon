@@ -57,8 +57,8 @@ All MVP features (TASK_001–015) plus authentication (TASK_017) are complete:
 
 | Topic | Where to look |
 |-------|---------------|
-| Database schema | `supabase/migrations/` (NOT the docs in this folder) |
-| RPC functions | `supabase/migrations/20260316000001_create_rpc_functions.sql` |
+| Database schema | `supabase/migrations/` (NOT the docs in this folder); `docs/DATABASE.md` for the map |
+| RPC functions | `20260804010007_pos_rpc.sql` + `20260804010008_report_rpcs.sql` |
 | Progress | [ClickUp Kasbon space](https://app.clickup.com/90182053080/v/b/s/901812129010) |
 | Architecture & conventions | Root `CLAUDE.md` and `app/CLAUDE.md` |
 | Business vision & roadmap | `docs/PROJECT_BRIEF.md`, `docs/FEATURE_PRIORITY_AND_PHASES.md` (still valid for business context) |

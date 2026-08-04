@@ -160,8 +160,8 @@ BEGIN
    WHERE n.nspname = 'public'
      AND p.prokind = 'f'
      -- Extension-owned C functions have no proconfig and never will. pg_trgm
-     -- landed in public on its first migration and was moved to `extensions` in
-     -- 20260801000005, so this exclusion is currently matching nothing - it is
+     -- is created `WITH SCHEMA extensions` (20260804010001), so this exclusion is
+     -- currently matching nothing - it is
      -- here so that the next `CREATE EXTENSION` that forgets WITH SCHEMA fails
      -- this check as a schema-hygiene problem, not as 30 phantom findings.
      AND NOT EXISTS (
@@ -180,7 +180,7 @@ END $$;
 -- ---------------------------------------------------------------------------
 -- 6. the cross-tenant policy functions stay service-role only
 -- ---------------------------------------------------------------------------
--- 20260725000001 sets ALTER DEFAULT PRIVILEGES granting EXECUTE on every new
+-- 20260804010003 sets ALTER DEFAULT PRIVILEGES granting EXECUTE on every new
 -- public function to `authenticated`, so these are only private because their
 -- migration explicitly revokes it. A future migration that recreates one
 -- without re-revoking would silently hand every signed-in user a cross-tenant

@@ -3,7 +3,7 @@
 /// Report boundaries and report *bucketing* have to agree on what "1 July"
 /// means, or a period silently gains and loses hours at its edges. The SQL side
 /// buckets in `Asia/Jakarta` (see the `p_tz` default in
-/// `supabase/migrations/20260726000001_advanced_report_rpcs.sql`); this class is
+/// `supabase/migrations/20260804010008_report_rpcs.sql`); this class is
 /// the Dart half of that same decision.
 ///
 /// Dates flow through the app as *business wall-clock* values - a plain

@@ -3,8 +3,8 @@ import 'dart:typed_data';
 /// A format the app is willing to store.
 ///
 /// Both buckets allow all of these already - see the `allowed_mime_types` in
-/// `20260727000001_create_product_images_bucket.sql`, which listed webp from
-/// the start precisely so switching to it would not need a migration.
+/// `20260804010006_storage_buckets.sql`, which listed webp from the start
+/// precisely so switching to it would not need a migration.
 ///
 /// `image/svg+xml` is deliberately absent, there and here: SVG is a document
 /// format that can carry script, and `product-images` is public.

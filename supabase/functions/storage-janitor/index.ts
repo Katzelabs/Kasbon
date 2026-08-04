@@ -22,7 +22,7 @@
 // raises on any direct delete: "Direct deletion from storage tables is not
 // allowed. Use the Storage API instead." Removing an object is an HTTP call,
 // and pg_cron cannot make one without pg_net, which cannot easily handle the
-// response. So Postgres decides *what* (see 20260801000001) and this decides
+// response. So Postgres decides *what* (see 20260804010009) and this decides
 // nothing at all - it only performs the deletes and reports what happened.
 //
 // ## Auth
@@ -33,7 +33,7 @@
 // it let any authenticated user fire a project-wide sweep that runs, below,
 // with the service role.
 //
-// The damage was bounded (the policy functions in 20260801000001 only ever
+// The damage was bounded (the policy functions in 20260804010009 only ever
 // name objects that are already expired or already orphaned, so nothing a user
 // could still reach was deletable) but the sweep is O(objects) and free to
 // trigger in a loop, and "bounded" is not the same as "authorised".

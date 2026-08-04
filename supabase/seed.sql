@@ -25,9 +25,10 @@ INSERT INTO auth.users (
   crypt('password123', gen_salt('bf')),
   NOW(),
   '{"provider": "email", "providers": ["email"]}',
-  -- onboarding_completed_at keeps the seed user out of the setup wizard. The
-  -- backfill in 20260731000006 cannot reach them: migrations run before seeds,
-  -- so this row does not exist yet when it fires.
+  -- onboarding_completed_at keeps the seed user out of the setup wizard. It is
+  -- written here rather than by a migration because migrations run before seeds:
+  -- this row does not exist yet while they are applying.
+  -- `onboarding_marker_test.dart` asserts the app reads this exact key.
   '{"full_name": "Pak Adi", "phone": "081234567890", "tier": "free", "onboarding_completed_at": "2026-07-31T00:00:00Z"}',
   NOW(),
   NOW(),

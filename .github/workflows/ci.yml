@@ -108,7 +108,7 @@ jobs:
           version: latest
 
       # Trimmed to what the checks actually touch. `storage` has to stay:
-      # 20260727000001 and 20260731000002 create buckets and write policies on
+      # 20260804010006 creates buckets and writes policies on
       # storage.objects, and without the service that schema does not exist.
       # Locally this brings start-up from ~90s to ~25s.
       - name: Start Supabase

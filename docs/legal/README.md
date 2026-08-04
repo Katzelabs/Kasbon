@@ -103,7 +103,7 @@ Blocking, in rough order:
 - [ ] **Account deletion is implemented — deploy its Edge Function.** The
       policy's section 10 names an in-app route, *Pengaturan → Akun → Hapus
       Akun*, and an email fallback, and both now exist: the dialog, the
-      `delete-account` function, and `20260804000001_account_deletion.sql`.
+      `delete-account` function, and `20260804010010_account_deletion.sql`.
       Verified against the local stack end to end (auth row deleted, tables
       cascaded, both storage folders emptied, and a caller presenting anything
       but their own user token rejected). What is left is deployment —

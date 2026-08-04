@@ -59,7 +59,7 @@ class ShopSettings extends Equatable {
   /// project for one shop. Thirty days puts the same shop near 225 MB.
   ///
   /// The database constrains this to 7..3650; see
-  /// `20260801000001_payment_proof_retention.sql`.
+  /// `20260804010002_core_schema.sql`.
   final int paymentProofRetentionDays;
 
   /// Record creation timestamp

@@ -104,10 +104,10 @@ class TransactionModel {
       'cashier_name': cashierName,
       'transaction_date': transactionDate.toIso8601String(),
       'debt_paid_at': debtPaidAt?.toIso8601String(),
-      // Read by create_pos_transaction as of
-      // 20260731000004_pos_transaction_payment_confirmation.sql. Before that
-      // migration the RPC's explicit column list dropped them without error, so
-      // a confirmed QRIS sale was stored as unconfirmed.
+      // These three must appear in create_pos_transaction's explicit column
+      // list (`20260804010007_pos_rpc.sql`) or they are dropped here without
+      // error, and a confirmed QRIS sale is stored as unconfirmed. That has
+      // happened once.
       'payment_confirmed_at': paymentConfirmedAt?.toIso8601String(),
       'payment_confirmed_by': paymentConfirmedBy,
       'payment_reference': paymentReference,

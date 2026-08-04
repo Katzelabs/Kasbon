@@ -472,9 +472,10 @@ Web specifics worth knowing:
   The host belongs to the environment (`127.0.0.1` in a browser, `10.0.2.2` in
   the emulator, a LAN IP on a device, production), so render sites resolve it
   through `productImageUrl()` in `product_image.dart` - never
-  `Image.network(product.imageUrl!)`. Rows written before
-  `20260730000001_product_image_object_paths.sql` hold a full URL and are
-  re-pointed at the current host on read.
+  `Image.network(product.imageUrl!)`. Rows written by an older client can still
+  hold a full URL and are re-pointed at the current host on read;
+  `referenced_object_paths` in `20260804010009_storage_retention.sql` normalises
+  the same shape so the janitor does not collect a live photo.
 - Storage is written when a photo is **picked**, the row when the form is
   **saved**. `ProductImagePicker` therefore only ever uploads; deleting what is
   no longer referenced is `ProductFormScreen._releaseUnusedImages`, on the way

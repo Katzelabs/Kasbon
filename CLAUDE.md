@@ -39,8 +39,8 @@ The project migrated from offline-first SQLite to **Supabase-only** (Feb–Mar 2
 
 | Topic | Authoritative source |
 |-------|---------------------|
-| Database schema | `supabase/migrations/` (NOT `docs/TECHNICAL_REQUIREMENTS.md`) |
-| RPC functions | `supabase/migrations/20260316000001_create_rpc_functions.sql` |
+| Database schema | `supabase/migrations/` (NOT `docs/TECHNICAL_REQUIREMENTS.md`); `docs/DATABASE.md` for the map |
+| RPC functions | `20260804010007_pos_rpc.sql` (the write path) + `20260804010008_report_rpcs.sql` (every aggregate) |
 | Seed / test data | `supabase/seed.sql` (test user: `test@kasbon.id` / `password123`) |
 | Development progress | ClickUp Kasbon space (link above) |
 | Frontend conventions | `app/CLAUDE.md` |
@@ -251,15 +251,15 @@ The split is deliberate: **Postgres decides what, the function only does I/O.**
 Storage API instead"), so removal has to be an HTTP call — but the policy
 queries (`expired_payment_proofs`, `orphaned_object_paths`,
 `referenced_object_paths`, `clear_payment_proof_paths`) live in
-`20260801000001` and are testable with plain psql.
+`20260804010009_storage_retention.sql` and are testable with plain psql.
 
 Those four are **service-role only**, enforced twice: by GRANTs *and* by
 `assert_janitor_caller()` inside each body. Both are needed —
-`20260725000001_grant_api_role_privileges.sql` sets `ALTER DEFAULT PRIVILEGES`
-so every new `public` function is executable by `authenticated`, which would
-otherwise hand any signed-in user a cross-tenant read.
+`20260804010003_api_grants.sql` sets `ALTER DEFAULT PRIVILEGES` so every new
+`public` function is executable by `authenticated`, which would otherwise hand
+any signed-in user a cross-tenant read.
 
-**Deployment is not automatic.** The schedule ships in `20260801000002`, but it
+**Deployment is not automatic.** The schedule ships in the same file, but it
 no-ops with a `NOTICE` until two Vault secrets exist — they hold a service key
 and a per-environment URL, so they cannot live in a migration. One script does
 the whole sequence — deploy, both secrets, then a dry run that deletes nothing:
@@ -307,7 +307,7 @@ accounts. Four pieces, deployed three different ways:
 
 | Piece | Where | Ships with |
 |-------|-------|-----------|
-| The row query | `20260804000001_account_deletion.sql` | `db push` |
+| The row query | `20260804010010_account_deletion.sql` | `db push` |
 | The deleting | `functions/delete-account` | `functions deploy` |
 | The dialog | `settings/.../delete_account_dialog.dart` | the app |
 | The public page | `app/web/legal/hapus-akun{,-en}.html` | `flutter build web` |

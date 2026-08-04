@@ -5,8 +5,8 @@
 # The sweep ships in three pieces that are deployed in three different ways, and
 # it does nothing at all until the last of them is in place:
 #
-#   the policy    20260801000001 - migration, ships with `db push`
-#   the schedule  20260801000002 - migration, ships with `db push`
+#   the policy    20260804010009 - migration, ships with `db push`
+#   the schedule  20260804010009 - same file, at the bottom
 #   the deleting  functions/storage-janitor - needs `functions deploy`
 #   the secrets   vault - neither, because they differ per environment
 #

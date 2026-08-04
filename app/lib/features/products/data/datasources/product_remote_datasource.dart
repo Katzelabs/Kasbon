@@ -275,7 +275,7 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
   ///
   /// The stock comparisons are server-side now, via the `is_low_stock`
   /// generated column - see
-  /// `supabase/migrations/20260730000002_product_low_stock_column.sql`.
+  /// `supabase/migrations/20260804010002_core_schema.sql`.
   PostgrestFilterBuilder _filteredQuery({
     String? searchQuery,
     String? categoryId,

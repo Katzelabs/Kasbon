@@ -49,10 +49,9 @@ void main() {
     );
   });
 
-  test('the key matches what the migration backfills', () {
-    // `20260731000006_shop_business_type_and_onboarding.sql` and `seed.sql`
-    // both write this exact string. A rename here silently re-onboards every
-    // existing account.
+  test('the key matches what the seed writes', () {
+    // `seed.sql` writes this exact string into `raw_user_meta_data`. A rename
+    // here silently re-onboards every existing account.
     expect(
       SupabaseClientProvider.onboardingCompletedAtKey,
       'onboarding_completed_at',

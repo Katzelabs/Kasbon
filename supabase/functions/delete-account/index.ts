@@ -11,7 +11,7 @@
 // service role. The app ships a publishable key, so the client cannot do it -
 // and a `SECURITY DEFINER` RPC that could would be one blanket grant away from
 // letting any signed-in user delete any account by uuid (see
-// 20260725000001, which grants EXECUTE on every new public function to
+// 20260804010003, which grants EXECUTE on every new public function to
 // `authenticated` by default). Holding the service key in a process the client
 // cannot reach, and deriving the target uid from the caller's own token rather
 // than from a parameter, is the shape that has no such failure mode.

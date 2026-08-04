@@ -19,7 +19,7 @@ import 'payment_proof_storage.dart';
 /// value in it is an object path written by [upload]. Accepting anything else
 /// would mean inventing a shape to be backwards compatible with.
 class SupabasePaymentProofStorage implements PaymentProofStorage {
-  /// Bucket created by `20260731000002_create_payment_proofs_bucket.sql`.
+  /// Bucket created by `20260804010006_storage_buckets.sql`.
   static const String bucketName = 'payment-proofs';
 
   final SupabaseClientProvider _clientProvider;

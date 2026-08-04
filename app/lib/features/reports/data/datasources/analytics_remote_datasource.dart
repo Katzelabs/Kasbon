@@ -50,7 +50,7 @@ abstract class AnalyticsRemoteDataSource {
 }
 
 /// Implementation of [AnalyticsRemoteDataSource] backed by the report RPCs
-/// added in `supabase/migrations/20260726000001_advanced_report_rpcs.sql`.
+/// added in `supabase/migrations/20260804010008_report_rpcs.sql`.
 ///
 /// Every RPC takes its bucketing time zone as a parameter and defaults to
 /// Asia/Jakarta server-side; the parameter is not sent from here, so all

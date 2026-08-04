@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 /// Payment methods supported by `transactions.payment_method`.
 ///
 /// The wire values must stay in sync with the CHECK constraint in
-/// `supabase/migrations/20260207070429_initial_schema.sql`.
+/// `supabase/migrations/20260804010002_core_schema.sql`.
 enum PaymentMethod {
   cash('cash', 'Tunai'),
   transfer('transfer', 'Transfer'),
