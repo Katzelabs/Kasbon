@@ -103,9 +103,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pinned, for the same reason FLUTTER_VERSION is - and for one more:
+      # `version: latest` makes the action resolve the tag through
+      # api.github.com/repos/supabase/cli/releases/latest on every run, which is
+      # unauthenticated and shares one 60/hour pool with every other runner on
+      # the same IP. It failed with "rate limit exceeded" on a commit that
+      # touched nothing. A concrete version skips the API call entirely and
+      # downloads the release asset directly.
+      #
+      # 2.106.0 is what developers run locally. Bump both together.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.106.0
 
       # Trimmed to what the checks actually touch. `storage` has to stay:
       # 20260804010006 creates buckets and writes policies on
