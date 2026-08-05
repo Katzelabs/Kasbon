@@ -32,6 +32,70 @@ flutter build appbundle --dart-define-from-file=env.prod.json \
   --obfuscate --split-debug-info=build/symbols
 ```
 
+## Release signing
+
+`android/app/build.gradle.kts` reads `android/key.properties` (gitignored) for
+the Play upload key. **Absent, the release build silently falls back to the
+debug keystore** — `flutter run --release` still works on a fresh clone, which
+is the point, but Play rejects a debug-signed upload. The Gradle warning
+`KASBON: android/key.properties not found` is the only thing that tells you
+which of the two you got, and it scrolls past in a wall of build output.
+
+`key.properties` names an alias, a store path and the passwords:
+
+```plain
+keyAlias=upload
+keyPassword=…
+storeFile=/absolute/path/to/kasbon-upload.jks
+storePassword=…
+```
+
+Three things that are easy to get wrong:
+
+- **Use one password for both `keyPassword` and `storePassword`.** PKCS12 — the
+  JDK default since 9, so what `keytool` gives you now — is what makes a
+  differing key password fail later, and the error blames the *store* password
+  on a keystore that is fine.
+- **No backslash in the password.** This is a Java `.properties` file, where `\`
+  escapes. A password containing one is silently mangled at parse time and again
+  reports an incorrect password.
+- **Never pass the password via `-storepass`.** `keytool` has no `:env` or
+  `:file` form for `genkeypair` on this JDK, so a flag puts the password in
+  shell history and in `ps`. Pipe it on stdin instead.
+
+### Verifying which key you actually got
+
+```bash
+flutter build apk --release --dart-define-from-file=env.json \
+  --obfuscate --split-debug-info=build/symbols
+$ANDROID_HOME/build-tools/<ver>/apksigner verify --print-certs \
+  build/app/outputs/flutter-apk/app-release.apk
+```
+
+The DN must not say `CN=Android Debug`. `env.json` is deliberate here — signing
+and env config are independent, so proving the signing path does not need the
+production env.
+
+Three results look like failures and are not. `v1 scheme (JAR signing): false`
+is correct because `minSdkVersion` is 24 and v1 only matters below that.
+`v3 scheme: false` is fine because v3 exists for key rotation, which Play App
+Signing does server-side. On the AAB, `jarsigner -verify` warns about a
+self-signed cert with no CA chain and no timestamp — all three are what an
+upload key is supposed to look like.
+
+### The key itself
+
+Back up the `.jks` **and** its password to a password manager. Losing the
+upload key is not fatal — Play App Signing (mandatory for new apps since Aug
+2021) holds the *app signing* key, and a lost *upload* key can be reset through
+Play support — but that is a multi-day round trip, and the two are useless
+stored separately.
+
+Do not regenerate a keystore because a fresh clone looks unsigned. The `.jks`
+lives outside the repo and `key.properties` is gitignored, so an existing,
+working key is invisible to `git status`. After the first Play upload, a
+regenerated key no longer matches what Google has on file.
+
 ## Architecture
 
 **Clean Architecture** with feature-based modules:
