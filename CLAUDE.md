@@ -317,9 +317,45 @@ deep-link handlers on any platform). Route guarding in `app_router.dart`:
 `enable_confirmations = true` in `supabase/config.toml`, so `signUp()` returns a
 user but no session — verifying the emailed code is what mints the first one.
 The OTP emails come from `supabase/templates/{confirmation,recovery}.html`,
-which carry `{{ .Token }}`. **Production additionally needs real SMTP** in
-`[auth.email.smtp]` and the same two templates set on the hosted project;
-`config.toml` governs local dev only.
+which carry `{{ .Token }}`.
+
+### Production auth config (`push-auth-config.sh`)
+
+`config.toml` governs **local dev only**. Everything in it that hardens auth has
+no effect on the hosted project, where the same settings are dashboard
+click-ops. `./supabase/scripts/push-auth-config.sh` is the written-down version:
+
+```bash
+./supabase/scripts/push-auth-config.sh            # diff against what is live
+./supabase/scripts/push-auth-config.sh --apply    # write it
+./supabase/scripts/push-auth-config.sh --print-payload   # build only, no network
+```
+
+It needs `SUPABASE_ACCESS_TOKEN` (a personal access token — *not* the service
+key) and `SUPABASE_AUTH_SMTP_PASS` (the Resend API key). It uploads the two
+templates too, so the repo is the source of truth rather than the dashboard
+editor, and it refuses to push one that has lost its `{{ .Token }}`.
+
+**It deliberately does not use `supabase config push`.** That pushes the whole
+file — which would set production's Site URL to `http://127.0.0.1:3000` and
+also apply `[api]`, `[storage]` and `[db.pooler]` (locally `enabled = false`),
+with a blast radius Supabase does not document. The Management API patches auth
+and nothing else.
+
+Three things that invert or retype crossing from `config.toml` to the API, and
+are the mistakes worth knowing about:
+
+- **`mailer_autoconfirm` is the inverse of `enable_confirmations`.** `true`
+  means "skip confirmation entirely" — the opposite of what this app wants.
+- **`smtp_port` is a string**, not an integer.
+- **`password_hibp_enabled` (leaked-password protection) has no `config.toml`
+  equivalent** but *is* API-settable. It is production-only, not click-only.
+
+**SMTP is not verified when it is set.** The API accepts credentials without
+testing them, so a wrong Resend key looks exactly like a working one until the
+first real signup silently delivers nothing. Registering a real address and
+confirming a code arrives is the only proof. Local dev never exercises this at
+all — `supabase start` catches mail in Inbucket.
 
 Whether a user has onboarded is recorded in
 `auth.users.raw_user_meta_data.onboarding_completed_at`, not in a table, because

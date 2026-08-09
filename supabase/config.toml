@@ -210,15 +210,21 @@ otp_length = 6
 # guessable for an hour. Long enough to switch to a mail app and back.
 otp_expiry = 900
 
-# Use a production-ready SMTP server
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.sendgrid.net"
-# port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# Production SMTP is deliberately NOT configured here.
+#
+# Local dev delivers to Inbucket (the mail catcher `supabase start` runs), which
+# is what you want: no real address is ever mailed while testing, and no
+# credential is needed. Enabling real SMTP here would send OTP codes to real
+# inboxes from a developer machine, and put a Resend API key in a committed file.
+#
+# The hosted project uses Resend, applied - along with every other auth setting
+# in this file, and the two templates below - by:
+#
+#   ./supabase/scripts/push-auth-config.sh          # diff
+#   ./supabase/scripts/push-auth-config.sh --apply
+#
+# That script is the source of truth for production auth. Change a value in this
+# file and re-run it, or local and hosted drift apart again.
 
 # Uncomment to customize email template
 # [auth.email.template.invite]
@@ -231,8 +237,11 @@ otp_expiry = 900
 # Gmail app land in an in-app browser with no session. A code is one path that
 # works identically on Android, iOS, macOS and Chrome.
 #
-# These paths configure LOCAL dev only. The hosted project needs the same two
-# templates set in its dashboard, plus real SMTP.
+# These paths configure LOCAL dev only. push-auth-config.sh uploads the same two
+# files to the hosted project, so the repo - not the dashboard editor - is the
+# source of truth for both. It refuses to push a template that has lost its
+# {{ .Token }}, which would otherwise send a working-looking email with no code
+# in it and no deep link to fall back on.
 
 [auth.email.template.confirmation]
 subject = "Kode verifikasi KASBON"
