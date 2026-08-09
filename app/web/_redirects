@@ -1,0 +1,10 @@
+# Cloudflare Pages catch-all rewrite.
+#
+# The router serves real paths, not hash URLs (config/routes/url_strategy_web.dart
+# calls usePathUrlStrategy), so /products/abc is a route, not a file. Without this
+# the host looks for a file at that path and a hard refresh or a shared link 404s.
+# 200 rewrites rather than redirects, so the URL the user sees is preserved and
+# go_router still gets the path it needs to restore the route.
+#
+# Everything in web/ is copied verbatim into build/web/, which is what deploys.
+/*    /index.html   200
