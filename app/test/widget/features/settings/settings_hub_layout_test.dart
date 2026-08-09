@@ -9,6 +9,7 @@ import 'package:kasbon_pos/features/receipt/domain/usecases/get_shop_settings.da
 import 'package:kasbon_pos/features/settings/domain/usecases/update_shop_settings.dart';
 import 'package:kasbon_pos/features/settings/presentation/screens/settings_screen.dart';
 import 'package:kasbon_pos/features/settings/presentation/widgets/settings_tile.dart';
+import 'package:kasbon_pos/shared/modern/modern.dart';
 
 import '../../../helpers/responsive_helpers.dart';
 
@@ -71,11 +72,82 @@ void main() {
         expect(find.text(heading), findsOneWidget);
       }
 
-      // The hub is a reading-width column at every tier, so nothing here has
-      // any business overflowing even on a 1600dp window.
+      // Rows stay at reading width whatever the window does, so nothing here
+      // has any business overflowing even on a 1600dp one.
       expect(tester.takeException(), isNull);
     });
   }
+
+  /// Top-left corner of the group whose heading is [heading].
+  Offset groupAt(WidgetTester tester, String heading) =>
+      tester.getTopLeft(find.text(heading));
+
+  for (final width in [ResponsiveWidths.compact, ResponsiveWidths.medium]) {
+    testWidgets(
+        'stacks the groups in one column at '
+        '${ResponsiveWidths.label(width)}', (tester) async {
+      register(settings());
+
+      await pumpScreenAtWidth(tester, width, const SettingsScreen());
+
+      // An iPad in portrait is 834dp - `medium` - and halving that gives two
+      // columns too narrow to hold a row's subtitle. It stays a single column.
+      final toko = groupAt(tester, 'TOKO');
+      final tentang = groupAt(tester, 'TENTANG');
+
+      expect(tentang.dx, toko.dx);
+      expect(tentang.dy, greaterThan(toko.dy));
+    });
+  }
+
+  for (final width in [ResponsiveWidths.expanded, ResponsiveWidths.large]) {
+    testWidgets(
+        'splits the groups into two columns at '
+        '${ResponsiveWidths.label(width)}', (tester) async {
+      register(settings());
+
+      await pumpScreenAtWidth(tester, width, const SettingsScreen());
+
+      // What the owner configures on the left, what the app is and who is
+      // signed in on the right - the two heading the columns line up level.
+      final toko = groupAt(tester, 'TOKO');
+      final tentang = groupAt(tester, 'TENTANG');
+
+      expect(tentang.dx, greaterThan(toko.dx));
+      expect(tentang.dy, toko.dy);
+
+      // AKUN follows TENTANG down the trailing column rather than starting a
+      // third one, and DATA closes the leading column.
+      expect(groupAt(tester, 'AKUN').dx, tentang.dx);
+      expect(groupAt(tester, 'DATA').dx, toko.dx);
+    });
+  }
+
+  testWidgets('the account header spans both columns', (tester) async {
+    register(settings());
+
+    await pumpScreenAtWidth(
+      tester,
+      ResponsiveWidths.large,
+      const SettingsScreen(),
+    );
+
+    // It is the page's subject, not one of the groups: it sits above the split
+    // and reaches across both columns.
+    final header = tester.getRect(
+      find
+          .ancestor(
+            of: find.byType(ModernAvatar),
+            matching: find.byType(ModernCard),
+          )
+          .first,
+    );
+    final tentang = groupAt(tester, 'TENTANG');
+
+    expect(header.bottom, lessThan(tentang.dy));
+    expect(header.left, lessThan(tentang.dx));
+    expect(header.right, greaterThan(tentang.dx));
+  });
 
   testWidgets('shows the shop name and threshold once loaded', (tester) async {
     register(settings());

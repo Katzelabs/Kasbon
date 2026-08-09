@@ -16,6 +16,7 @@ import '../../../receipt/domain/entities/shop_settings.dart';
 import '../providers/about_provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/delete_account_dialog.dart';
+import '../widgets/settings_columns.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/settings_tile.dart';
 
@@ -30,20 +31,33 @@ class SettingsScreen extends ConsumerWidget {
     // Calculate bottom padding based on device type to account for bottom nav
     final bottomPadding = AppDimensions.spacing16 + context.shellBottomInset;
 
-    // A settings list is prose-shaped: a column of one-line rows that
-    // gets no easier to scan for being 2000px wide. The sections used to
-    // carry their own 16dp inset, which is now the column's job, so they
-    // are handed `EdgeInsets.zero` and the tier padding applies once.
+    // A settings *row* is prose-shaped: an icon, a title and a one-line
+    // subtitle, none of which get easier to read for being 2000px wide. So the
+    // rows stay at reading width - what changes with the window is how many
+    // columns of groups there are beside each other. Below `expanded` that is
+    // one, and the clamp is the reading width it has always been; at `expanded`
+    // and up two columns of groups fit inside the standard 1080dp column, which
+    // is roughly two reading widths once the gutter is paid for.
+    //
+    // The tier is read here, outside `ModernContentColumn`, because the column
+    // re-scopes to its own clamped width - asking inside would be asking about
+    // the answer.
+    final twoColumn = context.isAtLeast(Breakpoint.expanded);
+
+    // The sections used to carry their own 16dp inset, which is now the
+    // column's job, so they are handed `EdgeInsets.zero` and the tier padding
+    // applies once.
     return Scaffold(
       appBar: ModernAppBar.withActions(title: 'Pengaturan'),
-      body: ModernContentColumn.reading(
+      body: ModernContentColumn(
+        width: twoColumn ? ContentWidth.standard : ContentWidth.reading,
         child: RefreshIndicator(
           onRefresh: () async => ref.invalidate(shopSettingsProvider),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.only(bottom: bottomPadding),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: AppDimensions.spacing16),
 
@@ -51,6 +65,9 @@ class SettingsScreen extends ConsumerWidget {
                 // where the account is the subject rather than the chrome, and
                 // until now the email appeared nowhere at all - the avatar in
                 // the header was a hardcoded "P" for every user.
+                //
+                // It spans both columns: it is the page's subject, not one of
+                // the groups.
                 const _AccountHeader(),
 
                 // A failed load costs two subtitles, not the screen. The rows
@@ -66,149 +83,17 @@ class SettingsScreen extends ConsumerWidget {
 
                 const SizedBox(height: AppDimensions.spacing24),
 
-                // TOKO Section
-                SettingsSection(
-                  padding: EdgeInsets.zero,
-                  title: 'Toko',
-                  children: [
-                    SettingsTile.navigation(
-                      icon: Icons.store_rounded,
-                      iconColor: AppColors.primary,
-                      title: 'Profil Toko',
-                      subtitleWidget: _SettingsSubtitle(
-                        settingsAsync: settingsAsync,
-                        value: _shopProfileSummary,
-                      ),
-                      onTap: () => context.go(AppRoutes.settingsShopProfile),
-                    ),
-                    SettingsTile.navigation(
-                      icon: Icons.receipt_long_rounded,
-                      iconColor: AppColors.info,
-                      title: 'Pengaturan Struk',
-                      subtitle: 'Header & footer struk',
-                      onTap: () => context.go(AppRoutes.settingsReceipt),
-                    ),
+                SettingsColumns(
+                  // What the owner configures.
+                  start: [
+                    _shopSection(context, settingsAsync),
+                    _appSection(context, settingsAsync),
+                    _dataSection(context),
                   ],
-                ),
-
-                const SizedBox(height: AppDimensions.spacing24),
-
-                // APLIKASI Section
-                SettingsSection(
-                  padding: EdgeInsets.zero,
-                  title: 'Aplikasi',
-                  children: [
-                    SettingsTile.navigation(
-                      icon: Icons.tune_rounded,
-                      iconColor: AppColors.warning,
-                      title: 'Pengaturan Aplikasi',
-                      subtitleWidget: _SettingsSubtitle(
-                        settingsAsync: settingsAsync,
-                        value: (s) =>
-                            'Batas stok rendah: ${s.lowStockThreshold}',
-                      ),
-                      onTap: () => context.go(AppRoutes.settingsApp),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppDimensions.spacing24),
-
-                // DATA Section
-                //
-                // Backup used to sit under "Lainnya" beside the about page,
-                // which filed the one screen that can destroy every row the
-                // user owns next to a version number.
-                SettingsSection(
-                  padding: EdgeInsets.zero,
-                  title: 'Data',
-                  children: [
-                    SettingsTile.navigation(
-                      icon: Icons.backup_rounded,
-                      iconColor: AppColors.success,
-                      title: 'Backup & Restore',
-                      subtitle: 'Cadangkan dan pulihkan data',
-                      onTap: () => context.go(AppRoutes.settingsBackup),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppDimensions.spacing24),
-
-                // TENTANG Section
-                SettingsSection(
-                  padding: EdgeInsets.zero,
-                  title: 'Tentang',
-                  children: [
-                    SettingsTile.navigation(
-                      icon: Icons.info_outline_rounded,
-                      iconColor: AppColors.accentCyan,
-                      title: 'Tentang Aplikasi',
-                      subtitle: 'Bantuan, kontak & legal',
-                      onTap: () => context.go(AppRoutes.settingsAbout),
-                    ),
-                    // The policy is also a row on the about page, but it is
-                    // named here too on purpose. Both stores review the app by
-                    // looking for the policy from Settings, and a reviewer who
-                    // has to guess that "Tentang Aplikasi" hides it is a
-                    // reviewer who may decide it is missing. It is the one
-                    // legal document the app is required to surface.
-                    SettingsTile.externalLink(
-                      icon: Icons.privacy_tip_outlined,
-                      iconColor: AppColors.textSecondary,
-                      title: 'Kebijakan Privasi',
-                      subtitle: 'Data apa yang disimpan & cara menghapusnya',
-                      onTap: () => ExternalLink.openUrl(
-                        context,
-                        SupportContacts.privacyUrl,
-                      ),
-                    ),
-                    // The version is the first thing asked for when someone
-                    // reports a problem, and it was two taps deep.
-                    SettingsTile.info(
-                      icon: Icons.verified_outlined,
-                      iconColor: AppColors.textSecondary,
-                      title: 'Versi Aplikasi',
-                      trailing: const _VersionLabel(),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppDimensions.spacing24),
-
-                // AKUN Section
-                SettingsSection(
-                  padding: EdgeInsets.zero,
-                  title: 'Akun',
-                  children: [
-                    SettingsTile.destructive(
-                      icon: Icons.logout_rounded,
-                      title: 'Keluar',
-                      subtitle: 'Keluar dari akun Anda',
-                      onTap: () async {
-                        final confirmed = await ModernDialog.confirm(
-                          context,
-                          title: 'Keluar dari Akun',
-                          message: 'Apakah Anda yakin ingin keluar?',
-                          confirmLabel: 'Keluar',
-                          isDestructive: true,
-                        );
-                        if (confirmed == true) {
-                          ref.read(authNotifierProvider.notifier).logout();
-                        }
-                      },
-                    ),
-                    // Required by both stores - Play wants an in-app route and
-                    // a web one, Apple wants in-app deletion from anything that
-                    // creates accounts. It sits below "Keluar" and nowhere else:
-                    // a destructive row filed anywhere but the account section
-                    // is a row somebody taps by mistake.
-                    SettingsTile.destructive(
-                      icon: Icons.person_remove_rounded,
-                      title: 'Hapus Akun',
-                      subtitle: 'Hapus akun & seluruh data permanen',
-                      onTap: () => _confirmAccountDeletion(context),
-                    ),
+                  // What the app is, and who is signed in.
+                  end: [
+                    _aboutSection(context),
+                    _accountSection(context, ref),
                   ],
                 ),
 
@@ -218,6 +103,157 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// TOKO - the shop's own details.
+  Widget _shopSection(
+    BuildContext context,
+    AsyncValue<ShopSettings> settingsAsync,
+  ) {
+    return SettingsSection(
+      padding: EdgeInsets.zero,
+      title: 'Toko',
+      children: [
+        SettingsTile.navigation(
+          icon: Icons.store_rounded,
+          iconColor: AppColors.primary,
+          title: 'Profil Toko',
+          subtitleWidget: _SettingsSubtitle(
+            settingsAsync: settingsAsync,
+            value: _shopProfileSummary,
+          ),
+          onTap: () => context.go(AppRoutes.settingsShopProfile),
+        ),
+        SettingsTile.navigation(
+          icon: Icons.receipt_long_rounded,
+          iconColor: AppColors.info,
+          title: 'Pengaturan Struk',
+          subtitle: 'Header & footer struk',
+          onTap: () => context.go(AppRoutes.settingsReceipt),
+        ),
+      ],
+    );
+  }
+
+  /// APLIKASI - how the app behaves.
+  Widget _appSection(
+    BuildContext context,
+    AsyncValue<ShopSettings> settingsAsync,
+  ) {
+    return SettingsSection(
+      padding: EdgeInsets.zero,
+      title: 'Aplikasi',
+      children: [
+        SettingsTile.navigation(
+          icon: Icons.tune_rounded,
+          iconColor: AppColors.warning,
+          title: 'Pengaturan Aplikasi',
+          subtitleWidget: _SettingsSubtitle(
+            settingsAsync: settingsAsync,
+            value: (s) => 'Batas stok rendah: ${s.lowStockThreshold}',
+          ),
+          onTap: () => context.go(AppRoutes.settingsApp),
+        ),
+      ],
+    );
+  }
+
+  /// DATA.
+  ///
+  /// Backup used to sit under "Lainnya" beside the about page, which filed the
+  /// one screen that can destroy every row the user owns next to a version
+  /// number.
+  Widget _dataSection(BuildContext context) {
+    return SettingsSection(
+      padding: EdgeInsets.zero,
+      title: 'Data',
+      children: [
+        SettingsTile.navigation(
+          icon: Icons.backup_rounded,
+          iconColor: AppColors.success,
+          title: 'Backup & Restore',
+          subtitle: 'Cadangkan dan pulihkan data',
+          onTap: () => context.go(AppRoutes.settingsBackup),
+        ),
+      ],
+    );
+  }
+
+  /// TENTANG - what the app is.
+  Widget _aboutSection(BuildContext context) {
+    return SettingsSection(
+      padding: EdgeInsets.zero,
+      title: 'Tentang',
+      children: [
+        SettingsTile.navigation(
+          icon: Icons.info_outline_rounded,
+          iconColor: AppColors.accentCyan,
+          title: 'Tentang Aplikasi',
+          subtitle: 'Bantuan, kontak & legal',
+          onTap: () => context.go(AppRoutes.settingsAbout),
+        ),
+        // The policy is also a row on the about page, but it is named here too
+        // on purpose. Both stores review the app by looking for the policy from
+        // Settings, and a reviewer who has to guess that "Tentang Aplikasi"
+        // hides it is a reviewer who may decide it is missing. It is the one
+        // legal document the app is required to surface.
+        SettingsTile.externalLink(
+          icon: Icons.privacy_tip_outlined,
+          iconColor: AppColors.textSecondary,
+          title: 'Kebijakan Privasi',
+          subtitle: 'Data apa yang disimpan & cara menghapusnya',
+          onTap: () => ExternalLink.openUrl(
+            context,
+            SupportContacts.privacyUrl,
+          ),
+        ),
+        // The version is the first thing asked for when someone reports a
+        // problem, and it was two taps deep.
+        SettingsTile.info(
+          icon: Icons.verified_outlined,
+          iconColor: AppColors.textSecondary,
+          title: 'Versi Aplikasi',
+          trailing: const _VersionLabel(),
+        ),
+      ],
+    );
+  }
+
+  /// AKUN - the two ways out of it.
+  Widget _accountSection(BuildContext context, WidgetRef ref) {
+    return SettingsSection(
+      padding: EdgeInsets.zero,
+      title: 'Akun',
+      children: [
+        SettingsTile.destructive(
+          icon: Icons.logout_rounded,
+          title: 'Keluar',
+          subtitle: 'Keluar dari akun Anda',
+          onTap: () async {
+            final confirmed = await ModernDialog.confirm(
+              context,
+              title: 'Keluar dari Akun',
+              message: 'Apakah Anda yakin ingin keluar?',
+              confirmLabel: 'Keluar',
+              isDestructive: true,
+            );
+            if (confirmed == true) {
+              ref.read(authNotifierProvider.notifier).logout();
+            }
+          },
+        ),
+        // Required by both stores - Play wants an in-app route and a web one,
+        // Apple wants in-app deletion from anything that creates accounts. It
+        // sits below "Keluar" and nowhere else: a destructive row filed
+        // anywhere but the account section is a row somebody taps by mistake.
+        SettingsTile.destructive(
+          icon: Icons.person_remove_rounded,
+          title: 'Hapus Akun',
+          subtitle: 'Hapus akun & seluruh data permanen',
+          onTap: () => _confirmAccountDeletion(context),
+        ),
+      ],
     );
   }
 
