@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/observability/crash_reporting.dart';
 import '../../features/pos/presentation/providers/cart_provider.dart';
 import '../../features/pos/presentation/providers/pos_search_provider.dart';
 import '../../features/reports/presentation/providers/analytics_provider.dart';
@@ -72,18 +75,31 @@ class SessionGate extends ConsumerStatefulWidget {
 
 class _SessionGateState extends ConsumerState<SessionGate> {
   @override
+  void initState() {
+    super.initState();
+    // `ref.listen` does not fire for the value already there, and launching
+    // straight into a restored session is the common case - a POS device stays
+    // signed in on the counter for weeks.
+    unawaited(setCrashReportingUser(ref.read(currentUserIdProvider)));
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Listening to the id rather than to the auth stream is what keeps a token
     // refresh - which fires every hour, mid-sale - from emptying the cart.
     ref.listen<String?>(currentUserIdProvider, (previous, next) {
       if (previous == next) return;
-      _onAccountChanged();
+      _onAccountChanged(next);
     });
 
     return widget.child;
   }
 
-  void _onAccountChanged() {
+  void _onAccountChanged(String? userId) {
+    // Which shop a crash came from, so one broken device does not read as an
+    // outage. The uid only - see core/observability/crash_reporting.dart.
+    unawaited(setCrashReportingUser(userId));
+
     resetSessionState(ProviderScope.containerOf(context, listen: false));
 
     // Product photos are decoded and held by key - an object path, and for

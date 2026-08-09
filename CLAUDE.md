@@ -91,7 +91,16 @@ dart format lib/             # Format code
 # and is configured in android/app/build.gradle.kts.
 flutter build appbundle --dart-define-from-file=env.prod.json \
   --obfuscate --split-debug-info=build/symbols
+
+# Web release. Builds and uploads Sentry source maps in one step - the order is
+# load-bearing, see app/CLAUDE.md "Releasing the web build".
+SENTRY_AUTH_TOKEN=… SENTRY_ORG=… SENTRY_PROJECT=… ./scripts/build-web-release.sh
 ```
+
+Crash reporting is Sentry, in `app/lib/core/observability/`. The DSN arrives as
+`SENTRY_DSN` in the env file and **an empty one disables reporting cleanly** —
+that is what local dev and CI use. Everything is scrubbed by field name before
+sending; see `app/CLAUDE.md` for what must not be turned on.
 
 ### Supabase Local Development (run from project root)
 ```bash
@@ -125,7 +134,7 @@ Two things worth knowing before you change it:
 - **Goldens are excluded on CI.** The baselines are macOS-recorded and font
   rasterisation differs on a Linux runner. They are tagged `golden` (see
   `app/dart_test.yaml`) and still run by default locally, which is where they
-  are recorded. `flutter test` locally runs 1166 tests; CI runs 1161.
+  are recorded. `flutter test` locally runs 1221 tests; CI runs 1216.
 - **There is no `dart format` gate**, because 70 of 473 files do not currently
   match `dart format` and turning it on means a mechanical reformat across
   everyone's in-flight branches first. The workflow header says how to enable

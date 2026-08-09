@@ -11,12 +11,21 @@ import 'config/routes/url_strategy.dart';
 import 'config/session/session_reset.dart';
 import 'config/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+import 'core/observability/crash_reporting.dart';
 import 'core/platform/app_platform.dart';
 import 'core/services/secure_session_storage.dart';
 import 'core/platform/app_scroll_behavior.dart';
 import 'core/responsive/modern_breakpoint_scope.dart';
 
 void main() async {
+  // Everything runs inside this, including the setup below, so a failure while
+  // wiring up Supabase or DI is reported rather than lost — startup is exactly
+  // where a misconfigured release build breaks, and the phase nobody is
+  // watching a console for. A no-op when no DSN is configured.
+  await runWithCrashReporting(_startApp);
+}
+
+Future<void> _startApp() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Serve real paths instead of go_router's default hash URLs. No-op off web.

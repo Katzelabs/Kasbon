@@ -80,6 +80,7 @@ dependencies:
   web: ^1.0.0
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.2
+  sentry_flutter: ^8.14.2
 
 dev_dependencies:
   integration_test:
@@ -97,6 +98,33 @@ dev_dependencies:
 
   # Testing
   mocktail: ^1.0.1
+  sentry_dart_plugin: ^3.4.0
+
+# Source map / debug symbol upload. Driven by scripts/build-web-release.sh -
+# do not run `dart run sentry_dart_plugin` by hand, the ordering matters (see
+# the header of that script).
+#
+# org, project and auth_token are deliberately absent: they come from
+# SENTRY_ORG, SENTRY_PROJECT and SENTRY_AUTH_TOKEN. An auth token is a real
+# secret, unlike the DSN, and this file is committed.
+sentry:
+  upload_source_maps: true
+
+  # Android's --split-debug-info output. Off until the Play Store release, when
+  # this flips to true (ClickUp 86eyg2v2m). Harmless either way - the plugin
+  # skips search roots that do not exist - but false is the honest description
+  # of a web-only release.
+  upload_debug_symbols: false
+
+  # Uploads the Dart source itself so stack traces show surrounding code.
+  # Off: this is a closed-source app for now, and the maps alone already give
+  # readable frames.
+  upload_sources: false
+
+  # `sentry-cli releases set-commits --auto` needs a Sentry-to-GitHub
+  # integration that is not configured. Left on, every upload fails at the last
+  # step after the maps have already landed.
+  commits: false
 
 flutter:
   uses-material-design: true

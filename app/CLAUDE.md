@@ -30,7 +30,89 @@ dart format lib/             # Format code
 # APK that runs, so install it before shipping it.
 flutter build appbundle --dart-define-from-file=env.prod.json \
   --obfuscate --split-debug-info=build/symbols
+
+# Web release. Builds AND uploads source maps — do not split the two, see
+# "Releasing the web build" below.
+SENTRY_AUTH_TOKEN=… SENTRY_ORG=… SENTRY_PROJECT=… ./scripts/build-web-release.sh
+./scripts/build-web-release.sh --no-upload   # build only, traces stay minified
 ```
+
+## Releasing the web build
+
+`scripts/build-web-release.sh` — build, upload, then deploy, in that order and
+from the one script, because the middle step rewrites what the first produced.
+
+`sentry_dart_plugin` runs `sentry-cli sourcemaps inject`, which writes a debug
+ID **into the `.js` files in `build/web`** as well as into the maps. That ID is
+what ties a minified frame back to its source. **Deploying a `build/web`
+captured before the upload ships JavaScript with no debug ID** — and nothing
+tells you: the upload succeeds, the dashboard lists the maps, the release
+exists, and every production stack trace stays minified anyway. So never build
+in one place and upload in another, and never rebuild between uploading and
+deploying.
+
+`--source-maps` is the web half of `--obfuscate --split-debug-info`: dart2js
+output is minified, so without it a production trace names no function. Dropping
+the flag is silent — the upload still "succeeds" with nothing useful — so the
+script fails if `build/web` contains no `.js.map`.
+
+**The release string has to match on both ends** or Sentry holds maps it will
+never apply. At runtime `LoadReleaseIntegration` builds `name@version+build`
+from `package_info`, which on web reads the `version.json` Flutter generates
+from `pubspec.yaml`; `sentry_dart_plugin` reconstructs it from the same two
+fields. Today both give `kasbon_pos@1.0.0+1`, dist `1`. The script prints it so
+it can be compared against the Release shown on a real issue. Don't set
+`options.release` by hand — that breaks the agreement.
+
+Upload config lives in the `sentry:` block of `pubspec.yaml`. `org`, `project`
+and `auth_token` are deliberately *not* there: they come from `SENTRY_ORG`,
+`SENTRY_PROJECT` and `SENTRY_AUTH_TOKEN`. Unlike the DSN, an auth token is a
+real secret — it can write to the org — and `pubspec.yaml` is committed.
+
+`upload_debug_symbols` is **false** and flips to true for the Play Store
+release, when `build/symbols` starts existing (ClickUp `86eyg2v2m`).
+`commits` is **false** because `set-commits --auto` needs a Sentry-to-GitHub
+integration that isn't configured — left on, every upload fails at the last step
+*after* the maps have already landed.
+
+## Crash reporting
+
+`core/observability/` — Sentry, wired in `main()` through
+`runWithCrashReporting`, which replaces the bare `runApp`. See
+`crash_reporting.dart` for why the app starts *inside* it.
+
+**An empty `SENTRY_DSN` is a supported configuration.** It disables reporting
+and is what `flutter test`, CI and every local run use, which is the opposite of
+the Supabase values — those throw at startup when unset. A build with no
+database is broken; a build with no crash reporting merely has none.
+
+Sentry's own integrations install `FlutterError.onError`,
+`PlatformDispatcher.instance.onError` and the `runZonedGuarded` zone once
+`appRunner` is used, so none of the three is hand-wired. Do not set them
+yourself when a DSN is present — overwriting the hooks silently stops reporting.
+`_installFallbackErrorHandlers` covers only the no-DSN path.
+
+**Everything is scrubbed on the way out, by field name** — `PiiScrubber`. A
+KASBON crash report would otherwise carry the shop's books off the device: a
+debt row names a real neighbour and what they owe, a payment-proof path points
+at a photo of someone's banking app, and PostgREST puts the search filter in the
+query string, so `?customer_name=ilike.*sri*` is a breadcrumb by default.
+
+Three things to know before changing it:
+
+- **Add to `sensitiveKeys` when you add a field that names a person or an
+  amount.** A redacted field costs a round trip to reproduce; a leaked one
+  cannot be taken back.
+- **`attachScreenshot` and `attachViewHierarchy` must stay false.** A POS
+  screenshot *is* the cart — what this customer bought, what it cost, and often
+  their name. Both look like helpful debugging options and are not.
+- **Stack frames are deliberately not scrubbed.** They are code, not data, and
+  they are the entire reason the report is sent. Redaction keys on field names
+  precisely so it cannot eat them.
+
+`setCrashReportingUser` attaches the Supabase uid and nothing else. Forgetting
+to call it loses grouping but never leaks, because `scrubEvent` strips any user
+down to its id regardless.
 
 ## Release signing
 
