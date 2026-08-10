@@ -1,0 +1,26 @@
+# KASBON is an authenticated POS, not a site to crawl. Every route below /
+# redirects an anonymous visitor to /login, so indexing them yields nothing but
+# duplicate login pages.
+#
+# The legal pages are the exception and the reason this file is explicit rather
+# than absent: privacy.html and hapus-akun.html are the URLs declared in the
+# Play Console, and a reviewer following them must not meet a robots rule that
+# looks like the policy is being hidden.
+
+User-agent: *
+Allow: /$
+Allow: /legal/
+
+Disallow: /login
+Disallow: /register
+Disallow: /verify-email
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /onboarding
+Disallow: /dashboard
+Disallow: /pos
+Disallow: /products
+Disallow: /transactions
+Disallow: /reports
+Disallow: /debts
+Disallow: /settings

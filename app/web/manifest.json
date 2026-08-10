@@ -1,7 +1,9 @@
 {
+    "id": "/",
     "name": "KASBON — Kasir Digital",
     "short_name": "KASBON",
     "start_url": "/",
+    "scope": "/",
     "display": "standalone",
     "background_color": "#F8FAFC",
     "theme_color": "#2563EB",
@@ -9,6 +11,25 @@
     "orientation": "any",
     "lang": "id",
     "prefer_related_applications": false,
+    "categories": [
+        "business",
+        "finance",
+        "productivity"
+    ],
+    "shortcuts": [
+        {
+            "name": "Kasir",
+            "short_name": "Kasir",
+            "description": "Langsung buka layar kasir untuk mencatat penjualan",
+            "url": "/pos"
+        },
+        {
+            "name": "Hutang",
+            "short_name": "Hutang",
+            "description": "Lihat dan catat pembayaran hutang pelanggan",
+            "url": "/debts"
+        }
+    ],
     "icons": [
         {
             "src": "icons/Icon-192.png",

@@ -1,0 +1,76 @@
+# Cloudflare Pages response headers.
+#
+# The security policy the app assumes lives HERE, not in a <meta> tag. The long
+# comment at the top of index.html explains why: a meta CSP applies to whatever
+# loads that file, and `flutter run -d chrome` calls main() from an inline
+# script that `script-src 'self'` refuses - so the debug app hangs on the splash
+# screen with no Dart error and a clean build log. Headers also express what a
+# meta tag never can: frame-ancestors is ignored in meta by every browser, so
+# clickjacking protection is a header or it does not exist.
+#
+# Everything in web/ is copied verbatim into build/web/, which is what deploys -
+# the same mechanism that ships _redirects and the legal pages.
+#
+# Two origins here are easy to leave out, and both fail quietly:
+#
+#   - the Sentry ingest host. Crash reports are a POST governed by connect-src.
+#     Omit it and every report is blocked in the browser, the dashboard stays
+#     empty, and the only evidence is a console line nobody reads in production.
+#     It must match the host in SENTRY_DSN.
+#
+#   - www.gstatic.com in connect-src, not only script-src. Flutter's default web
+#     renderer downloads CanvasKit from gstatic; the loader is a <script>, but
+#     the .wasm beside it is a fetch. Building with --no-web-resources-cdn
+#     self-hosts CanvasKit and lets both gstatic entries go - worth doing, since
+#     the privacy policy promises no third parties.
+#
+# The Supabase origin is per-environment, which is the other reason this is not
+# baked into the bundle. Update both supabase.co entries when the project ref
+# changes.
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://qnacxjlbmdopwvikkocq.supabase.co; font-src 'self' data:; connect-src 'self' https://qnacxjlbmdopwvikkocq.supabase.co wss://qnacxjlbmdopwvikkocq.supabase.co https://o4511879257915392.ingest.de.sentry.io https://www.gstatic.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(), geolocation=(), payment=(), interest-cohort=()
+
+# style-src keeps 'unsafe-inline' for one reason: the cold-start splash <style>
+# in index.html has to paint before any extra request could return. The
+# splash-removal *script* was moved to splash.js precisely so that script-src
+# needs no such exception - do not undo that by inlining it again.
+
+# ---------------------------------------------------------------------------
+# Caching.
+#
+# Flutter does not content-hash its top-level JavaScript. main.dart.js keeps its
+# name across builds and versioning is done inside flutter_service_worker.js, so
+# a long max-age on any of these pins a shop to whatever build it first loaded -
+# a bug that reproduces for exactly the users you cannot reach.
+#
+# Only the two directories whose contents are addressed by hash or version are
+# safe to freeze.
+
+/index.html
+  Cache-Control: no-cache
+
+/flutter_bootstrap.js
+  Cache-Control: no-cache
+
+/flutter_service_worker.js
+  Cache-Control: no-cache
+
+/main.dart.js
+  Cache-Control: no-cache
+
+/version.json
+  Cache-Control: no-cache
+
+/manifest.json
+  Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/canvaskit/*
+  Cache-Control: public, max-age=31536000, immutable
