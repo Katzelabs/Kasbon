@@ -1,0 +1,159 @@
+# Deploy the KASBON web app to Cloudflare Pages.
+#
+# Manual only, deliberately. Auto-deploying every push to main means a shop's
+# cashier gets a new build mid-sale because someone fixed a typo; when there is
+# a staging project to promote from (ClickUp 86eyg2v3d), this becomes
+# push-to-staging plus a manual promote.
+#
+# WHY THIS EXISTS AND CLOUDFLARE'S OWN GIT INTEGRATION DOES NOT
+# ------------------------------------------------------------
+# Pages' build image has no Flutter, and the build command cannot be
+# `flutter build web` anyway. `scripts/build-web-release.sh` builds AND uploads
+# source maps in one step because sentry_dart_plugin's `sourcemaps inject`
+# rewrites the .js files in build/web after the build. Deploying a build/web
+# captured before that upload ships JavaScript with no debug ID, and nothing
+# tells you: the upload succeeds, the dashboard lists the maps, the release
+# exists, and every production stack trace stays minified anyway.
+#
+# So the order below is load-bearing: build+upload (one script), then deploy
+# that exact directory. Never add a rebuild between them.
+#
+# SECRETS THIS NEEDS (Settings → Secrets and variables → Actions)
+# ---------------------------------------------------------------
+#   SUPABASE_URL               https://<ref>.supabase.co
+#   SUPABASE_PUBLISHABLE_KEY   sb_publishable_… (not secret, but keep it together)
+#   SENTRY_DSN                 the project DSN. Empty disables reporting cleanly.
+#   SENTRY_AUTH_TOKEN          scope project:releases. A real secret - it can
+#                              write to the org, unlike the DSN.
+#   SENTRY_ORG / SENTRY_PROJECT
+#   CLOUDFLARE_API_TOKEN       scope "Cloudflare Pages: Edit"
+#   CLOUDFLARE_ACCOUNT_ID
+#
+# And one repository VARIABLE:
+#   CLOUDFLARE_PROJECT_NAME    the Pages project. It does not exist yet - create
+#                              it as **Direct Upload**, not Git-connected, or
+#                              Cloudflare will try to build this itself and fail.
+
+name: Deploy web
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_sentry:
+        description: 'Build without uploading source maps (traces stay minified)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: build & deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # Keep in step with FLUTTER_VERSION in ci.yml. A deploy built on a
+          # different toolchain than the one CI proved is not the same artifact.
+          flutter-version: '3.38.5'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # The commit being deployed may not be the one CI last looked at - a
+      # manual dispatch can name any ref. Cheaper to re-verify than to deploy a
+      # build nobody analysed.
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        run: flutter test --exclude-tags golden
+
+      # env.prod.json is gitignored, so it does not exist on the runner. The
+      # release script fails without it rather than silently building against
+      # some other environment.
+      - name: Write env.prod.json
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        run: |
+          for var in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY; do
+            if [ -z "${!var}" ]; then
+              echo "::error::$var is not set. The app throws at startup without it."
+              exit 1
+            fi
+          done
+          if [ -z "$SENTRY_DSN" ]; then
+            echo "::warning::SENTRY_DSN is empty - this build reports no crashes."
+          fi
+          jq -n \
+            --arg url "$SUPABASE_URL" \
+            --arg key "$SUPABASE_PUBLISHABLE_KEY" \
+            --arg dsn "$SENTRY_DSN" \
+            '{SUPABASE_URL: $url, SUPABASE_PUBLISHABLE_KEY: $key, SENTRY_DSN: $dsn}' \
+            > env.prod.json
+
+      - name: Build and upload source maps
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: |
+          if [ "${{ inputs.skip_sentry }}" = "true" ]; then
+            ./scripts/build-web-release.sh --no-upload
+          else
+            ./scripts/build-web-release.sh
+          fi
+
+      # _headers and _redirects are copied verbatim out of web/ by the build.
+      # If either is missing the deploy still succeeds and the app is quietly
+      # wrong: no CSP, or a hard refresh on /products/abc returning 404.
+      - name: Verify the host config shipped
+        run: |
+          fail=0
+          for f in _headers _redirects; do
+            [ -f "build/web/$f" ] || { echo "::error::build/web/$f is missing"; fail=1; }
+          done
+          grep -q 'ingest' build/web/_headers || {
+            echo "::error::_headers has no Sentry ingest origin in connect-src - crash reports will be blocked"; fail=1; }
+          exit $fail
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # build/web is the directory the Sentry step just rewrote. Deploy it
+          # as-is; do not rebuild.
+          command: >-
+            pages deploy app/build/web
+            --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME }}
+            --commit-dirty=true
+          workingDirectory: .
+
+      - name: What to check
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ### Deployed. Three things only a browser can confirm
+
+          1. **No CSP violations** in the console on first load. If CanvasKit is
+             blocked the app renders nothing; if the Sentry origin is blocked
+             the app looks fine and reports nothing.
+          2. **`/legal/privacy.html` resolves** in a private window. The
+             catch-all rewrite in `_redirects` must not swallow files that exist.
+          3. **Sentry symbolication** — trigger an error and check the issue
+             names Dart functions, and that its Release matches the string the
+             build script printed.
+          EOF
