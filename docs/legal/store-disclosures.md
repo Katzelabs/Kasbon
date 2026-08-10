@@ -15,8 +15,12 @@ the reason is written down — that reasoning is the part that gets lost.
 - The app collects: account email, optional name and phone, the shop's own
   business records, customer names typed by the shop owner, and photos
   (products, payment proofs).
-- **No third-party SDK collects anything.** There is no Firebase, no
-  Crashlytics, no Sentry, no ad network, no attribution SDK. The "analytics" in
+- **One third-party SDK collects anything, and only on a crash.** Sentry
+  (`dbd6c28`) sends a crash report to servers in the EU: error type, stack trace,
+  app version, device and OS, and the account UUID. Everything else is stripped
+  by field name before sending, and `attachScreenshot`/`attachViewHierarchy` are
+  off — a POS screenshot *is* the cart. There is still no Firebase, no
+  Crashlytics, no ad network and no attribution SDK, and the "analytics" in
   `features/reports/` is the shop's own sales reporting, computed by Postgres
   RPCs from the shop's own rows.
 - Nothing is shared with a third party for that party's own purposes. Supabase
@@ -87,8 +91,20 @@ Notes per row, in the order above:
 | Calendar, Contacts | No permission declared |
 | App activity (interactions, search history, installed apps, in-app search) | No analytics SDK; nothing records in-app behaviour off-device |
 | Web browsing history | Not applicable |
-| App info and performance (crash logs, diagnostics, other) | No crash-reporting SDK |
 | Device or other IDs | No advertising ID, no device ID is read or transmitted |
+
+**App info and performance → Crash logs and Diagnostics are YES.** This row moved
+out of the table above when Sentry shipped (`dbd6c28`, 9 Aug 2026) and is the one
+answer on the form that changed after the first draft. Declare *Crash logs* and
+*Diagnostics* as collected, **not** shared, and purpose **App functionality** only
+— not analytics, which on Play's form implies product measurement the app does
+not do. Mark both as *not* optional: the report is automatic and there is no
+in-app toggle. *Other app performance data* stays No.
+
+The declaration must agree with policy section 2.7, which describes what leaves
+the device: error type, stack trace, app version, device and OS, and the account
+UUID — after `PiiScrubber` removes named fields, and with screenshots and view
+hierarchies never attached.
 
 **Server logs and IP addresses.** Supabase records infrastructure logs holding
 IP addresses and request metadata, used for security and troubleshooting. Play's
@@ -135,15 +151,21 @@ measurement.
 | User Content → **Photos or Videos** | Yes | Yes | No | App Functionality |
 | User Content → **Other User Content** | Yes | Yes | No | App Functionality |
 | Identifiers → **User ID** | Yes | Yes | No | App Functionality |
+| Diagnostics → **Crash Data** | Yes | Yes | No | App Functionality |
+| Diagnostics → **Performance Data** | Yes | Yes | No | App Functionality |
 
 *Other User Content* covers customer names, product and category names,
 transaction notes, and receipt text. *Other Financial Info* covers the sales,
 profit and debt records — Apple's *Payment Info* and *Purchase History* are both
 No, for the same reason as on the Play form.
 
+*Crash Data* and *Performance Data* are linked to the user because the report
+carries the account UUID for grouping — Apple's question is whether the data
+*can* be tied to an identity, and it can. *Other Diagnostic Data* stays No.
+
 Answer **"Data Not Collected"** for: Health & Fitness, Location, Sensitive Info,
-Contacts, Browsing History, Search History, Identifiers → Device ID, Usage Data,
-and Diagnostics.
+Contacts, Browsing History, Search History, Identifiers → Device ID, and Usage
+Data. (Diagnostics used to be on this list; Sentry moved it.)
 
 ### Two more things App Store Connect will ask for
 

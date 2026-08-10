@@ -128,7 +128,7 @@
   <header>
     <p class="wordmark">KASBON</p>
     <h1>Privacy Policy</h1>
-    <p class="meta">Effective 4 August 2026 · Version 1.0</p>
+    <p class="meta">Effective 10 August 2026 · Version 1.1</p>
     <p class="lang">
       <a href="privacy.html">Baca halaman ini dalam Bahasa Indonesia</a> —
       the Indonesian version is the authoritative text; this translation is provided for convenience.
@@ -220,11 +220,32 @@
     </li>
   </ul>
 
+  <h3>2.7 Crash reports</h3>
+  <p>
+    When the app hits an error or stops unexpectedly, an automatic crash report is sent to
+    <strong>Sentry</strong> (Functional Software, Inc.), which we run on servers in the European Union. The report
+    contains the error type, a stack trace, the app version, and the device and OS type.
+  </p>
+  <p>
+    Before it is sent, the report is filtered automatically by field name: customer names, money amounts,
+    passwords, session tokens, email addresses and photo file paths are removed and replaced with a marker.
+    Screenshots and view hierarchies are <strong>never</strong> attached — a point-of-sale screen holds the
+    contents of a sale and often a customer's name. The only identifier included is your account ID, used to group
+    reports coming from one user.
+  </p>
+  <p>
+    These reports are used solely to find and fix faults. We do not use them for analytics, advertising, or
+    behavioural tracking.
+  </p>
+
   <h2>3. What we do not do</h2>
   <ul>
     <li>We do not sell or rent your data to anyone.</li>
     <li>We show no advertising and send nothing to ad networks.</li>
-    <li>The app contains no third-party analytics SDK, tracker, or fingerprinting code.</li>
+    <li>
+      The app contains no third-party analytics SDK, tracker, or fingerprinting code. The one third-party SDK in
+      the app is crash reporting (section 2.7), which records nothing while the app is running normally.
+    </li>
     <li>We do not track you across other companies' apps or websites.</li>
     <li>We do not collect location, contact lists, or biometric data.</li>
     <li>We do not process payments and never receive card numbers or bank credentials.</li>
@@ -322,6 +343,11 @@
           <td>Sends verification and password-recovery emails</td>
           <td>Your email address and the one-time code</td>
         </tr>
+        <tr>
+          <td>Functional Software, Inc. (Sentry)</td>
+          <td>Application crash reporting</td>
+          <td>Technical error traces, app version, device type and account ID — none of your business data</td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -399,7 +425,7 @@
   </ul>
 
   <footer>
-    <p>© 2026 KASBON. Privacy Policy version 1.0, effective 4 August 2026.</p>
+    <p>© 2026 KASBON. Privacy Policy version 1.1, effective 10 August 2026.</p>
   </footer>
 </main>
 </body>

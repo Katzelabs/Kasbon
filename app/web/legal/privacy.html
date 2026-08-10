@@ -128,7 +128,7 @@
   <header>
     <p class="wordmark">KASBON</p>
     <h1>Kebijakan Privasi</h1>
-    <p class="meta">Berlaku sejak 4 Agustus 2026 · Versi 1.0</p>
+    <p class="meta">Berlaku sejak 10 Agustus 2026 · Versi 1.1</p>
     <p class="lang"><a href="privacy-en.html">Read this page in English</a></p>
   </header>
 
@@ -221,11 +221,33 @@
     </li>
   </ul>
 
+  <h3>2.7 Laporan kerusakan aplikasi</h3>
+  <p>
+    Ketika aplikasi mengalami gangguan atau berhenti mendadak, sebuah laporan kerusakan otomatis dikirim ke
+    <strong>Sentry</strong> (Functional Software, Inc.), yang kami jalankan di server Uni Eropa. Laporan berisi jenis
+    kesalahan, jejak kode (<em>stack trace</em>), versi aplikasi, serta jenis perangkat dan sistem operasi.
+  </p>
+  <p>
+    Sebelum dikirim, laporan disaring otomatis berdasarkan nama kolom: nama pelanggan, nominal uang, kata sandi,
+    token sesi, alamat email, dan jalur berkas foto dihapus dan diganti penanda. Tangkapan layar dan struktur
+    tampilan <strong>tidak pernah</strong> ikut dikirim — layar kasir memuat isi belanja dan sering juga nama
+    pelanggan. Satu-satunya pengenal yang disertakan adalah ID akun Anda, dipakai untuk mengelompokkan laporan yang
+    berasal dari satu pengguna.
+  </p>
+  <p>
+    Laporan ini hanya dipakai untuk menemukan dan memperbaiki gangguan. Kami tidak memakainya untuk analitik,
+    iklan, atau pelacakan perilaku.
+  </p>
+
   <h2>3. Yang tidak kami lakukan</h2>
   <ul>
     <li>Kami tidak menjual atau menyewakan data Anda kepada siapa pun.</li>
     <li>Kami tidak menampilkan iklan dan tidak mengirim data Anda ke jaringan iklan.</li>
-    <li>Kami tidak memasang SDK analitik pihak ketiga, pelacak, atau <em>fingerprinting</em> di dalam aplikasi.</li>
+    <li>
+      Kami tidak memasang SDK analitik pihak ketiga, pelacak, atau <em>fingerprinting</em> di dalam aplikasi.
+      Satu-satunya SDK pihak ketiga di dalam aplikasi adalah pelaporan kerusakan (bagian 2.7), yang tidak merekam
+      apa pun selama aplikasi berjalan normal.
+    </li>
     <li>Kami tidak melacak aktivitas Anda di aplikasi atau situs milik pihak lain.</li>
     <li>Kami tidak mengumpulkan lokasi, daftar kontak, maupun data biometrik.</li>
     <li>Kami tidak memproses pembayaran dan tidak pernah menerima nomor kartu atau kredensial rekening.</li>
@@ -325,6 +347,11 @@
           <td>Pengiriman email verifikasi dan pemulihan kata sandi</td>
           <td>Alamat email dan kode sekali pakai</td>
         </tr>
+        <tr>
+          <td>Functional Software, Inc. (Sentry)</td>
+          <td>Pelaporan kerusakan aplikasi</td>
+          <td>Jejak kesalahan teknis, versi aplikasi, jenis perangkat, dan ID akun — tanpa isi data usaha Anda</td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -407,7 +434,7 @@
   </ul>
 
   <footer>
-    <p>© 2026 KASBON. Kebijakan Privasi versi 1.0, berlaku sejak 4 Agustus 2026.</p>
+    <p>© 2026 KASBON. Kebijakan Privasi versi 1.1, berlaku sejak 10 Agustus 2026.</p>
   </footer>
 </main>
 </body>
