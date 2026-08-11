@@ -103,6 +103,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Parse every shell script. Nothing else in CI opens them: they are run by
+      # hand, so a syntax error waits until the day you need the script and then
+      # costs you the deploy you were in the middle of.
+      #
+      # The specific trap this exists for: push-auth-config.sh builds its payload
+      # inside a single-quoted shell string, so an apostrophe in one of the jq
+      # comments ends the string and the rest parses as shell. An edit adding the
+      # word "Resend's" broke it exactly that way. This step is one second and
+      # would have caught it.
+      - name: Shell script syntax
+        run: |
+          fail=0
+          for f in $(git ls-files '*.sh'); do
+            bash -n "$f" || { echo "::error file=$f::does not parse"; fail=1; }
+          done
+          exit $fail
+
       # Pinned, for the same reason FLUTTER_VERSION is - and for one more:
       # `version: latest` makes the action resolve the tag through
       # api.github.com/repos/supabase/cli/releases/latest on every run, which is

@@ -84,6 +84,14 @@ fi
 #   * mailer_autoconfirm is the INVERSE of config.toml's enable_confirmations.
 #     true means "skip confirmation entirely" — the opposite of what we want.
 #   * smtp_port is a STRING in this API, not an integer.
+#
+# NO APOSTROPHES IN THE COMMENTS BELOW. Everything from the opening quote of the
+# jq program to its closing quote is one single-quoted shell string, so a `'` in
+# a jq comment ends that string, and the rest of the payload is then parsed as
+# shell. Every original comment in this block avoids them for that reason; an
+# edit that wrote "Resend's" broke the script at parse time, which is a failure
+# you only meet when you next try to run it. `bash -n` catches it in a second
+# and CI now does exactly that.
 
 PAYLOAD="$(jq -n \
   --arg site_url "$SITE_URL" \
@@ -127,17 +135,24 @@ PAYLOAD="$(jq -n \
     smtp_port: "587",
     smtp_user: "resend",
     smtp_pass: $smtp_pass,
-    # The APEX, deliberately, while Resend is on the free plan - which allows
-    # exactly one verified domain. Resend verifies a domain, not a tree: a
-    # verified katzeapps.com does NOT authorise noreply@kasbon.katzeapps.com,
-    # each subdomain needs its own records. Spending the single slot on the
-    # apex covers every Katzelabs app through the local part; spending it on
-    # kasbon.katzeapps.com would spend it on one app.
+    # An address at the APEX, and a monitored one rather than a noreply.
     #
-    # Resend's own advice is the opposite - send from a subdomain so one
-    # product's reputation cannot sink another's. That is worth doing on a plan
-    # with more than one slot, and worth ignoring at 3,000 mails a month.
-    smtp_admin_email: "noreply@katzeapps.com",
+    # Apex, because the Resend free plan allows exactly one verified domain, and
+    # Resend verifies a domain rather than a tree: a verified katzeapps.com does
+    # NOT authorise anything@kasbon.katzeapps.com - every subdomain needs its own
+    # records and its own slot. One slot spent on the apex covers every Katzelabs
+    # app through the local part; spent on a subdomain it covers one app. The
+    # advice from Resend is the reverse - one subdomain per product, so that one
+    # product cannot sink the reputation of another - and that becomes right
+    # again on Pro, which allows ten domains.
+    #
+    # Monitored, because this is the same address that gets delivered to a real
+    # inbox, and it is SupportContacts.supportEmail. A warung owner who replies
+    # to a verification code asking for help then reaches a human rather than a
+    # black hole. Neither mail template tells anyone not to reply, so a noreply
+    # sender would have been quietly lying. The cost is bounces landing in that
+    # same inbox, which at this volume is nothing.
+    smtp_admin_email: "kasbon@katzeapps.com",
     smtp_sender_name: "KASBON",
     smtp_max_frequency: 1,
 
