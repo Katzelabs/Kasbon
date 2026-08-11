@@ -26,7 +26,7 @@ class SupportContacts {
   /// the web build, so the URL path is the file path. This pointed at
   /// `/terms` - a path nothing served - while the row for it sat live in
   /// *Tentang Aplikasi → Legal*.
-  static const String termsUrl = 'https://kasbon.katzeapps.com/legal/terms.html';
+  static const String termsUrl = 'https://kasbonapp.katzeapps.com/legal/terms.html';
 
   /// The published privacy policy.
   ///
@@ -35,7 +35,7 @@ class SupportContacts {
   /// actually ships rather than at a path someone intends to create.
   /// `app/web/legal/privacy.html` is copied into the web build verbatim, so
   /// whatever host serves the web app serves the policy at this address.
-  static const String privacyUrl = 'https://kasbon.katzeapps.com/legal/privacy.html';
+  static const String privacyUrl = 'https://kasbonapp.katzeapps.com/legal/privacy.html';
 
   /// The account-deletion page, declared in the Play Console as the app's
   /// deletion URL.
@@ -46,7 +46,7 @@ class SupportContacts {
   /// the app. Same arrangement as [privacyUrl]: `app/web/legal/hapus-akun.html`
   /// ships inside the web build, so the URL path is the file path.
   static const String accountDeletionUrl =
-      'https://kasbon.katzeapps.com/legal/hapus-akun.html';
+      'https://kasbonapp.katzeapps.com/legal/hapus-akun.html';
 
   /// Deep link into WhatsApp with the greeting already typed.
   static Uri get whatsAppUri => Uri.parse(

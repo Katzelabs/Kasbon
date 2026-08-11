@@ -20,8 +20,8 @@ is a static page that ships with the web build.
 verbatim, so whatever host serves the web app also serves the policy:
 
 ```
-https://kasbon.katzeapps.com/legal/privacy.html
-https://kasbon.katzeapps.com/legal/privacy-en.html
+https://kasbonapp.katzeapps.com/legal/privacy.html
+https://kasbonapp.katzeapps.com/legal/privacy-en.html
 ```
 
 That address is `SupportContacts.privacyUrl`, which is what the in-app rows
@@ -111,7 +111,7 @@ Blocking, in rough order:
       unlike the janitor. Until it runs, the app's row calls a function that is
       not there, and a reviewer will find that in one tap. Enter
       `SupportContacts.accountDeletionUrl`
-      (`https://kasbon.katzeapps.com/legal/hapus-akun.html`) under App content → Data
+      (`https://kasbonapp.katzeapps.com/legal/hapus-akun.html`) under App content → Data
       deletion; it is the same file-ships-with-the-web-build arrangement as the
       policy, and `test/unit/legal/account_deletion_page_test.dart` guards it.
 - [ ] **Have the terms reviewed by a lawyer.** `terms.html` is drafted from what

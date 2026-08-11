@@ -27,8 +27,11 @@
 #   SUPABASE_AUTH_SMTP_PASS   The Resend API key (re_…) used as the SMTP password.
 #
 # Optional:
-#   SUPABASE_AUTH_SITE_URL    Defaults to https://kasbon.katzeapps.com. Override while the
-#                             app still lives on a *.pages.dev preview domain.
+#   SUPABASE_AUTH_SITE_URL    Defaults to https://kasbonapp.katzeapps.com.
+#                             Override while the app still lives on a
+#                             *.pages.dev preview domain. Note this is the APP
+#                             host, not the landing page at kasbon.katzeapps.com
+#                             — it is where the auth flow returns to.
 #   SUPABASE_PROJECT_REF      Defaults to the linked project.
 #
 # Both required values are real secrets. Prefer a shell that sources them from a
@@ -55,7 +58,7 @@ command -v jq >/dev/null || fail "jq is required."
 PROJECT_REF="${SUPABASE_PROJECT_REF:-$(cat supabase/.temp/project-ref 2>/dev/null || true)}"
 [[ -n "$PROJECT_REF" ]] || fail "no project ref. Run 'supabase link' or set SUPABASE_PROJECT_REF."
 
-SITE_URL="${SUPABASE_AUTH_SITE_URL:-https://kasbon.katzeapps.com}"
+SITE_URL="${SUPABASE_AUTH_SITE_URL:-https://kasbonapp.katzeapps.com}"
 
 CONFIRMATION_TEMPLATE="supabase/templates/confirmation.html"
 RECOVERY_TEMPLATE="supabase/templates/recovery.html"
@@ -139,8 +142,8 @@ PAYLOAD="$(jq -n \
     #
     # Apex, because the Resend free plan allows exactly one verified domain, and
     # Resend verifies a domain rather than a tree: a verified katzeapps.com does
-    # NOT authorise anything@kasbon.katzeapps.com - every subdomain needs its own
-    # records and its own slot. One slot spent on the apex covers every Katzelabs
+    # NOT authorise anything@kasbonapp.katzeapps.com - every subdomain needs
+    # its own records and its own slot. One slot on the apex covers every Katzelabs
     # app through the local part; spent on a subdomain it covers one app. The
     # advice from Resend is the reverse - one subdomain per product, so that one
     # product cannot sink the reputation of another - and that becomes right
