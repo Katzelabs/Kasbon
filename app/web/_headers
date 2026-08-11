@@ -11,7 +11,8 @@
 # Everything in web/ is copied verbatim into build/web/, which is what deploys -
 # the same mechanism that ships _redirects and the legal pages.
 #
-# Two origins here are easy to leave out, and both fail quietly:
+# Three entries in connect-src are easy to leave out, and all three fail
+# quietly:
 #
 #   - the Sentry ingest host. Crash reports are a POST governed by connect-src.
 #     Omit it and every report is blocked in the browser, the dashboard stays
@@ -24,12 +25,21 @@
 #     self-hosts CanvasKit and lets both gstatic entries go - worth doing, since
 #     the privacy policy promises no third parties.
 #
+#   - blob: in connect-src, not only in img-src and worker-src. Picking a photo
+#     on web hands back an XFile whose path is a blob: URL, and the
+#     readAsBytes() every picker call site uses reads it with an XHR - a fetch,
+#     so connect-src governs it, not img-src. Without it product images and
+#     payment proofs cannot be uploaded at all on web, and the only symptom is
+#     a CSP line in the console. blob: URLs are minted by this origin and
+#     cannot address anything remote, so allowing the scheme exfiltrates
+#     nothing.
+#
 # The Supabase origin is per-environment, which is the other reason this is not
 # baked into the bundle. Update both supabase.co entries when the project ref
 # changes.
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://qnacxjlbmdopwvikkocq.supabase.co; font-src 'self' data:; connect-src 'self' https://qnacxjlbmdopwvikkocq.supabase.co wss://qnacxjlbmdopwvikkocq.supabase.co https://o4511879257915392.ingest.de.sentry.io https://www.gstatic.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://qnacxjlbmdopwvikkocq.supabase.co; font-src 'self' data:; connect-src 'self' blob: https://qnacxjlbmdopwvikkocq.supabase.co wss://qnacxjlbmdopwvikkocq.supabase.co https://o4511879257915392.ingest.de.sentry.io https://www.gstatic.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

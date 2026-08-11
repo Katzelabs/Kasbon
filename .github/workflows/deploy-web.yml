@@ -126,8 +126,18 @@ jobs:
           for f in _headers _redirects; do
             [ -f "build/web/$f" ] || { echo "::error::build/web/$f is missing"; fail=1; }
           done
-          grep -q 'ingest' build/web/_headers || {
-            echo "::error::_headers has no Sentry ingest origin in connect-src - crash reports will be blocked"; fail=1; }
+          # Read the policy off the header line itself, not the whole file - the
+          # comments above it name these same directives.
+          connect=$(grep -m1 '^[[:space:]]*Content-Security-Policy:' build/web/_headers \
+            | grep -o 'connect-src[^;]*' || true)
+          case "$connect" in
+            *ingest*) ;;
+            *) echo "::error::connect-src has no Sentry ingest origin - crash reports will be blocked"; fail=1 ;;
+          esac
+          case "$connect" in
+            *blob:*) ;;
+            *) echo "::error::connect-src has no blob: - readAsBytes on a picked photo is an XHR against a blob: URL, so image upload is blocked on web"; fail=1 ;;
+          esac
           exit $fail
 
       - name: Deploy to Cloudflare Pages
