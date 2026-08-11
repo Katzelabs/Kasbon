@@ -33,6 +33,13 @@
 #                             host, not the landing page at kasbon.katzeapps.com
 #                             — it is where the auth flow returns to.
 #   SUPABASE_PROJECT_REF      Defaults to the linked project.
+#   SUPABASE_AUTH_PRO         Set to 1 on a Pro-or-above project to include the
+#                             settings that need a paid plan. Off by default,
+#                             because the Management API rejects the WHOLE patch
+#                             with 402 when one of them appears on a Free
+#                             project — so a single paid-only field silently
+#                             costs you every other setting in this file.
+#                             Today that is leaked-password protection.
 #
 # Both required values are real secrets. Prefer a shell that sources them from a
 # secret store, or CI secrets, over typing them inline where they land in shell
@@ -96,7 +103,17 @@ fi
 # you only meet when you next try to run it. `bash -n` catches it in a second
 # and CI now does exactly that.
 
+if [[ "${SUPABASE_AUTH_PRO:-0}" == "1" ]]; then
+  PRO_JSON=true
+else
+  PRO_JSON=false
+  echo "note: leaked-password protection is NOT being set, because it needs a" >&2
+  echo "      Pro project and the API would reject the entire patch with 402." >&2
+  echo "      Set SUPABASE_AUTH_PRO=1 after upgrading." >&2
+fi
+
 PAYLOAD="$(jq -n \
+  --argjson pro "$PRO_JSON" \
   --arg site_url "$SITE_URL" \
   --arg uri_allow_list "${SITE_URL},${SITE_URL}/*" \
   --arg pw_chars "abcdefghijklmnopqrstuvwxyz:ABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789" \
@@ -112,11 +129,6 @@ PAYLOAD="$(jq -n \
     # reaching the API another way could set something the UI would reject.
     password_min_length: 8,
     password_required_characters: $pw_chars,
-
-    # Rejects passwords found in known breaches. No config.toml equivalent —
-    # this one really is production-only, but it is API-settable, not
-    # click-only.
-    password_hibp_enabled: true,
 
     # A stolen session must not become a permanent lockout by silently
     # changing the password. Does not affect recovery, which verifies an OTP
@@ -164,7 +176,17 @@ PAYLOAD="$(jq -n \
     mailer_templates_confirmation_content: $confirmation_content,
     mailer_subjects_recovery: "Kode reset password KASBON",
     mailer_templates_recovery_content: $recovery_content
-  }')"
+  }
+  + (if $pro then
+       # Rejects passwords found in known breaches. No config.toml equivalent -
+       # this one really is production-only, but it is API-settable rather than
+       # click-only.
+       #
+       # Omitted entirely rather than sent as false on a Free project. Sending
+       # false would look harmless and would silently switch the protection back
+       # off the day after someone upgrades and turns it on in the dashboard.
+       { password_hibp_enabled: true }
+     else {} end)')"
 
 API="https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth"
 
@@ -219,11 +241,36 @@ fi
 
 echo
 echo "==> Applying to ${PROJECT_REF}"
-curl -sS --fail-with-body -X PATCH \
+# The response body is the only thing that says WHY a patch was refused, so it
+# is captured rather than discarded. This used to end in `> /dev/null`, which
+# threw away the explanation at exactly the moment it was needed and left
+# "PATCH failed." as the entire diagnosis of a 402.
+RESPONSE="$(curl -sS -X PATCH \
   -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   --data "$PAYLOAD" \
-  "$API" > /dev/null || fail "PATCH failed."
+  -w $'\n%{http_code}' \
+  "$API")" || fail "could not reach the Management API."
+
+HTTP_CODE="${RESPONSE##*$'\n'}"
+BODY="${RESPONSE%$'\n'*}"
+
+if [[ "$HTTP_CODE" != 2?? ]]; then
+  echo "error: the API refused the patch (HTTP ${HTTP_CODE})." >&2
+  jq . <<<"$BODY" >&2 2>/dev/null || echo "$BODY" >&2
+  if [[ "$HTTP_CODE" == "402" ]]; then
+    cat >&2 <<'EOF'
+
+402 means a setting in this payload needs a paid plan. The API rejects the
+ENTIRE patch rather than the offending field, so nothing was applied - not the
+OTP length, not the password policy, not the templates.
+
+The usual cause is SUPABASE_AUTH_PRO=1 on a project that is not Pro. Unset it
+and re-run; leaked-password protection is then left alone rather than set.
+EOF
+  fi
+  exit 1
+fi
 
 cat <<EOF
 

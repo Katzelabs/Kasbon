@@ -349,7 +349,17 @@ are the mistakes worth knowing about:
   means "skip confirmation entirely" — the opposite of what this app wants.
 - **`smtp_port` is a string**, not an integer.
 - **`password_hibp_enabled` (leaked-password protection) has no `config.toml`
-  equivalent** but *is* API-settable. It is production-only, not click-only.
+  equivalent** but *is* API-settable. It is production-only, not click-only —
+  and it **needs a Pro project**, so the script omits it unless
+  `SUPABASE_AUTH_PRO=1`.
+
+**A paid-only setting fails the whole patch, not itself.** The Management API
+answers `402` and applies *nothing* — not the OTP length, not the password
+policy, not the templates — so one Pro-only field in the payload silently costs
+you every other setting in it. That happened on 2026-08-11: the config looked
+applied, and production was still on 8-digit OTPs against an app that accepts 6.
+Flip `SUPABASE_AUTH_PRO=1` on the day the project upgrades, and never send a
+paid-only field speculatively.
 
 **SMTP is not verified when it is set.** The API accepts credentials without
 testing them, so a wrong Resend key looks exactly like a working one until the
