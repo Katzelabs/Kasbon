@@ -55,6 +55,6 @@ void main() {
     expect(source, contains('90 hari'));
     expect(source, contains('Singapura'));
     expect(source, contains('bukti pembayaran'));
-    expect(source, contains('support@kasbon.app'));
+    expect(source, contains(SupportContacts.supportEmail));
   });
 }

@@ -27,7 +27,7 @@
 #   SUPABASE_AUTH_SMTP_PASS   The Resend API key (re_…) used as the SMTP password.
 #
 # Optional:
-#   SUPABASE_AUTH_SITE_URL    Defaults to https://kasbon.app. Override while the
+#   SUPABASE_AUTH_SITE_URL    Defaults to https://kasbon.katzeapps.com. Override while the
 #                             app still lives on a *.pages.dev preview domain.
 #   SUPABASE_PROJECT_REF      Defaults to the linked project.
 #
@@ -55,7 +55,7 @@ command -v jq >/dev/null || fail "jq is required."
 PROJECT_REF="${SUPABASE_PROJECT_REF:-$(cat supabase/.temp/project-ref 2>/dev/null || true)}"
 [[ -n "$PROJECT_REF" ]] || fail "no project ref. Run 'supabase link' or set SUPABASE_PROJECT_REF."
 
-SITE_URL="${SUPABASE_AUTH_SITE_URL:-https://kasbon.app}"
+SITE_URL="${SUPABASE_AUTH_SITE_URL:-https://kasbon.katzeapps.com}"
 
 CONFIRMATION_TEMPLATE="supabase/templates/confirmation.html"
 RECOVERY_TEMPLATE="supabase/templates/recovery.html"
@@ -127,7 +127,7 @@ PAYLOAD="$(jq -n \
     smtp_port: "587",
     smtp_user: "resend",
     smtp_pass: $smtp_pass,
-    smtp_admin_email: "noreply@kasbon.app",
+    smtp_admin_email: "noreply@kasbon.katzeapps.com",
     smtp_sender_name: "KASBON",
     smtp_max_frequency: 1,
 

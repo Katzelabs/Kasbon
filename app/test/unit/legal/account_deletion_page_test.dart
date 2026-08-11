@@ -56,7 +56,7 @@ void main() {
     expect(source, contains('password'));
     expect(source, contains('HAPUS'));
     expect(source, contains('24 jam'));
-    expect(source, contains('support@kasbon.app'));
+    expect(source, contains(SupportContacts.supportEmail));
   });
 
   test('the English page names the same in-app labels, untranslated', () {

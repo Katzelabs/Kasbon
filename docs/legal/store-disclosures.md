@@ -123,7 +123,7 @@ without installing the app. Both exist:
 | Route | Where |
 |---|---|
 | In-app | *Pengaturan → Akun → Hapus Akun* |
-| Web | `https://kasbon.app/legal/hapus-akun.html` (`app/web/legal/hapus-akun.html`) |
+| Web | `https://kasbon.katzeapps.com/legal/hapus-akun.html` (`app/web/legal/hapus-akun.html`) |
 
 Enter the web URL in Play Console → App content → **Data deletion**. It ships
 from the same folder as the policy and by the same mechanism, so the hosting
@@ -170,7 +170,7 @@ Data. (Diagnostics used to be on this list; Sentry moved it.)
 ### Two more things App Store Connect will ask for
 
 - **Privacy Policy URL** — set it on the App Information page:
-  `https://kasbon.app/legal/privacy.html`. The English page can go in as the
+  `https://kasbon.katzeapps.com/legal/privacy.html`. The English page can go in as the
   localised URL for the en-US listing.
 - **Account deletion (Guideline 5.1.1(v))** — an app that supports account
   creation must offer account deletion *from inside the app*. Tracked with the
