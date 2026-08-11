@@ -127,7 +127,17 @@ PAYLOAD="$(jq -n \
     smtp_port: "587",
     smtp_user: "resend",
     smtp_pass: $smtp_pass,
-    smtp_admin_email: "noreply@kasbon.katzeapps.com",
+    # The APEX, deliberately, while Resend is on the free plan - which allows
+    # exactly one verified domain. Resend verifies a domain, not a tree: a
+    # verified katzeapps.com does NOT authorise noreply@kasbon.katzeapps.com,
+    # each subdomain needs its own records. Spending the single slot on the
+    # apex covers every Katzelabs app through the local part; spending it on
+    # kasbon.katzeapps.com would spend it on one app.
+    #
+    # Resend's own advice is the opposite - send from a subdomain so one
+    # product's reputation cannot sink another's. That is worth doing on a plan
+    # with more than one slot, and worth ignoring at 3,000 mails a month.
+    smtp_admin_email: "noreply@katzeapps.com",
     smtp_sender_name: "KASBON",
     smtp_max_frequency: 1,
 
