@@ -95,7 +95,14 @@ class ReceiptPreviewWidget extends StatelessWidget {
               child: SelectableText(
                 receiptText,
                 style: TextStyle(
-                  fontFamily: 'monospace',
+                  // Bundled, not the generic 'monospace' family. On web there
+                  // are no system fonts to resolve a generic name against, and
+                  // CanvasKit's fallback download (fonts.gstatic.com) is
+                  // blocked by the production CSP - which rendered the whole
+                  // struk as invisible glyphs. 'monospace' stays as a fallback
+                  // for any glyph Roboto Mono itself does not carry.
+                  fontFamily: 'RobotoMono',
+                  fontFamilyFallback: const ['monospace'],
                   fontSize: fontSize,
                   color: txtColor,
                   height: 1.3,

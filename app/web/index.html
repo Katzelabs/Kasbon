@@ -43,19 +43,14 @@
        have carried is not worth it, so the whole policy now lives where it can
        also express the parts a meta tag never could:
 
-         Content-Security-Policy: default-src 'self';
-                                  script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com;
-                                  style-src 'self' 'unsafe-inline';
-                                  img-src 'self' data: blob: https://<ref>.supabase.co;
-                                  connect-src 'self' blob: https://<ref>.supabase.co wss://<ref>.supabase.co;
-                                  worker-src 'self' blob:;
-                                  object-src 'none';
-                                  base-uri 'self';
-                                  form-action 'self';
-                                  frame-ancestors 'none'
-         Strict-Transport-Security: max-age=31536000; includeSubDomains
-         X-Content-Type-Options: nosniff
-         Referrer-Policy: strict-origin-when-cross-origin
+         web/_headers  - the deployed Cloudflare Pages headers, and the single
+                         source of truth for the policy. Read it there.
+
+       A second copy used to be written out here and had already drifted from
+       what ships (it was missing font-src, the Sentry ingest host and
+       gstatic in connect-src), so it is deliberately not repeated. Each
+       directive in _headers carries the comment explaining what breaks
+       silently without it, which is the part worth keeping.
 
        Headers are strictly better here, not a concession: frame-ancestors is
        ignored in a meta tag by every browser, so clickjacking protection is a

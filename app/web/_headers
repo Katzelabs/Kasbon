@@ -11,8 +11,7 @@
 # Everything in web/ is copied verbatim into build/web/, which is what deploys -
 # the same mechanism that ships _redirects and the legal pages.
 #
-# Three entries in connect-src are easy to leave out, and all three fail
-# quietly:
+# Four entries are easy to leave out, and all four fail quietly:
 #
 #   - the Sentry ingest host. Crash reports are a POST governed by connect-src.
 #     Omit it and every report is blocked in the browser, the dashboard stays
@@ -34,12 +33,30 @@
 #     cannot address anything remote, so allowing the scheme exfiltrates
 #     nothing.
 #
+#   - fonts.gstatic.com in BOTH font-src and connect-src. CanvasKit has no
+#     system fonts: any glyph the bundled faces do not carry - an emoji in a
+#     shop name, a CJK character in a note - is fetched on demand from
+#     fontFallbackBaseUrl, which defaults to https://fonts.gstatic.com/s/, and
+#     the engine's own default face (Roboto) comes from there too. Blocked, the
+#     text renders as nothing at all: no box, no error, no missing-glyph mark,
+#     just blank space the same colour as the paper. That is exactly how the
+#     struk disappeared in production while every other screen looked fine -
+#     it asked for the generic family 'monospace' and got no font. It now ships
+#     RobotoMono as a bundled asset, so this entry is the safety net for
+#     everything else rather than the fix for that bug. Both directives are
+#     needed because the engine loads a font either as a fetch (connect-src) or
+#     through the FontFace API (font-src) depending on the path taken.
+#
+#     This adds no new third party: www.gstatic.com above already sends every
+#     visitor's IP to Google for CanvasKit, and --no-web-resources-cdn is what
+#     removes both at once.
+#
 # The Supabase origin is per-environment, which is the other reason this is not
 # baked into the bundle. Update both supabase.co entries when the project ref
 # changes.
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://qnacxjlbmdopwvikkocq.supabase.co; font-src 'self' data:; connect-src 'self' blob: https://qnacxjlbmdopwvikkocq.supabase.co wss://qnacxjlbmdopwvikkocq.supabase.co https://o4511879257915392.ingest.de.sentry.io https://www.gstatic.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://qnacxjlbmdopwvikkocq.supabase.co; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' blob: https://qnacxjlbmdopwvikkocq.supabase.co wss://qnacxjlbmdopwvikkocq.supabase.co https://o4511879257915392.ingest.de.sentry.io https://www.gstatic.com https://fonts.gstatic.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

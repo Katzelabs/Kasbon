@@ -150,3 +150,15 @@ flutter:
           weight: 700
         - asset: assets/fonts/PlusJakartaSans-ExtraBold.ttf
           weight: 800
+
+  # Roboto Mono (SIL Open Font License 1.1 - see assets/fonts/RobotoMono-OFL.txt).
+  # The receipt is 42 fixed-width characters wide, so it needs a real monospace
+  # face. It used to ask for the generic family 'monospace', which resolves on
+  # Android/iOS/macOS and resolves to nothing on web: CanvasKit has no system
+  # fonts and downloads its fallback (Roboto) from fonts.gstatic.com, which the
+  # production Content-Security-Policy blocks - so the struk rendered with no
+  # glyphs at all. Only the regular weight is bundled; the receipt has no bold.
+    - family: RobotoMono
+      fonts:
+        - asset: assets/fonts/RobotoMono-Regular.ttf
+          weight: 400
