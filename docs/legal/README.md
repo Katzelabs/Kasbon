@@ -13,7 +13,7 @@ is a static page that ships with the web build.
 |------|--------|
 | `app/web/legal/privacy.html` | Bahasa Indonesia — **the authoritative text** |
 | `app/web/legal/privacy-en.html` | English translation, for store reviewers |
-| `app/web/legal/terms.html`, `terms-en.html` | Syarat & Ketentuan — **draft, see below** |
+| `app/web/legal/terms.html`, `terms-en.html` | Syarat & Ketentuan — published, **not lawyer-reviewed** (see below) |
 | `app/web/legal/hapus-akun.html`, `hapus-akun-en.html` | The account-deletion request page Play requires, shipped by the same mechanism |
 
 `flutter build web` copies everything under `app/web/` into `build/web/`
@@ -91,15 +91,27 @@ Blocking, in rough order:
       user base. Verify it in the Supabase dashboard and correct section 5 if
       it is wrong. A policy that names the wrong country is a false statement
       about a cross-border transfer.
-- [ ] **Replace the placeholder contacts.** `SupportContacts` ships
-      `kasbon@katzeapps.com` and WhatsApp `+62 812-3456-7890`; the latter is
-      plainly a placeholder. Both appear in the policy and both are where a
-      deletion request will arrive. The mailbox has to exist and be monitored —
-      section 9 promises a reply within 30 days.
-- [ ] **Name the legal entity.** The policy currently says "the operator of the
-      KASBON app". UU PDP 27/2022 requires the controller to be identifiable,
-      and both stores want a developer name and address on the listing. Add the
-      entity name and business address to section 1 once it is registered.
+- [x] **Replace the placeholder WhatsApp number.** Done 2026-08-12 — the
+      placeholder `+62 812-3456-7890` became `+62 853-3341-6372` in
+      `SupportContacts` and in all six legal pages. Note the number lives in
+      *seven* places: the constant plus `privacy{,-en}`, `terms{,-en}` and
+      `hapus-akun{,-en}`. A sed that misses one leaves a dead deletion contact.
+      Do not touch the identical-looking literals in
+      `test/unit/core/utils/validators_test.dart` — those are phone-format
+      fixtures, not contacts.
+- [ ] **The support mailbox has to exist and be monitored.** `kasbon@katzeapps.com`
+      is where a deletion request arrives, and section 9 promises a reply within
+      30 days. Unlike the WhatsApp number, nothing in the repo can verify this.
+- [x] **Name the legal entity.** Done 2026-08-12 (ClickUp `86eykeacc`). The
+      operator is **Zidan Hafiz Rapiyani**, an individual — not a PT or CV — and
+      section 1 of all four documents says so in both languages. Deliberately
+      **name and email only, no address**: UU PDP 27/2022 requires the controller
+      to be *identifiable and reachable*, which a name plus a monitored mailbox
+      satisfies, and these pages are `robots: index, follow`. If a store console
+      demands a physical address, it belongs in that console, not on this page.
+      Two consequences of choosing individual over a badan usaha, both accepted:
+      a `.co.id` domain stays out of reach, and a personal Play account carries
+      the 14-day / 12-tester closed test that an organization account skips.
 - [ ] **Account deletion is implemented — deploy its Edge Function.** The
       policy's section 10 names an in-app route, *Pengaturan → Akun → Hapus
       Akun*, and an email fallback, and both now exist: the dialog, the
@@ -114,19 +126,31 @@ Blocking, in rough order:
       (`https://kasbonapp.katzeapps.com/legal/hapus-akun.html`) under App content → Data
       deletion; it is the same file-ships-with-the-web-build arrangement as the
       policy, and `test/unit/legal/account_deletion_page_test.dart` guards it.
-- [ ] **Have the terms reviewed by a lawyer.** `terms.html` is drafted from what
-      the app actually does and is accurate about the product, but a terms of
-      service allocates legal risk in a way a privacy policy does not. Three
-      sections are drafting, not advice, and need a real decision: **12**
-      (limitation of liability — how far can you actually disclaim under
-      Indonesian consumer and contract law), **13** (indemnity), and **15**
-      (governing law — it names "the competent courts in Indonesia" rather than
-      a specific jurisdiction). Section 1 also has to name the legal entity, the
-      same gap as the policy. Both files carry an HTML comment saying this;
-      remove it once reviewed.
+- [ ] **Have the terms reviewed by a lawyer** — still open, but no longer
+      blocking. The `DRAFT PENDING REVIEW` comment came out of both files on
+      2026-08-12 (ClickUp `86eykeacc`) after the three risk-allocating sections
+      were tightened without a lawyer:
+      - **§12** kept its disclaimer and gained an explicit **cap** (12 months of
+        fees, currently Rp 0) plus a carve-out naming kesengajaan, kelalaian
+        berat and UU PDP 27/2022. A cap survives Art. 18 UU 8/1999 scrutiny far
+        better than a blanket disclaimer, which is why it was added.
+      - **§13** indemnity is now mutual in the way that matters — it does not
+        reach claims arising from *our* breach, the user gets notice, and we do
+        not settle on their behalf.
+      - **§15** deliberately still says "pengadilan yang berwenang di Indonesia"
+        with no named court. That is a decision, not an omission: the Indonesian
+        default sends a suit to the defendant's domicile, which is ours, and
+        naming a specific PN would have meant publishing a city the operator
+        chose to keep off the page.
+
+      What a lawyer would still add: whether §12's cap holds against a user who
+      argues they are a *konsumen* despite §2, and whether §4's "not accounting
+      software" disclaimer is enough if a user relies on the profit figures for
+      a tax filing.
       Neither store *requires* terms — Play requires only a privacy policy, and
-      Apple applies its standard EULA where you supply none — so this is not a
-      submission blocker. It is a blocker for the row being live in the app.
+      Apple applies its standard EULA where you supply none — so this was never
+      a submission blocker. It was a blocker for the in-app row being honest,
+      and that is now cleared.
 - [ ] **Production SMTP is configured.** The policy names an email delivery
       provider as a processor. `config.toml` governs local dev only; without
       real SMTP on the hosted project, verification codes never arrive and the

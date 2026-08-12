@@ -9,10 +9,10 @@ class SupportContacts {
   SupportContacts._();
 
   /// Support number in international form, no `+` - what `wa.me` expects.
-  static const String whatsAppNumber = '6281234567890';
+  static const String whatsAppNumber = '6285333416372';
 
   /// The same number formatted the way an Indonesian user would read it back.
-  static const String whatsAppDisplay = '+62 812-3456-7890';
+  static const String whatsAppDisplay = '+62 853-3341-6372';
 
   /// Prefilled first message, so the conversation opens with context.
   static const String whatsAppGreeting =
